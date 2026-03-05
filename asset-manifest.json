@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/arfidwatch/static/css/main.64bc82e7.css",
-    "main.js": "/arfidwatch/static/js/main.1d98959f.js",
+    "main.css": "/arfidwatch/static/css/main.3f3fb082.css",
+    "main.js": "/arfidwatch/static/js/main.833728fd.js",
     "static/js/453.926f0775.chunk.js": "/arfidwatch/static/js/453.926f0775.chunk.js",
     "index.html": "/arfidwatch/index.html",
-    "main.64bc82e7.css.map": "/arfidwatch/static/css/main.64bc82e7.css.map",
-    "main.1d98959f.js.map": "/arfidwatch/static/js/main.1d98959f.js.map",
+    "main.3f3fb082.css.map": "/arfidwatch/static/css/main.3f3fb082.css.map",
+    "main.833728fd.js.map": "/arfidwatch/static/js/main.833728fd.js.map",
     "453.926f0775.chunk.js.map": "/arfidwatch/static/js/453.926f0775.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.64bc82e7.css",
-    "static/js/main.1d98959f.js"
+    "static/css/main.3f3fb082.css",
+    "static/js/main.833728fd.js"
   ]
 }
