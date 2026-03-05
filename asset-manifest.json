@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/YOUR_REPO/static/css/main.64bc82e7.css",
-    "main.js": "/YOUR_REPO/static/js/main.ed9034cd.js",
-    "static/js/453.926f0775.chunk.js": "/YOUR_REPO/static/js/453.926f0775.chunk.js",
-    "index.html": "/YOUR_REPO/index.html",
-    "main.64bc82e7.css.map": "/YOUR_REPO/static/css/main.64bc82e7.css.map",
-    "main.ed9034cd.js.map": "/YOUR_REPO/static/js/main.ed9034cd.js.map",
-    "453.926f0775.chunk.js.map": "/YOUR_REPO/static/js/453.926f0775.chunk.js.map"
+    "main.css": "/arfidwatch/static/css/main.64bc82e7.css",
+    "main.js": "/arfidwatch/static/js/main.43ec4476.js",
+    "static/js/453.926f0775.chunk.js": "/arfidwatch/static/js/453.926f0775.chunk.js",
+    "index.html": "/arfidwatch/index.html",
+    "main.64bc82e7.css.map": "/arfidwatch/static/css/main.64bc82e7.css.map",
+    "main.43ec4476.js.map": "/arfidwatch/static/js/main.43ec4476.js.map",
+    "453.926f0775.chunk.js.map": "/arfidwatch/static/js/453.926f0775.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.64bc82e7.css",
-    "static/js/main.ed9034cd.js"
+    "static/js/main.43ec4476.js"
   ]
 }
