@@ -1,13 +1,26 @@
 const knex = require('knex');
+const fs = require('fs');
 const path = require('path');
+
+const defaultDbPath = path.resolve(__dirname, 'data', 'health.db');
+const configuredDbPath = process.env.SQLITE_PATH
+  ? path.resolve(process.env.SQLITE_PATH)
+  : defaultDbPath;
+
+const dbDir = path.dirname(configuredDbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 const db = knex({
   client: 'sqlite3',
   connection: {
-    filename: path.resolve(__dirname, 'data', 'health.db'),
+    filename: configuredDbPath,
   },
   useNullAsDefault: true,
 });
+
+console.log(`SQLite DB path: ${configuredDbPath}`);
 
 // ensure tables exist
 async function setup() {
@@ -17,8 +30,28 @@ async function setup() {
         table.increments('id').primary();
         table.string('username').unique().notNullable();
         table.string('password').notNullable();
+        table.string('email').nullable();
+        table.string('reset_token').nullable();
+        table.datetime('reset_token_expires').nullable();
+        table.string('reset_code_hash').nullable();
+        table.datetime('reset_code_expires').nullable();
       });
     }
+  });
+  await db.schema.hasColumn('users', 'email').then(exists => {
+    if (!exists) return db.schema.table('users', t => t.string('email').nullable());
+  });
+  await db.schema.hasColumn('users', 'reset_token').then(exists => {
+    if (!exists) return db.schema.table('users', t => t.string('reset_token').nullable());
+  });
+  await db.schema.hasColumn('users', 'reset_token_expires').then(exists => {
+    if (!exists) return db.schema.table('users', t => t.datetime('reset_token_expires').nullable());
+  });
+  await db.schema.hasColumn('users', 'reset_code_hash').then(exists => {
+    if (!exists) return db.schema.table('users', t => t.string('reset_code_hash').nullable());
+  });
+  await db.schema.hasColumn('users', 'reset_code_expires').then(exists => {
+    if (!exists) return db.schema.table('users', t => t.datetime('reset_code_expires').nullable());
   });
   await db.schema.hasTable('health_data').then(exists => {
     if (!exists) {

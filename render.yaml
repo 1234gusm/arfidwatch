@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: arfidwatch-api
+    env: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SQLITE_PATH
+        value: /var/data/health.db
+      - key: SALT_ROUNDS
+        value: "12"
+      - key: RESET_CODE_TTL_MINUTES
+        value: "15"
+      - key: JWT_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+    disk:
+      name: arfidwatch-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -84,4 +84,33 @@ The React app will open in your browser at `http://localhost:3000`.
   then run your backend and `npm start` the React app inside the Electron build.
 * **History**: journal entries and moods are stored indefinitely — view past logs by navigating the calendar and exporting reports.
 
+## Deploying Backend To Render
+
+The repository includes `render.yaml` configured for the backend under `server/`.
+
+1. Push this repository to GitHub.
+2. In Render, create a new Web Service from this repository.
+3. Render should detect `render.yaml`. Keep:
+  - `rootDir: server`
+  - `buildCommand: npm install`
+  - `startCommand: npm start`
+4. Add/confirm env vars:
+  - `NODE_ENV=production`
+  - `JWT_SECRET=<long-random-secret>`
+  - `SQLITE_PATH=/var/data/health.db`
+  - `SALT_ROUNDS=12`
+5. Add a persistent disk mounted at `/var/data`.
+6. Optional for email reset codes in production:
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+7. Deploy latest commit.
+
+After deploy, verify your API is live and updated:
+
+```bash
+BASE="https://<your-render-service>.onrender.com"
+curl -sS "$BASE/api/profile"
+```
+
+If authenticated calls still fail after deploy, verify the service is running the latest commit and that `JWT_SECRET` is set.
+
 Feel free to customize visuals, analytics, or extend features as needed.
