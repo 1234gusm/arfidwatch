@@ -415,6 +415,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
   let sameHashImportIds = [];
   let parsedRowsForFoodLog = [];
   let isFoodLogFile = false;
+  let foodLogInserted = 0;
 
   try {
     // Find all previous imports of this exact file (both stats and food-log records)
@@ -603,6 +604,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           });
           const taggedFood = newFoodEntries.map(e => ({ ...e, import_id: foodlogImportId }));
           await insertInChunks('food_log_entries', taggedFood);
+          foodLogInserted = newFoodEntries.length;
         }
       }
     }
@@ -626,7 +628,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       const tagged = deduped.map(r => ({ ...r, import_id: importId }));
       await insertInChunks('health_data', tagged);
     }
-    res.json({ imported: deduped.length, skipped: skippedRows, skipped_duplicates: records.length - deduped.length, duplicateFile });
+    res.json({ imported: isFoodLogFile ? foodLogInserted : deduped.length, isFoodLogFile, skipped: skippedRows, skipped_duplicates: records.length - deduped.length, duplicateFile });
   } catch (err) {
     console.error('Macro import error:', err);
     res.status(500).json({ error: 'failed to import', details: err.message });

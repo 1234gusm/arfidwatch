@@ -117,7 +117,8 @@ function HealthPage({ token }) {
         });
         if (!res.ok) { alert('Failed to import MacroFactor file: ' + await res.text()); return; }
         const r = await res.json();
-        alert(buildImportAlertMessage({ ...r, label: 'MacroFactor records' }));
+        const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
+        alert(buildImportAlertMessage({ ...r, label }));
         fetchData(); fetchImports();
       } catch (err) {
         console.error('MacroFactor import error:', err);
