@@ -407,18 +407,19 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
   const ext = path.extname(req.file.originalname || req.file.filename || '').toLowerCase();
   const fileHash = crypto.createHash('sha256').update(fs.readFileSync(req.file.path)).digest('hex');
-  const importSource = req.query.source === 'foodlog' ? 'macro_foodlog' : 'macro';
+  const uploadFilename = req.file.originalname || 'ArfidWatch Import';
   const records = [];
   const tsCandidates = /date|time|day/i;
   let skippedRows = 0;
-  let foodLogImportId = null;
   let duplicateFile = false;
   let sameHashImportIds = [];
   let parsedRowsForFoodLog = [];
 
   try {
+    // Find all previous imports of this exact file (both stats and food-log records)
     const sameHashImports = await db('health_imports')
-      .where({ user_id: req.user.id, source: importSource, file_hash: fileHash })
+      .where({ user_id: req.user.id, file_hash: fileHash })
+      .whereIn('source', ['macro', 'foodlog'])
       .select('id');
     sameHashImportIds = sameHashImports.map(r => r.id);
     duplicateFile = sameHashImportIds.length > 0;
@@ -553,24 +554,14 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       const dateCol    = findH(/^date$/i, /date/i, /day/i);
 
       if (foodCol) {
-        const filename = 'ArfidWatch Import';
-
+        // Purge previous same-file food-log entries before re-inserting
         if (sameHashImportIds.length > 0) {
           await db('food_log_entries').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
           await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
           await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
+          sameHashImportIds = []; // already cleaned up
         }
         await db('food_log_entries').where({ user_id: req.user.id }).whereNull('import_id').delete();
-
-        const [importId] = await db('health_imports').insert({
-          user_id: req.user.id,
-          filename,
-          source: importSource,
-          file_hash: fileHash,
-          imported_at: new Date().toISOString(),
-          record_count: records.length,
-        });
-        foodLogImportId = importId;
 
         const foodEntries = parsedRowsForFoodLog.map(row => {
           const datePart = dateCol ? row[dateCol] : (row.Date || row.date);
@@ -579,7 +570,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           if (!foodName || !dateStr) return null;
           return {
             user_id: req.user.id,
-            import_id: importId,
+            import_id: null, // will be filled below
             date: dateStr,
             meal: mealCol ? String(row[mealCol] || '').trim() : '',
             food_name: foodName,
@@ -599,7 +590,17 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
         const newFoodEntries = foodEntries.filter(e => e.date === today || !existingDates.has(e.date));
 
         if (newFoodEntries.length > 0) {
-          await insertInChunks('food_log_entries', newFoodEntries);
+          // Create a dedicated 'foodlog' import record — separate from the stats import
+          const [foodlogImportId] = await db('health_imports').insert({
+            user_id: req.user.id,
+            filename: uploadFilename,
+            source: 'foodlog',
+            file_hash: fileHash,
+            imported_at: new Date().toISOString(),
+            record_count: newFoodEntries.length,
+          });
+          const taggedFood = newFoodEntries.map(e => ({ ...e, import_id: foodlogImportId }));
+          await insertInChunks('food_log_entries', taggedFood);
         }
       }
     }
@@ -607,25 +608,21 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
     const deduped = await filterDuplicateStats(req.user.id, records);
 
     if (deduped.length > 0) {
-      const filename = 'ArfidWatch Import';
-      // If food log extraction already created the import record, reuse it
-      if (foodLogImportId) {
-        // Update record_count to reflect actual health_data rows
-        await db('health_imports').where({ id: foodLogImportId }).update({ record_count: deduped.length });
-        const tagged = deduped.map(r => ({ ...r, import_id: foodLogImportId }));
-        await insertInChunks('health_data', tagged);
-      } else {
-        const [importId] = await db('health_imports').insert({
-          user_id: req.user.id,
-          filename,
-          source: importSource,
-          file_hash: fileHash,
-          imported_at: new Date().toISOString(),
-          record_count: deduped.length,
-        });
-        const tagged = deduped.map(r => ({ ...r, import_id: importId }));
-        await insertInChunks('health_data', tagged);
+      // Stats always get their own dedicated 'macro' import record
+      if (sameHashImportIds.length > 0) {
+        await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
+        await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
       }
+      const [importId] = await db('health_imports').insert({
+        user_id: req.user.id,
+        filename: uploadFilename,
+        source: 'macro',
+        file_hash: fileHash,
+        imported_at: new Date().toISOString(),
+        record_count: deduped.length,
+      });
+      const tagged = deduped.map(r => ({ ...r, import_id: importId }));
+      await insertInChunks('health_data', tagged);
     }
     res.json({ imported: deduped.length, skipped: skippedRows, skipped_duplicates: records.length - deduped.length, duplicateFile });
   } catch (err) {
@@ -650,6 +647,7 @@ router.delete('/imports/:id', authenticate, async (req, res) => {
   const row = await db('health_imports').where({ id: importId, user_id: req.user.id }).first();
   if (!row) return res.status(404).json({ error: 'not found' });
   await db('health_data').where({ user_id: req.user.id, import_id: importId }).delete();
+  await db('food_log_entries').where({ user_id: req.user.id, import_id: importId }).delete();
   await db('health_imports').where({ id: importId }).delete();
   res.json({ deleted: importId });
 });
