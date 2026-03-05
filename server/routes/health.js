@@ -414,6 +414,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
   let duplicateFile = false;
   let sameHashImportIds = [];
   let parsedRowsForFoodLog = [];
+  let isFoodLogFile = false;
 
   try {
     // Find all previous imports of this exact file (both stats and food-log records)
@@ -554,6 +555,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       const dateCol    = findH(/^date$/i, /date/i, /day/i);
 
       if (foodCol) {
+        isFoodLogFile = true;
         // Purge previous same-file food-log entries before re-inserting
         if (sameHashImportIds.length > 0) {
           await db('food_log_entries').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
@@ -605,7 +607,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       }
     }
 
-    const deduped = await filterDuplicateStats(req.user.id, records);
+    const deduped = isFoodLogFile ? [] : await filterDuplicateStats(req.user.id, records);
 
     if (deduped.length > 0) {
       // Stats always get their own dedicated 'macro' import record
