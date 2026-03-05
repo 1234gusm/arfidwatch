@@ -11,6 +11,9 @@ const RANGE_OPTIONS = [
 
 const pad = n => String(n).padStart(2, '0');
 const toDateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const toLocalDateTimeInput = (d = new Date()) => (
+  `${toDateKey(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+);
 
 const formatDay = key => {
   const [y, m, d] = String(key).split('-').map(Number);
@@ -28,7 +31,7 @@ function MedicationPage({ token }) {
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [notes, setNotes] = useState('');
-  const [takenAt, setTakenAt] = useState(() => new Date().toISOString().slice(0, 16));
+  const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
 
   const getRange = useCallback(() => {
     if (range === 'all') return {};
@@ -106,7 +109,7 @@ function MedicationPage({ token }) {
       setName('');
       setDosage('');
       setNotes('');
-      setTakenAt(new Date().toISOString().slice(0, 16));
+      setTakenAt(toLocalDateTimeInput());
       await load();
     } catch (e) {
       setError(e.message || 'Failed to add medication');

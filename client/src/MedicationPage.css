@@ -30,7 +30,9 @@
 
 .med-range-btn {
   border: 1px solid #cfd7e3;
-  background: #fff;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
   padding: 6px 10px;
   border-radius: 999px;
   cursor: pointer;
@@ -40,6 +42,10 @@
   background: #0a66c2;
   color: #fff;
   border-color: #0a66c2;
+}
+
+.med-range-btn:hover {
+  background: #e9f2ff;
 }
 
 .med-card {

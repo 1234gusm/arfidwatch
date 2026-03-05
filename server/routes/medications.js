@@ -68,20 +68,37 @@ router.post('/', authenticate, async (req, res) => {
 
     if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });
 
-    const takenDate = takenAtInput ? new Date(takenAtInput) : new Date();
-    if (Number.isNaN(takenDate.getTime())) {
-      return res.status(400).json({ error: 'invalid taken_at' });
+    let takenDate = new Date();
+    let date = dateKey(takenDate);
+    let time = timeKey(takenDate);
+    let takenAtStored = takenDate.toISOString();
+
+    if (takenAtInput) {
+      const m = takenAtInput.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+      if (m) {
+        date = m[1];
+        time = m[2];
+        // Keep local clock time exactly as entered by the user (no UTC shift).
+        takenAtStored = `${date}T${time}:00`;
+      } else {
+        takenDate = new Date(takenAtInput);
+        if (Number.isNaN(takenDate.getTime())) {
+          return res.status(400).json({ error: 'invalid taken_at' });
+        }
+        date = dateKey(takenDate);
+        time = timeKey(takenDate);
+        takenAtStored = takenDate.toISOString();
+      }
     }
 
-    const takenAtIso = takenDate.toISOString();
     const [id] = await db('medication_entries').insert({
       user_id: userId,
-      date: dateKey(takenDate),
-      time: timeKey(takenDate),
+      date,
+      time,
       medication_name: medicationName,
       dosage: dosage || null,
       notes: notes || null,
-      taken_at: takenAtIso,
+      taken_at: takenAtStored,
       created_at: new Date().toISOString(),
     });
 
