@@ -414,6 +414,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
   let foodLogImportId = null;
   let duplicateFile = false;
   let sameHashImportIds = [];
+  let parsedRowsForFoodLog = [];
 
   try {
     const sameHashImports = await db('health_imports')
@@ -435,14 +436,33 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
         headers[col] = String(cell.value || '').trim();
       });
 
+      const toCellValue = (v) => {
+        if (v == null) return '';
+        if (typeof v === 'object') {
+          if (v.text != null) return String(v.text);
+          if (v.result != null) return String(v.result);
+          if (v.richText && Array.isArray(v.richText)) {
+            return v.richText.map(rt => rt.text || '').join('');
+          }
+        }
+        return v;
+      };
+
       sheet.eachRow((row, rowNum) => {
         if (rowNum === 1) return;
         const rowUid = `xlsx-${rowNum}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const rowObj = {};
+        headers.forEach((h, col) => {
+          if (!h) return;
+          rowObj[h] = toCellValue(row.getCell(col).value);
+        });
+        parsedRowsForFoodLog.push(rowObj);
+
         // find timestamp
         let ts = null;
         headers.forEach((h, col) => {
           if (!ts && tsCandidates.test(h)) {
-            const v = row.getCell(col).value;
+            const v = toCellValue(row.getCell(col).value);
             if (v) {
               const d = v instanceof Date ? v : new Date(v);
               if (!isNaN(d.getTime())) ts = d.toISOString();
@@ -453,7 +473,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
         headers.forEach((h, col) => {
           if (!h || tsCandidates.test(h)) return;
-          const cellVal = row.getCell(col).value;
+          const cellVal = toCellValue(row.getCell(col).value);
           if (cellVal === null || cellVal === undefined || cellVal === '') return;
           records.push(toRecord(req.user.id, normalizeKey(h), cellVal, ts, {
             rowUid,
@@ -467,6 +487,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       // malformed embedded quotes (inch marks in serving-size fields).
       const csvText = fs.readFileSync(req.file.path, 'utf8');
       const parsedRows = parseCsvTextLenient(csvText);
+      parsedRowsForFoodLog = parsedRows;
 
       let csvRowNum = 1;
       for (const row of parsedRows) {
@@ -499,72 +520,78 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
         }
       }
 
-      // ── Food log extraction ───────────────────────────────────────────────
-      // If this CSV looks like a MacroFactor food log (has a "Food" column),
-      // also populate food_log_entries so the share profile can display it.
-      // Entries are tagged with import_id so re-uploading the same filename
-      // only replaces that file's rows — entries from other files are kept.
-      if (parsedRows.length > 0) {
-        const csvH = Object.keys(parsedRows[0]);
-        const findH = (...tests) => csvH.find(h => tests.some(t => t.test(h.trim())));
-        const numOrNullFL = v => {
-          if (v == null || String(v).trim() === '') return null;
-          const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
-          return Number.isFinite(n) ? n : null;
-        };
-        const foodCol    = findH(/^food name$/i, /^food$/i);
-        const mealCol    = findH(/^meal$/i);
-        const calCol     = findH(/calorie|kcal|energy/i);
-        const proteinCol = findH(/^protein/i);
-        const carbsCol   = findH(/carb/i);
-        const fatCol     = findH(/^fat\b/i);
-        const amtCol     = findH(/^amount$|^serving$|^quantity$/i);
+    }
 
-        if (foodCol) {
-          // Determine the import record early so we can tag food entries with it.
-          // We create it now (before the general records block) if we haven't yet.
-          const filename = 'ArfidWatch Import';
+    // ── Food log extraction (CSV and XLSX) ─────────────────────────────────
+    // If the file has MacroFactor food-log style columns, also populate
+    // food_log_entries so share profile can show meal-by-meal entries.
+    if (parsedRowsForFoodLog.length > 0) {
+      const headers = Object.keys(parsedRowsForFoodLog[0]);
+      const findH = (...tests) => headers.find(h => tests.some(t => t.test(String(h).trim())));
+      const numOrNullFL = v => {
+        if (v == null || String(v).trim() === '') return null;
+        const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+      const normalizeDateOnly = (v) => {
+        if (v == null || String(v).trim() === '') return null;
+        if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+        const d = new Date(v);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        const s = String(v).trim();
+        const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+        return m ? m[1] : null;
+      };
 
-          // Duplicate detection is based on file hash, not rows, so repeated foods
-          // in a legitimate log do not get removed.
-          if (sameHashImportIds.length > 0) {
-            await db('food_log_entries').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
-            await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
-            await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
-          }
-          // Also clean up any legacy entries with no import_id
-          await db('food_log_entries').where({ user_id: req.user.id }).whereNull('import_id').delete();
+      const foodCol    = findH(/^food name$/i, /^food$/i);
+      const mealCol    = findH(/^meal$/i);
+      const calCol     = findH(/calorie|kcal|energy/i);
+      const proteinCol = findH(/^protein/i);
+      const carbsCol   = findH(/carb/i);
+      const fatCol     = findH(/^fat\b/i);
+      const amtCol     = findH(/^amount$|^serving$|^quantity$/i);
+      const dateCol    = findH(/^date$/i, /date/i, /day/i);
 
-          // Insert the import record first so we have an ID to tag entries with
-          const [importId] = await db('health_imports').insert({
-            user_id:    req.user.id,
-            filename,
-            source:     importSource,
-            file_hash:  fileHash,
-            imported_at: new Date().toISOString(),
-            record_count: records.length, // will be updated below if needed
-          });
-          foodLogImportId = importId;
+      if (foodCol) {
+        const filename = 'ArfidWatch Import';
 
-          const foodEntries = parsedRows.map(row => {
-            const datePart = row.Date || row.date;
-            const dateStr  = datePart ? String(datePart).slice(0, 10) : null;
-            const foodName = (row[foodCol] || '').trim();
-            if (!foodName || !dateStr) return null;
-            return {
-              user_id:   req.user.id,
-              import_id: importId,
-              date:      dateStr,
-              meal:      mealCol    ? (row[mealCol]    || '').trim() : '',
-              food_name: foodName,
-              quantity:  amtCol     ? (row[amtCol]     || '').trim() : '',
-              calories:  calCol     ? numOrNullFL(row[calCol])       : null,
-              protein_g: proteinCol ? numOrNullFL(row[proteinCol])   : null,
-              carbs_g:   carbsCol   ? numOrNullFL(row[carbsCol])     : null,
-              fat_g:     fatCol     ? numOrNullFL(row[fatCol])       : null,
-            };
-          }).filter(Boolean);
+        if (sameHashImportIds.length > 0) {
+          await db('food_log_entries').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
+          await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
+          await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
+        }
+        await db('food_log_entries').where({ user_id: req.user.id }).whereNull('import_id').delete();
 
+        const [importId] = await db('health_imports').insert({
+          user_id: req.user.id,
+          filename,
+          source: importSource,
+          file_hash: fileHash,
+          imported_at: new Date().toISOString(),
+          record_count: records.length,
+        });
+        foodLogImportId = importId;
+
+        const foodEntries = parsedRowsForFoodLog.map(row => {
+          const datePart = dateCol ? row[dateCol] : (row.Date || row.date);
+          const dateStr = normalizeDateOnly(datePart);
+          const foodName = String(row[foodCol] || '').trim();
+          if (!foodName || !dateStr) return null;
+          return {
+            user_id: req.user.id,
+            import_id: importId,
+            date: dateStr,
+            meal: mealCol ? String(row[mealCol] || '').trim() : '',
+            food_name: foodName,
+            quantity: amtCol ? String(row[amtCol] || '').trim() : '',
+            calories: calCol ? numOrNullFL(row[calCol]) : null,
+            protein_g: proteinCol ? numOrNullFL(row[proteinCol]) : null,
+            carbs_g: carbsCol ? numOrNullFL(row[carbsCol]) : null,
+            fat_g: fatCol ? numOrNullFL(row[fatCol]) : null,
+          };
+        }).filter(Boolean);
+
+        if (foodEntries.length > 0) {
           await insertInChunks('food_log_entries', foodEntries);
         }
       }
