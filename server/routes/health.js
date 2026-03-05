@@ -1,0 +1,618 @@
+const express = require('express');
+const db = require('../db');
+const multer = require('multer');
+const exceljs = require('exceljs');
+
+const router = express.Router();
+
+// middleware to authenticate token
+function authenticate(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: 'missing token' });
+  const token = auth.split(' ')[1];
+  try {
+    const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
+    req.user = payload;
+    next();
+  } catch (e) {
+    res.status(401).json({ error: 'invalid token' });
+  }
+}
+
+const normalizeStatTimestamp = (ts) => {
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+
+const normalizeStatValue = (v) => {
+  const n = Number(v);
+  if (Number.isFinite(n) && String(v).trim() !== '') return n;
+  return String(v ?? '').trim();
+};
+
+const statKey = (r) => `${r.type}|${normalizeStatTimestamp(r.timestamp)}|${String(normalizeStatValue(r.value))}`;
+const CHUNK_SIZE = 200;
+
+const insertInChunks = async (tableName, rows, chunkSize = CHUNK_SIZE) => {
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    await db(tableName).insert(rows.slice(i, i + chunkSize));
+  }
+};
+
+// Keep repeats from the uploaded file intact; only remove stats that already
+// exist in previously stored health_data rows for the same user.
+const filterDuplicateStats = async (userId, inputRecords) => {
+  if (!inputRecords.length) return [];
+
+  // Keep repeats exactly as provided by the upload. We only normalize values
+  // and compare against already-stored rows from previous imports.
+  const uploadRecords = [];
+  for (const rec of inputRecords) {
+    const ts = normalizeStatTimestamp(rec.timestamp);
+    if (!ts) continue;
+    uploadRecords.push({ ...rec, timestamp: ts, value: normalizeStatValue(rec.value) });
+  }
+  if (!uploadRecords.length) return [];
+
+  const types = [...new Set(uploadRecords.map(r => r.type))];
+  let minTs = uploadRecords[0].timestamp;
+  let maxTs = uploadRecords[0].timestamp;
+  for (let i = 1; i < uploadRecords.length; i += 1) {
+    const ts = uploadRecords[i].timestamp;
+    if (ts < minTs) minTs = ts;
+    if (ts > maxTs) maxTs = ts;
+  }
+
+  const existing = await db('health_data')
+    .select('type', 'timestamp', 'value')
+    .where({ user_id: userId })
+    .whereIn('type', types)
+    .andWhere('timestamp', '>=', minTs)
+    .andWhere('timestamp', '<=', maxTs);
+
+  const existingKeyCounts = new Map();
+  for (const row of existing) {
+    const key = statKey(row);
+    existingKeyCounts.set(key, (existingKeyCounts.get(key) || 0) + 1);
+  }
+
+  // For repeated rows in one upload, only remove as many as already exist.
+  // Example: upload has 4 identical shakes and DB has 1 already -> keep 3.
+  const keep = [];
+  for (const rec of uploadRecords) {
+    const key = statKey(rec);
+    const used = existingKeyCounts.get(key) || 0;
+    if (used > 0) {
+      existingKeyCounts.set(key, used - 1);
+      continue;
+    }
+    keep.push(rec);
+  }
+  return keep;
+};
+
+// import health data from Health Auto Export JSON
+router.post('/import', authenticate, async (req, res) => {
+  // accept either samples array (from JSON) or csv string
+  if (req.body.samples) {
+    const samples = req.body.samples;
+    const records = samples.map(s => ({
+      user_id: req.user.id,
+      type: s.type,
+      value: s.value,
+      timestamp: s.startDate || s.timestamp,
+      raw: JSON.stringify(s),
+    }));
+    const deduped = await filterDuplicateStats(req.user.id, records);
+    if (deduped.length) await insertInChunks('health_data', deduped);
+    return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length });
+  } else if (req.body.csv) {
+    const csvText = req.body.csv;
+    let fileHash = null;
+    let duplicateFile = false;
+    try {
+      fileHash = crypto.createHash('sha256').update(csvText).digest('hex');
+      const sameHashImport = await db('health_imports')
+        .where({ user_id: req.user.id, source: 'health', file_hash: fileHash })
+        .first();
+      duplicateFile = !!sameHashImport;
+    } catch (e) {
+      // Hash/duplicate detection should never block imports.
+      console.warn('health csv hash/duplicate check failed:', e.message);
+    }
+    try {
+      // use csv-parse sync to get structured rows (columns: true)
+      const { parse } = require('csv-parse/sync');
+      // allow rows with missing/extra columns (relax_column_count)
+      // trim values and skip empty lines for robustness
+      const rows = parse(csvText, {
+        columns: true,
+        skip_empty_lines: true,
+        relax_column_count: true,
+        trim: true,
+      });
+      const records = [];
+
+      const tsCandidates = ['startDate', 'endDate', 'timestamp', 'date', 'time'];
+
+      for (const row of rows) {
+        // find a timestamp field in the row
+        let ts = null;
+        for (const k of Object.keys(row)) {
+          if (tsCandidates.includes(k) || /date|time|timestamp/i.test(k)) {
+            const v = row[k];
+            if (v) {
+              const d = new Date(v);
+              if (!isNaN(d.getTime())) { ts = d.toISOString(); break; }
+            }
+          }
+        }
+        if (!ts) ts = new Date().toISOString();
+
+        // for every column except timestamp-like, create a metric record
+        for (const [k, v] of Object.entries(row)) {
+          if (!k) continue;
+          if (/^\s*$/i.test(k)) continue;
+          if (/date|time|timestamp/i.test(k)) continue;
+          if (v === undefined || v === null || String(v).trim() === '') continue;
+
+          // normalize type key
+          const typeKey = String(k).trim().toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/\[|\]|\(|\)|\.|\//g, '')
+            .replace(/[^a-z0-9_]/g, '_');
+
+          const num = parseFloat(String(v).replace(/[^0-9eE+\-.]/g, ''));
+          const value = Number.isFinite(num) ? num : String(v);
+
+          records.push({
+            user_id: req.user.id,
+            type: typeKey,
+            value,
+            timestamp: ts,
+            raw: JSON.stringify({ column: k, value: v }),
+          });
+        }
+      }
+
+      let deduped = records;
+      try {
+        deduped = await filterDuplicateStats(req.user.id, records);
+      } catch (e) {
+        // Dedupe should be best-effort; preserve upload ability on any failure.
+        console.warn('health csv dedupe failed, importing raw rows:', e.message);
+      }
+      if (deduped.length > 0) {
+        // Create an import tracking record first
+        const filename = 'ArfidWatch Import';
+        const importRow = {
+          user_id: req.user.id,
+          filename,
+          source: 'health',
+          imported_at: new Date().toISOString(),
+          record_count: deduped.length,
+        };
+        if (fileHash) importRow.file_hash = fileHash;
+
+        let importId;
+        try {
+          [importId] = await db('health_imports').insert(importRow);
+        } catch (e) {
+          // Backward compatibility if file_hash is unavailable for any reason.
+          if (Object.prototype.hasOwnProperty.call(importRow, 'file_hash')) {
+            delete importRow.file_hash;
+            [importId] = await db('health_imports').insert(importRow);
+          } else {
+            throw e;
+          }
+        }
+        // Tag every record with this import's id
+        const tagged = deduped.map(r => ({ ...r, import_id: importId }));
+        await insertInChunks('health_data', tagged);
+      }
+      return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length, duplicateFile });
+    } catch (err) {
+      console.error('CSV import parse error:', err);
+      return res.status(500).json({ error: 'failed to parse csv', details: err.message });
+    }
+  }
+  res.status(400).json({ error: 'no data provided' });
+});
+
+// upload macrofactor .xlsx or .csv
+const upload = multer({ dest: 'uploads/' });
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const normalizeKey = k =>
+  String(k).trim().toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[\[\]\(\)\.\/%]/g, '')
+    .replace(/[^a-z0-9_]/g, '_');
+
+// Fix malformed quotes inside quoted CSV fields (e.g. 4 1/2"), which appear
+// in some MacroFactor exports and can break strict CSV parsers.
+const sanitizeBrokenCsvQuotes = (text) => {
+  let out = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch !== '"') {
+      out += ch;
+      continue;
+    }
+
+    if (!inQuotes) {
+      inQuotes = true;
+      out += ch;
+      continue;
+    }
+
+    // Escaped quote inside a quoted field ("")
+    if (next === '"') {
+      out += '""';
+      i += 1;
+      continue;
+    }
+
+    // Valid closing quote before delimiter/newline/end
+    if (next === ',' || next === '\n' || next === '\r' || next === undefined) {
+      inQuotes = false;
+      out += ch;
+      continue;
+    }
+
+    // Malformed interior quote: escape it instead of closing field.
+    out += '""';
+  }
+
+  return out;
+};
+
+// Very tolerant CSV parsing for MacroFactor files that contain malformed
+// embedded quotes (for example inch marks in serving sizes).
+const parseCsvLineLenient = (line) => {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    const next = line[i + 1];
+
+    if (ch === ',') {
+      if (!inQuotes) {
+        out.push(cur);
+        cur = '';
+      } else {
+        cur += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      if (!inQuotes) {
+        inQuotes = true;
+        continue;
+      }
+      if (next === '"') {
+        // When "" appears immediately before a field delimiter (or end of line),
+        // the first " is a literal inch mark and the second " is the real
+        // field-closing quote.  This is exactly the MacroFactor pattern:
+        //   "large slice - 4 1/2" x 3 1/4" x 3/4""
+        const next2 = line[i + 2];
+        if (next2 === ',' || next2 === undefined) {
+          cur += '"';       // keep inch mark as literal
+          inQuotes = false; // the following " closes the field
+          i += 1;           // skip the closing "
+          continue;
+        }
+        // Otherwise it's a standard escaped-quote pair ""
+        cur += '"';
+        i += 1;
+        continue;
+      }
+      if (next === ',' || next === undefined) {
+        inQuotes = false;
+        continue;
+      }
+      // malformed interior quote: keep it as literal inch mark, etc.
+      cur += '"';
+      continue;
+    }
+
+    cur += ch;
+  }
+
+  out.push(cur);
+  return out;
+};
+
+const parseCsvTextLenient = (text) => {
+  // Strip UTF-8 BOM if present
+  const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const lines = clean.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (!lines.length) return [];
+  const headers = parseCsvLineLenient(lines[0]);
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCsvLineLenient(lines[i]);
+    const row = {};
+    for (let c = 0; c < headers.length; c++) {
+      row[headers[c]] = vals[c] ?? '';
+    }
+    rows.push(row);
+  }
+
+  return rows;
+};
+
+const toRecord = (userId, typeKey, val, ts, meta = {}) => {
+  const num = parseFloat(String(val).replace(/[^0-9eE+\-.]/g, ''));
+  return {
+    user_id: userId,
+    type: 'macrofactor_' + typeKey,
+    value: Number.isFinite(num) ? num : String(val),
+    timestamp: ts,
+    raw: JSON.stringify({ column: typeKey, value: val, ...meta }),
+  };
+};
+
+router.post('/macro/import', authenticate, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'no file' });
+
+  const ext = path.extname(req.file.originalname || req.file.filename || '').toLowerCase();
+  const fileHash = crypto.createHash('sha256').update(fs.readFileSync(req.file.path)).digest('hex');
+  const importSource = req.query.source === 'foodlog' ? 'macro_foodlog' : 'macro';
+  const records = [];
+  const tsCandidates = /date|time|day/i;
+  let skippedRows = 0;
+  let foodLogImportId = null;
+  let duplicateFile = false;
+  let sameHashImportIds = [];
+
+  try {
+    const sameHashImports = await db('health_imports')
+      .where({ user_id: req.user.id, source: importSource, file_hash: fileHash })
+      .select('id');
+    sameHashImportIds = sameHashImports.map(r => r.id);
+    duplicateFile = sameHashImportIds.length > 0;
+
+    if (ext === '.xlsx' || ext === '.xls') {
+      // Parse Excel with ExcelJS
+      const workbook = new exceljs.Workbook();
+      await workbook.xlsx.readFile(req.file.path);
+      const sheet = workbook.worksheets[0];
+      if (!sheet) return res.status(400).json({ error: 'no sheet found in xlsx' });
+
+      // First row = headers
+      const headers = [];
+      sheet.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => {
+        headers[col] = String(cell.value || '').trim();
+      });
+
+      sheet.eachRow((row, rowNum) => {
+        if (rowNum === 1) return;
+        const rowUid = `xlsx-${rowNum}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        // find timestamp
+        let ts = null;
+        headers.forEach((h, col) => {
+          if (!ts && tsCandidates.test(h)) {
+            const v = row.getCell(col).value;
+            if (v) {
+              const d = v instanceof Date ? v : new Date(v);
+              if (!isNaN(d.getTime())) ts = d.toISOString();
+            }
+          }
+        });
+        if (!ts) ts = new Date().toISOString();
+
+        headers.forEach((h, col) => {
+          if (!h || tsCandidates.test(h)) return;
+          const cellVal = row.getCell(col).value;
+          if (cellVal === null || cellVal === undefined || cellVal === '') return;
+          records.push(toRecord(req.user.id, normalizeKey(h), cellVal, ts, {
+            rowUid,
+            rowNum,
+            source: 'macro_xlsx',
+          }));
+        });
+      });
+    } else {
+      // Parse CSV using the lenient parser which correctly handles MacroFactor's
+      // malformed embedded quotes (inch marks in serving-size fields).
+      const csvText = fs.readFileSync(req.file.path, 'utf8');
+      const parsedRows = parseCsvTextLenient(csvText);
+
+      let csvRowNum = 1;
+      for (const row of parsedRows) {
+        csvRowNum += 1;
+        const rowUid = `csv-${csvRowNum}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        let ts = null;
+
+        // MacroFactor food-log exports typically provide separate Date + Time columns.
+        const datePart = row.Date || row.date;
+        const timePart = row.Time || row.time;
+        if (datePart && timePart) {
+          const d = new Date(`${datePart} ${timePart}`);
+          if (!isNaN(d.getTime())) ts = d.toISOString();
+        }
+
+        for (const [k, v] of Object.entries(row)) {
+          if (!ts && tsCandidates.test(k) && v) {
+            const d = new Date(v);
+            if (!isNaN(d.getTime())) { ts = d.toISOString(); break; }
+          }
+        }
+        if (!ts) ts = new Date().toISOString();
+        for (const [k, v] of Object.entries(row)) {
+          if (tsCandidates.test(k) || !v || String(v).trim() === '') continue;
+          records.push(toRecord(req.user.id, normalizeKey(k), v, ts, {
+            rowUid,
+            rowNum: csvRowNum,
+            source: 'macro_csv',
+          }));
+        }
+      }
+
+      // ── Food log extraction ───────────────────────────────────────────────
+      // If this CSV looks like a MacroFactor food log (has a "Food" column),
+      // also populate food_log_entries so the share profile can display it.
+      // Entries are tagged with import_id so re-uploading the same filename
+      // only replaces that file's rows — entries from other files are kept.
+      if (parsedRows.length > 0) {
+        const csvH = Object.keys(parsedRows[0]);
+        const findH = (...tests) => csvH.find(h => tests.some(t => t.test(h.trim())));
+        const numOrNullFL = v => {
+          if (v == null || String(v).trim() === '') return null;
+          const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+          return Number.isFinite(n) ? n : null;
+        };
+        const foodCol    = findH(/^food name$/i, /^food$/i);
+        const mealCol    = findH(/^meal$/i);
+        const calCol     = findH(/calorie|kcal|energy/i);
+        const proteinCol = findH(/^protein/i);
+        const carbsCol   = findH(/carb/i);
+        const fatCol     = findH(/^fat\b/i);
+        const amtCol     = findH(/^amount$|^serving$|^quantity$/i);
+
+        if (foodCol) {
+          // Determine the import record early so we can tag food entries with it.
+          // We create it now (before the general records block) if we haven't yet.
+          const filename = 'ArfidWatch Import';
+
+          // Duplicate detection is based on file hash, not rows, so repeated foods
+          // in a legitimate log do not get removed.
+          if (sameHashImportIds.length > 0) {
+            await db('food_log_entries').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
+            await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
+            await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
+          }
+          // Also clean up any legacy entries with no import_id
+          await db('food_log_entries').where({ user_id: req.user.id }).whereNull('import_id').delete();
+
+          // Insert the import record first so we have an ID to tag entries with
+          const [importId] = await db('health_imports').insert({
+            user_id:    req.user.id,
+            filename,
+            source:     importSource,
+            file_hash:  fileHash,
+            imported_at: new Date().toISOString(),
+            record_count: records.length, // will be updated below if needed
+          });
+          foodLogImportId = importId;
+
+          const foodEntries = parsedRows.map(row => {
+            const datePart = row.Date || row.date;
+            const dateStr  = datePart ? String(datePart).slice(0, 10) : null;
+            const foodName = (row[foodCol] || '').trim();
+            if (!foodName || !dateStr) return null;
+            return {
+              user_id:   req.user.id,
+              import_id: importId,
+              date:      dateStr,
+              meal:      mealCol    ? (row[mealCol]    || '').trim() : '',
+              food_name: foodName,
+              quantity:  amtCol     ? (row[amtCol]     || '').trim() : '',
+              calories:  calCol     ? numOrNullFL(row[calCol])       : null,
+              protein_g: proteinCol ? numOrNullFL(row[proteinCol])   : null,
+              carbs_g:   carbsCol   ? numOrNullFL(row[carbsCol])     : null,
+              fat_g:     fatCol     ? numOrNullFL(row[fatCol])       : null,
+            };
+          }).filter(Boolean);
+
+          await insertInChunks('food_log_entries', foodEntries);
+        }
+      }
+    }
+
+    const deduped = await filterDuplicateStats(req.user.id, records);
+
+    if (deduped.length > 0) {
+      const filename = 'ArfidWatch Import';
+      // If food log extraction already created the import record, reuse it
+      if (foodLogImportId) {
+        // Update record_count to reflect actual health_data rows
+        await db('health_imports').where({ id: foodLogImportId }).update({ record_count: deduped.length });
+        const tagged = deduped.map(r => ({ ...r, import_id: foodLogImportId }));
+        await insertInChunks('health_data', tagged);
+      } else {
+        const [importId] = await db('health_imports').insert({
+          user_id: req.user.id,
+          filename,
+          source: importSource,
+          file_hash: fileHash,
+          imported_at: new Date().toISOString(),
+          record_count: deduped.length,
+        });
+        const tagged = deduped.map(r => ({ ...r, import_id: importId }));
+        await insertInChunks('health_data', tagged);
+      }
+    }
+    res.json({ imported: deduped.length, skipped: skippedRows, skipped_duplicates: records.length - deduped.length, duplicateFile });
+  } catch (err) {
+    console.error('Macro import error:', err);
+    res.status(500).json({ error: 'failed to import', details: err.message });
+  } finally {
+    try { fs.unlinkSync(req.file.path); } catch (_) {}
+  }
+});
+
+// List all imports for the current user
+router.get('/imports', authenticate, async (req, res) => {
+  const imports = await db('health_imports')
+    .where('user_id', req.user.id)
+    .orderBy('imported_at', 'desc');
+  res.json({ imports });
+});
+
+// Delete an import and all its associated health data
+router.delete('/imports/:id', authenticate, async (req, res) => {
+  const importId = parseInt(req.params.id, 10);
+  const row = await db('health_imports').where({ id: importId, user_id: req.user.id }).first();
+  if (!row) return res.status(404).json({ error: 'not found' });
+  await db('health_data').where({ user_id: req.user.id, import_id: importId }).delete();
+  await db('health_imports').where({ id: importId }).delete();
+  res.json({ deleted: importId });
+});
+
+// Delete ALL imports and all associated health data + food log entries for the user
+router.delete('/imports', authenticate, async (req, res) => {
+  const uid = req.user.id;
+  await db('health_data').where({ user_id: uid }).delete();
+  await db('food_log_entries').where({ user_id: uid }).delete();
+  await db('health_imports').where({ user_id: uid }).delete();
+  res.json({ ok: true });
+});
+
+// get health data entries for user
+router.get('/', authenticate, async (req, res) => {
+  const { start, end } = req.query;
+  let query = db('health_data').where('user_id', req.user.id);
+  if (start) query = query.where('timestamp', '>=', start);
+  if (end) query = query.where('timestamp', '<=', end);
+  const rows = await query.orderBy('timestamp', 'asc');
+  res.json({ data: rows });
+});
+
+// Lightweight all-time summary for the 4 hero metrics (used as preview fallback)
+const HERO_TYPES = [
+  'dietary_energy_kcal', 'macrofactor_energy', 'macrofactor_calories',
+  'step_count_count', 'macrofactor_steps',
+  'weight_lb', 'macrofactor_weight', 'macrofactor_weight_lb',
+  'sleep_analysis_total_sleep_hr',
+];
+router.get('/hero', authenticate, async (req, res) => {
+  const rows = await db('health_data')
+    .where('user_id', req.user.id)
+    .whereIn('type', HERO_TYPES)
+    .orderBy('timestamp', 'asc');
+  res.json({ data: rows });
+});
+
+module.exports = router;
