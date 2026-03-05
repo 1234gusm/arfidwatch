@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './MedicationPage.css';
 
 const RANGE_OPTIONS = [
@@ -38,6 +38,9 @@ function MedicationPage({ token }) {
   const [rows, setRows] = useState([]);
   const [quickButtons, setQuickButtons] = useState([]);
   const [draggingButtonId, setDraggingButtonId] = useState(null);
+  const [editingQuickButtonId, setEditingQuickButtonId] = useState(null);
+  const [editQuickName, setEditQuickName] = useState('');
+  const [editQuickDosage, setEditQuickDosage] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -46,6 +49,8 @@ function MedicationPage({ token }) {
   const [dosage, setDosage] = useState('');
   const [notes, setNotes] = useState('');
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
+  const longPressTimerRef = useRef(null);
+  const didLongPressRef = useRef(false);
 
   const existingQuickNameKeys = useMemo(
     () => new Set(quickButtons.map(b => String(b.medication_name || '').trim().toLowerCase())),
@@ -235,6 +240,58 @@ function MedicationPage({ token }) {
     }
   };
 
+  const beginQuickButtonEdit = (btn) => {
+    setEditingQuickButtonId(btn.id);
+    setEditQuickName(String(btn.medication_name || ''));
+    setEditQuickDosage(String(btn.dosage || ''));
+  };
+
+  const cancelQuickButtonEdit = () => {
+    setEditingQuickButtonId(null);
+    setEditQuickName('');
+    setEditQuickDosage('');
+  };
+
+  const saveQuickButtonEdit = async (id) => {
+    const medicationName = editQuickName.trim();
+    if (!medicationName) {
+      setError('Medication name is required');
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:4000/api/medications/quick-buttons/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          medication_name: medicationName,
+          dosage: editQuickDosage.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to save quick button');
+      cancelQuickButtonEdit();
+      await loadQuickButtons();
+    } catch (e) {
+      setError(e.message || 'Failed to save quick button');
+    }
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const startLongPress = (btn) => {
+    cancelLongPress();
+    didLongPressRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      didLongPressRef.current = true;
+      beginQuickButtonEdit(btn);
+    }, 550);
+  };
+
   const handleColorChange = async (id, color) => {
     setQuickButtons(prev => prev.map(b => b.id === id ? { ...b, color } : b));
     try {
@@ -312,7 +369,7 @@ function MedicationPage({ token }) {
               <div
                 key={btn.id}
                 className="med-quick-item"
-                draggable
+                draggable={editingQuickButtonId !== btn.id}
                 onDragStart={() => setDraggingButtonId(btn.id)}
                 onDragOver={e => e.preventDefault()}
                 onDrop={async () => {
@@ -321,27 +378,63 @@ function MedicationPage({ token }) {
                   await moveQuickButton(fromId, btn.id);
                 }}
               >
-                <button
-                  className="med-quick-log-btn"
-                  style={{
-                    backgroundColor: btn.color || '#0a66c2',
-                    color: readableTextColor(btn.color || '#0a66c2'),
-                  }}
-                  onClick={() => handleQuickLog(btn)}
-                  title={`Quick log ${btn.medication_name}`}
-                >
-                  <span className="med-quick-name">{btn.medication_name}</span>
-                  {btn.dosage && <span className="med-quick-dose">{btn.dosage}</span>}
-                </button>
-                <div className="med-quick-controls">
-                  <input
-                    type="color"
-                    value={btn.color || '#0a66c2'}
-                    onChange={e => handleColorChange(btn.id, e.target.value)}
-                    title="Set button color"
-                  />
-                  <button className="med-quick-del" onClick={() => handleDeleteQuickButton(btn.id)}>Delete</button>
-                </div>
+                {editingQuickButtonId === btn.id ? (
+                  <div className="med-quick-edit-wrap">
+                    <input
+                      className="med-quick-edit-input"
+                      value={editQuickName}
+                      onChange={e => setEditQuickName(e.target.value)}
+                      placeholder="Medication"
+                    />
+                    <input
+                      className="med-quick-edit-input"
+                      value={editQuickDosage}
+                      onChange={e => setEditQuickDosage(e.target.value)}
+                      placeholder="Dose"
+                    />
+                    <div className="med-quick-edit-actions">
+                      <button className="med-create-quick-btn" onClick={() => saveQuickButtonEdit(btn.id)}>Save</button>
+                      <button className="med-quick-del" onClick={cancelQuickButtonEdit}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      className="med-quick-log-btn"
+                      style={{
+                        backgroundColor: btn.color || '#0a66c2',
+                        color: readableTextColor(btn.color || '#0a66c2'),
+                      }}
+                      onMouseDown={() => startLongPress(btn)}
+                      onMouseUp={cancelLongPress}
+                      onMouseLeave={cancelLongPress}
+                      onTouchStart={() => startLongPress(btn)}
+                      onTouchEnd={cancelLongPress}
+                      onTouchCancel={cancelLongPress}
+                      onClick={() => {
+                        if (didLongPressRef.current) {
+                          didLongPressRef.current = false;
+                          return;
+                        }
+                        handleQuickLog(btn);
+                      }}
+                      title={`Quick log ${btn.medication_name} (long-press to edit)`}
+                    >
+                      <span className="med-quick-name">{btn.medication_name}</span>
+                      {btn.dosage && <span className="med-quick-dose">{btn.dosage}</span>}
+                    </button>
+                    <div className="med-quick-controls">
+                      <input
+                        type="color"
+                        value={btn.color || '#0a66c2'}
+                        onChange={e => handleColorChange(btn.id, e.target.value)}
+                        title="Set button color"
+                      />
+                      <button className="med-quick-del" onClick={() => beginQuickButtonEdit(btn)}>Edit</button>
+                      <button className="med-quick-del" onClick={() => handleDeleteQuickButton(btn.id)}>Delete</button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

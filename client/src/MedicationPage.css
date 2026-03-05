@@ -110,6 +110,7 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 6px;
+  gap: 6px;
 }
 
 .med-quick-del {
@@ -132,6 +133,22 @@
   border-radius: 8px;
   padding: 6px 10px;
   cursor: pointer;
+}
+
+.med-quick-edit-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.med-quick-edit-input {
+  border: 1px solid #c8d4e6;
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.med-quick-edit-actions {
+  display: flex;
+  gap: 6px;
 }
 
 .med-form-row {
