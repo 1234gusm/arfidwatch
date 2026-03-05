@@ -24,7 +24,7 @@ function ProfilePage({ token }) {
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
 
   const shareUrl = shareToken
-    ? `${window.location.origin}/share/${shareToken}`
+    ? `${window.location.origin}/#/share/${shareToken}`
     : null;
 
   const showFlash = msg => { setFlash(msg); setTimeout(() => setFlash(null), 2500); };
