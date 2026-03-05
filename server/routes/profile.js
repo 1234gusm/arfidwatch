@@ -6,6 +6,7 @@ const db = require('../db');
 const router = express.Router();
 const SALT_ROUNDS = 12;
 const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function authenticate(req, res, next) {
   const auth = req.headers.authorization;
@@ -26,7 +27,7 @@ const VALID_PERIODS = ['today', 'week', 'month', 'custom'];
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await db('users').where({ id: userId }).select('username').first();
+    const user = await db('users').where({ id: userId }).select('username', 'email').first();
     let profile = await db('user_profiles').where({ user_id: userId }).first();
     if (!profile) {
       await db('user_profiles').insert({ user_id: userId, export_period: 'week' });
@@ -34,6 +35,7 @@ router.get('/', authenticate, async (req, res) => {
     }
     res.json({
       username: user.username,
+      email: user.email || null,
       export_period: profile.export_period,
       share_token: profile.share_token || null,
       has_passcode: !!profile.share_passcode_hash,
@@ -54,6 +56,9 @@ router.put('/', authenticate, async (req, res) => {
     const userId = req.user.id;
     const {
       export_period,
+      username,
+      username_password,
+      email,
       passcode,
       clear_passcode,
       regenerate_share,
@@ -64,7 +69,52 @@ router.put('/', authenticate, async (req, res) => {
       clear_ingest_key,
     } = req.body;
     const updates = {};
+    const userUpdates = {};
     let plainIngestKey = null;
+
+    if (username !== undefined) {
+      const normalizedUsername = String(username).trim();
+      if (!normalizedUsername) {
+        return res.status(400).json({ error: 'username cannot be empty' });
+      }
+      if (!username_password || !String(username_password).trim()) {
+        return res.status(400).json({ error: 'account password is required to change username' });
+      }
+
+      const userForPassword = await db('users').where({ id: userId }).select('password').first();
+      if (!userForPassword?.password) {
+        return res.status(400).json({ error: 'user not found' });
+      }
+
+      const passwordMatch = await bcrypt.compare(
+        String(username_password),
+        userForPassword.password,
+      );
+      if (!passwordMatch) {
+        return res.status(403).json({ error: 'invalid account password' });
+      }
+
+      const usernameUser = await db('users').where({ username: normalizedUsername }).whereNot({ id: userId }).first();
+      if (usernameUser) {
+        return res.status(400).json({ error: 'username taken' });
+      }
+
+      userUpdates.username = normalizedUsername;
+    }
+
+    if (email !== undefined) {
+      const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
+      if (normalizedEmail) {
+        if (!EMAIL_RE.test(normalizedEmail)) {
+          return res.status(400).json({ error: 'invalid email address' });
+        }
+        const emailUser = await db('users').where({ email: normalizedEmail }).whereNot({ id: userId }).first();
+        if (emailUser) {
+          return res.status(400).json({ error: 'email already in use' });
+        }
+      }
+      userUpdates.email = normalizedEmail;
+    }
 
     if (export_period !== undefined) {
       if (!VALID_PERIODS.includes(export_period)) {
@@ -109,6 +159,10 @@ router.put('/', authenticate, async (req, res) => {
       updates.ingest_key_last_used_at = null;
     }
 
+    if (Object.keys(userUpdates).length > 0) {
+      await db('users').where({ id: userId }).update(userUpdates);
+    }
+
     if (Object.keys(updates).length > 0) {
       const exists = await db('user_profiles').where({ user_id: userId }).first();
       if (exists) {
@@ -124,8 +178,12 @@ router.put('/', authenticate, async (req, res) => {
     }
 
     const profile = await db('user_profiles').where({ user_id: userId }).first();
+    const user = await db('users').where({ id: userId }).select('username', 'email').first();
     res.json({
       ok: true,
+      username: user?.username || null,
+      email: user?.email || null,
+      export_period: profile?.export_period || 'week',
       share_token: profile?.share_token || null,
       has_passcode: !!(profile?.share_passcode_hash),
       share_food_log: !!(profile?.share_food_log),
