@@ -1,0 +1,403 @@
+.share-page {
+  min-height: 100vh;
+  background: #f4f7fb;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ── Header ── */
+.share-header {
+  background: #001f4d;
+  padding: 14px 24px;
+}
+
+.share-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.share-logo {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+
+.share-tagline {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ── Body ── */
+.share-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Patient card ── */
+.share-patient-card {
+  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 10px;
+  padding: 18px 22px;
+}
+
+.share-patient-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #001f4d;
+  margin-bottom: 4px;
+}
+
+.share-period {
+  font-size: 0.82rem;
+  color: #5a6a8a;
+}
+
+/* ── Metric groups ── */
+.share-group {
+  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.share-group-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 20px;
+  background: #f8fafc;
+  border: none;
+  border-bottom: 1px solid #eef0f5;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.share-group-header:hover { background: #edf1f7; }
+
+.share-group-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5a6a8a;
+  flex: 1;
+}
+
+.share-group-badge {
+  font-size: 0.68rem;
+  background: #e1e8f0;
+  color: #5a6a8a;
+  border-radius: 10px;
+  padding: 1px 8px;
+  margin-right: 10px;
+  font-weight: 600;
+}
+
+.share-group-arrow {
+  font-size: 0.8rem;
+  color: #9aabbb;
+}
+
+.share-group-body {
+  animation: fadeIn 0.12s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.share-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.share-table tr:not(:last-child) td {
+  border-bottom: 1px solid #f0f3f8;
+}
+
+.share-table td {
+  padding: 11px 20px;
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+
+.share-metric-name {
+  color: #334;
+  min-width: 160px;
+}
+
+.share-metric-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #001f4d;
+  white-space: nowrap;
+}
+
+.share-metric-unit {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #778;
+}
+
+.share-metric-range {
+  font-size: 0.74rem;
+  color: #9aabbb;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.share-row-empty td {
+  opacity: 0.45;
+}
+
+.share-metric-dash {
+  color: #bbc;
+  font-weight: 400;
+}
+
+.share-metric-nodata {
+  font-size: 0.72rem;
+  color: #c0c8d8;
+  font-style: italic;
+}
+
+/* ── Unlock / passcode card ── */
+.share-unlock-card {
+  max-width: 380px;
+  margin: 80px auto;
+  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.share-unlock-card .share-logo {
+  color: #001f4d;
+  font-size: 1.2rem;
+}
+
+/* ── Logo mark (lock + error screens) ── */
+.share-logo-mark {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #001f4d;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.share-unlock-card h2 {
+  font-size: 1.2rem;
+  color: #001f4d;
+  margin: 0;
+}
+
+.share-unlock-sub {
+  font-size: 0.86rem;
+  color: #5a6a8a;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.share-passcode-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ccd3e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: 0.15em;
+  background: #f8fafc;
+  color: #1a1a2e;
+}
+
+.share-passcode-input:focus {
+  outline: none;
+  border-color: #001f4d;
+}
+
+.share-unlock-btn {
+  width: 100%;
+  padding: 11px;
+  background: #001f4d;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.share-unlock-btn:hover:not(:disabled) { background: #1a4080; }
+.share-unlock-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Not found / error ── */
+.share-not-found {
+  max-width: 360px;
+  margin: 100px auto;
+  text-align: center;
+  color: #5a6a8a;
+}
+
+.share-not-found .share-logo {
+  color: #001f4d;
+  margin-bottom: 16px;
+  display: block;
+}
+
+/* ── Loading ── */
+.share-spinner {
+  text-align: center;
+  margin-top: 80px;
+  color: #5a6a8a;
+  font-size: 0.9rem;
+}
+
+/* ── Error inline ── */
+.share-error {
+  color: #b00020;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+/* ── Empty state ── */
+.share-empty {
+  padding: 18px 20px;
+  font-size: 0.86rem;
+  color: #9aabbb;
+  margin: 0;
+}
+
+/* ── Journal entries ── */
+.share-journal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.share-journal-entry {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0f3f8;
+}
+.share-journal-entry:last-child { border-bottom: none; }
+
+.share-journal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.share-journal-date {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5a6a8a;
+}
+
+.share-journal-mood {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.share-journal-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a2540;
+  margin-bottom: 4px;
+}
+
+.share-journal-text {
+  font-size: 0.86rem;
+  color: #445;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* ── Footer ── */
+.share-footer {
+  font-size: 0.75rem;
+  color: #aab;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* ── Food Log ── */
+.share-foodlog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+}
+
+.share-foodlog-day {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.share-foodlog-date {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--secondary, #5a6a8a);
+  border-bottom: 1px solid #eef0f5;
+  padding-bottom: 4px;
+}
+
+.share-foodlog-meal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.share-foodlog-meal-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7a8aaa;
+  text-transform: capitalize;
+  padding: 0 2px;
+}
+
+.share-foodlog-table td {
+  padding: 5px 8px;
+  vertical-align: middle;
+}
+
+.share-foodlog-food {
+  font-size: 0.87rem;
+  color: var(--text-dark, #1a1a2e);
+  max-width: 220px;
+}
+
+.share-foodlog-qty {
+  font-size: 0.8rem;
+  color: #7a8aaa;
+  white-space: nowrap;
+}
+
+.share-foodlog-cals {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-dark, #1a1a2e);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.share-foodlog-macros {
+  font-size: 0.75rem;
+  color: #7a8aaa;
+  white-space: nowrap;
+  text-align: right;
+}

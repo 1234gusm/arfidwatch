@@ -1,0 +1,450 @@
+.export-page {
+  padding: 28px 32px;
+  max-width: 860px;
+  margin: 0 auto;
+  color: #c8d8e8;
+}
+
+/* Header */
+.ep-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.ep-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e8f4ff;
+  margin: 0 0 4px;
+}
+.ep-subtitle {
+  font-size: 0.88rem;
+  color: #6898b0;
+  margin: 0;
+}
+.ep-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ep-preview-btn,
+.ep-download-btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+}
+.ep-preview-btn {
+  background: rgba(0, 100, 200, 0.18);
+  color: #7ecfff;
+  border: 1px solid rgba(0, 120, 220, 0.35);
+}
+.ep-preview-btn:hover:not(:disabled)  { background: rgba(0,100,200,0.28); }
+.ep-download-btn {
+  background: #0066cc;
+  color: #fff;
+}
+.ep-download-btn:hover:not(:disabled) { background: #0077ee; }
+.ep-preview-btn:disabled,
+.ep-download-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Date range bar */
+.ep-range-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: rgba(0, 60, 120, 0.18);
+  border: 1px solid rgba(0, 100, 200, 0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+}
+.ep-period-row {
+  display: flex;
+  gap: 6px;
+}
+.ep-period-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: #88aacc;
+  border: 1px solid rgba(100, 160, 220, 0.3);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.ep-period-btn:hover { background: rgba(0, 100, 200, 0.2); color: #aad4ff; }
+.ep-period-btn.active {
+  background: rgba(0, 100, 200, 0.35);
+  color: #d0eaff;
+  border-color: rgba(0, 140, 255, 0.55);
+}
+
+.ep-custom {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ep-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ep-field label {
+  font-size: 0.82rem;
+  color: #6898b0;
+  white-space: nowrap;
+}
+.ep-field input[type="date"] {
+  background: rgba(0, 30, 70, 0.55);
+  border: 1px solid rgba(0, 100, 200, 0.35);
+  border-radius: 6px;
+  color: #aaccee;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+}
+
+.ep-range-badge {
+  font-size: 0.8rem;
+  color: #5580a8;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.ep-toggle-btn {
+  padding: 5px 13px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: #5578a0;
+  border: 1px solid rgba(100, 160, 220, 0.25);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ep-toggle-btn:hover { background: rgba(0, 100, 200, 0.15); color: #88aacc; }
+.ep-toggle-btn.active {
+  background: rgba(0, 100, 200, 0.22);
+  color: #b0d8ff;
+  border-color: rgba(0, 140, 255, 0.45);
+}
+
+/* Error */
+.ep-error {
+  background: rgba(200, 50, 50, 0.15);
+  border: 1px solid rgba(200, 80, 80, 0.4);
+  color: #ffaaaa;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
+
+/* Preview panel */
+.ep-preview {
+  background: rgba(0, 30, 70, 0.3);
+  border: 1px solid rgba(0, 80, 160, 0.25);
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-height: 180px;
+}
+
+.ep-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 140px;
+  color: #5578a0;
+  text-align: center;
+}
+.ep-preview-icon { font-size: 2.4rem; opacity: 0.5; }
+.ep-preview-empty p { font-size: 0.92rem; margin: 0; }
+.ep-preview-empty strong { color: #7ecfff; }
+
+/* Summary stat boxes */
+.ep-summary-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.ep-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 80, 180, 0.14);
+  border: 1px solid rgba(0, 100, 200, 0.25);
+  border-radius: 10px;
+  padding: 12px 20px;
+  min-width: 110px;
+}
+.ep-stat-box strong {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #60c8ff;
+  line-height: 1.1;
+}
+.ep-stat-box span {
+  font-size: 0.76rem;
+  color: #5580a0;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Sections */
+.ep-pv-section {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(0, 80, 160, 0.2);
+}
+.ep-pv-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+.ep-pv-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #88c0e8;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* Metric chips */
+.ep-pv-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.ep-pv-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(0, 100, 200, 0.1);
+  border: 1px solid rgba(0, 120, 220, 0.22);
+  border-top: 3px solid var(--chip-color, #0066cc);
+  border-radius: 8px;
+  min-width: 82px;
+}
+.ep-pv-metric strong {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #60c8ff;
+  line-height: 1.2;
+}
+.ep-pv-metric span {
+  font-size: 0.72rem;
+  color: #5580a0;
+  margin-top: 3px;
+  text-align: center;
+}
+.ep-pv-metric small {
+  display: block;
+  font-size: 0.65rem;
+  color: #445568;
+  margin-top: 3px;
+  text-align: center;
+}
+
+/* Journal entries */
+.ep-pv-entry {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 80, 160, 0.12);
+}
+.ep-pv-entry:last-child { border-bottom: none; }
+.ep-pv-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.ep-pv-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #aaccee;
+}
+.ep-pv-mood {
+  font-size: 0.8rem;
+  color: #6898b0;
+}
+.ep-pv-text {
+  font-size: 0.87rem;
+  color: #8aaccc;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Misc */
+.ep-hint {
+  font-size: 0.8rem;
+  color: #4a6880;
+  margin: 8px 0 0;
+  font-style: italic;
+}
+.ep-empty {
+  text-align: center;
+  color: #5578a0;
+  padding: 40px;
+}
+
+/* Spinner */
+.ep-spin {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ep-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.ep-spin--lg {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+@keyframes ep-spin { to { transform: rotate(360deg); } }
+
+/* ── Hero stats row ──────────────────────────────────────────────────── */
+.ep-hero-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ep-hero-stat {
+  flex: 1 1 0;
+  min-width: 100px;
+  background: rgba(0, 40, 90, 0.25);
+  border: 1px solid rgba(0, 100, 200, 0.2);
+  border-top: 3px solid var(--hero-color, #0066cc);
+  border-radius: 8px;
+  padding: 11px 10px 9px;
+  text-align: center;
+}
+.ep-hero-stat strong {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #70d0ff;
+  line-height: 1.15;
+}
+.ep-hero-stat span {
+  display: block;
+  font-size: 0.72rem;
+  color: #5578a0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+.ep-hero-stat small {
+  display: block;
+  font-size: 0.67rem;
+  color: #435568;
+  margin-top: 3px;
+}
+
+/* Count bar */
+.ep-count-bar {
+  display: flex;
+  gap: 16px;
+  font-size: 0.79rem;
+  color: #4a6888;
+  margin-bottom: 16px;
+}
+
+/* Secondary chips */
+.ep-pv-metrics--sm {
+  margin-top: 8px;
+  opacity: 0.85;
+}
+.ep-pv-metric--sm {
+  padding: 6px 10px;
+  min-width: 68px;
+  background: rgba(0, 80, 160, 0.08);
+  border-color: rgba(0, 100, 200, 0.15);
+  border-top-width: 2px;
+}
+.ep-pv-metric--sm strong {
+  font-size: 0.88rem;
+  color: #4a9abf;
+}
+.ep-pv-metric--sm span {
+  font-size: 0.66rem;
+}
+
+/* No-data chip state */
+.ep-pv-metric--nodata {
+  background: rgba(50, 70, 90, 0.12);
+  border-color: rgba(80, 100, 120, 0.18);
+  border-top-color: #2e4055;
+  opacity: 0.6;
+}
+.ep-pv-metric--nodata strong {
+  color: #3a5268;
+}
+.ep-pv-metric--nodata span {
+  color: #2e4258;
+}
+.ep-pv-metric--nodata small {
+  color: #273545;
+  font-style: italic;
+}
+
+/* No-data hero stat */
+.ep-hero-stat--nodata {
+  opacity: 0.5;
+  border-top-color: #2a3d52 !important;
+}
+.ep-hero-stat--nodata strong {
+  color: #3a5268;
+}
+
+/* Period totals */
+.ep-pv-total {
+  font-size: 0.79rem;
+  color: #4a7090;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+/* Other metrics table */
+.ep-other-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 8px;
+}
+.ep-other-table th {
+  text-align: left;
+  font-size: 0.74rem;
+  color: #5580a0;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(0, 80, 160, 0.2);
+  font-weight: 600;
+}
+.ep-other-table td {
+  padding: 5px 8px;
+  color: #9ab8cc;
+  border-bottom: 1px solid rgba(0, 60, 120, 0.12);
+}
+.ep-other-table tr:nth-child(even) td {
+  background: rgba(0, 40, 100, 0.1);
+}

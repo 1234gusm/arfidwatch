@@ -1,0 +1,222 @@
+.fl-page {
+  padding: 20px;
+  color: #eaf6ff;
+  background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
+  min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.fl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.fl-title {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  color: #dff3ff;
+}
+.fl-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4a7a9a;
+}
+
+/* Range buttons */
+.fl-range-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fl-range-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #7aaabb;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.fl-range-btn:hover { background: rgba(0,160,255,0.12); color: #aadeff; }
+.fl-range-btn.active {
+  background: rgba(0,160,255,0.2);
+  border-color: rgba(0,160,255,0.45);
+  color: #6ee7ff;
+  font-weight: 600;
+}
+
+/* ── State messages ──────────────────────────────────────────────────────── */
+.fl-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #5588aa;
+  padding: 40px 0;
+  justify-content: center;
+}
+.fl-error {
+  background: rgba(255,60,60,0.12);
+  border: 1px solid rgba(255,80,80,0.3);
+  color: #ff9999;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 0.87rem;
+}
+.fl-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #4a6888;
+}
+.fl-empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.fl-empty-state p { margin: 4px 0; }
+.fl-hint { font-size: 0.82rem; color: #334d66; font-style: italic; }
+.fl-empty { text-align: center; color: #5578a0; padding: 40px; }
+
+/* Spinner */
+.fl-spin {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid #5588aa;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: fl-spin 0.7s linear infinite;
+}
+@keyframes fl-spin { to { transform: rotate(360deg); } }
+
+/* ── Day card ─────────────────────────────────────────────────────────────── */
+.fl-day {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(0,100,200,0.15);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
+}
+.fl-day:hover { border-color: rgba(0,140,255,0.28); }
+
+.fl-day--today {
+  background: linear-gradient(135deg, rgba(10,80,20,0.35), rgba(5,50,15,0.28));
+  border-color: rgba(60,200,80,0.35);
+  border-left: 3px solid #3cdc50;
+}
+
+/* Day header */
+.fl-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fl-day-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #aaccee;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fl-today-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: #3cdc50;
+  color: #001a08;
+  border-radius: 4px;
+  padding: 2px 6px;
+  vertical-align: middle;
+}
+.fl-day-cals {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #6ee7b0;
+}
+
+/* ── Macro row ─────────────────────────────────────────────────────────────── */
+.fl-macros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.fl-macro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0,60,120,0.25);
+  border: 1px solid rgba(0,100,200,0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  min-width: 74px;
+  flex: 1;
+}
+.fl-macro strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #70d8ff;
+  line-height: 1.15;
+}
+.fl-macro span {
+  font-size: 0.68rem;
+  color: #4a7a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+.fl-macro--missing {
+  opacity: 0.35;
+}
+.fl-macro--missing strong { color: #3a5570; }
+
+/* ── Macro split bar ──────────────────────────────────────────────────────── */
+.fl-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.fl-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+}
+.fl-bar-p { background: #4ac8a0; height: 100%; }
+.fl-bar-c { background: #4a88e0; height: 100%; }
+.fl-bar-f { background: #e08040; height: 100%; }
+.fl-bar-legend {
+  display: flex;
+  gap: 8px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+.fl-bar-legend em { font-style: normal; }
+
+/* ── Secondary nutrition ─────────────────────────────────────────────────── */
+.fl-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 8px;
+}
+.fl-sec-item {
+  font-size: 0.78rem;
+  color: #4a7090;
+}
+.fl-sec-item strong { color: #7aaabb; }
+
+@media (max-width: 600px) {
+  .fl-header { flex-direction: column; }
+  .fl-macros { gap: 6px; }
+  .fl-macro { min-width: 60px; padding: 7px 10px; }
+}

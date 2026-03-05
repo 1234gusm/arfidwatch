@@ -1,0 +1,112 @@
+.fi-page {
+  padding: 20px;
+  color: #eaf6ff;
+  background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
+  min-height: 100vh;
+}
+
+.fi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.fi-title { margin: 0 0 4px; color: #dff3ff; }
+.fi-subtitle { margin: 0; color: #6f94b0; font-size: 0.84rem; }
+
+.fi-range-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.fi-range-btn {
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: #7aaabb;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.fi-range-btn.active {
+  color: #6ee7ff;
+  border-color: rgba(0, 180, 255, 0.45);
+  background: rgba(0, 150, 230, 0.18);
+}
+
+.fi-error {
+  margin-bottom: 12px;
+  background: rgba(255,60,60,0.12);
+  border: 1px solid rgba(255,80,80,0.3);
+  color: #ff9999;
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.fi-loading,
+.fi-empty-state {
+  color: #6f94b0;
+  padding: 20px 4px;
+}
+.fi-hint { font-size: 0.82rem; color: #527089; font-style: italic; }
+.fi-empty { text-align: center; color: #5578a0; padding: 40px; }
+
+.fi-day {
+  margin-bottom: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+}
+.fi-day-title {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.92rem;
+  color: #9ec7e5;
+}
+
+.fi-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 10px 8px;
+}
+.fi-item {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 8px 2px;
+}
+.fi-item:last-child { border-bottom: none; }
+
+.fi-main {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.fi-time {
+  font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+  color: #5f89a8;
+  font-size: 0.8rem;
+  min-width: 68px;
+}
+.fi-name {
+  color: #dcefff;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.fi-serving {
+  color: #6f94b0;
+  font-size: 0.78rem;
+}
+
+.fi-macros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-left: 78px;
+  margin-top: 4px;
+  color: #7ab7d8;
+  font-size: 0.78rem;
+}
+.fi-note { color: #8f7e4b; font-style: italic; }
+
+@media (max-width: 700px) {
+  .fi-header { flex-direction: column; }
+  .fi-macros { padding-left: 0; }
+}
