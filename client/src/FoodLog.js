@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './FoodLog.css';
 
-// ── nutrition types to track ──────────────────────────────────────────────────
-const TYPE_ALIASES = {
-  macrofactor_energy:        'dietary_energy_kcal',
-  macrofactor_calories:      'dietary_energy_kcal',
-  macrofactor_calories_kcal: 'dietary_energy_kcal',
-  macrofactor_protein:       'protein_g',
-  macrofactor_protein_g:     'protein_g',
-  macrofactor_fat:           'total_fat_g',
-  macrofactor_fat_g:         'total_fat_g',
-  macrofactor_carbohydrates: 'carbohydrates_g',
-  macrofactor_carbs:         'carbohydrates_g',
-  macrofactor_carbs_g:       'carbohydrates_g',
-  macrofactor_fiber:         'fiber_g',
-  macrofactor_fiber_g:       'fiber_g',
-  macrofactor_sugar:         'sugar_g',
-  macrofactor_sugars_g:      'sugar_g',
-  macrofactor_sodium:        'sodium_mg',
-  macrofactor_sodium_mg:     'sodium_mg',
-  macrofactor_water:         'water_fl_oz_us',
-  macrofactor_water_g:       'water_fl_oz_us',
-};
-const canonical = t => TYPE_ALIASES[t] || t;
-
 const NUTRITION_META = {
   dietary_energy_kcal: { label: 'Calories',  unit: 'kcal',  dp: 0, primary: true  },
   protein_g:           { label: 'Protein',   unit: 'g',     dp: 1, primary: true  },
@@ -91,7 +68,7 @@ function FoodLog({ token }) {
       const { start, end } = buildDates();
       const params = new URLSearchParams();
       if (start) { params.set('start', start); params.set('end', end); }
-      const res  = await fetch(`http://localhost:4000/api/health?${params}`, {
+      const res  = await fetch(`http://localhost:4000/api/food-log/daily?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -107,17 +84,17 @@ function FoodLog({ token }) {
 
   if (!token) return <div className="fl-page"><p className="fl-empty">Please log in.</p></div>;
 
-  // ── Build per-day nutrition map ───────────────────────────────────────────
+  // ── Build per-day nutrition map from aggregated food-log entries ───────────
   const byDay = {};
   rows.forEach(r => {
-    const ct = canonical(r.type);
-    if (!NUTRITION_TYPES.has(ct)) return;
-    const v  = parseFloat(r.value);
-    if (!Number.isFinite(v)) return;
-    const day = String(r.timestamp).slice(0, 10);
-    if (!byDay[day]) byDay[day] = {};
-    // keep max per day (mirrors how health page and pdf handle it)
-    if (byDay[day][ct] === undefined || v > byDay[day][ct]) byDay[day][ct] = v;
+    const day = r.date;
+    if (!day) return;
+    const entry = {};
+    if (r.dietary_energy_kcal != null) entry.dietary_energy_kcal = parseFloat(r.dietary_energy_kcal);
+    if (r.protein_g != null)           entry.protein_g           = parseFloat(r.protein_g);
+    if (r.carbohydrates_g != null)     entry.carbohydrates_g     = parseFloat(r.carbohydrates_g);
+    if (r.total_fat_g != null)         entry.total_fat_g         = parseFloat(r.total_fat_g);
+    if (Object.keys(entry).length > 0) byDay[day] = entry;
   });
 
   const days = Object.keys(byDay).sort((a, b) => (a < b ? 1 : -1)); // newest first
