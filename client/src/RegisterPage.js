@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+
 function RegisterPage({ setToken }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -14,18 +16,29 @@ function RegisterPage({ setToken }) {
       setError('Please fill in all fields');
       return;
     }
-    const res = await fetch('http://localhost:4000/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      navigate('/');
-    } else {
-      setError(data.error || 'Registration failed');
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        data = { error: 'Server returned an unexpected response.' };
+      }
+
+      if (res.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        navigate('/');
+      } else {
+        setError(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      setError('Could not reach server. Please try again in a moment.');
     }
   };
 
