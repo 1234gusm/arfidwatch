@@ -74,6 +74,154 @@ const normalizeStatValue = (v) => {
 const statKey = (r) => `${r.type}|${normalizeStatTimestamp(r.timestamp)}|${String(normalizeStatValue(r.value))}`;
 const CHUNK_SIZE = 200;
 
+const normalizeCsvHeader = (h) => String(h || '')
+  .trim()
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  .replace(/[^a-z0-9 ]/g, '');
+
+const parseDurationHours = (value) => {
+  if (value == null) return null;
+  const raw = String(value).trim().toLowerCase();
+  if (!raw) return null;
+
+  const hhmm = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (hhmm) {
+    const h = Number(hhmm[1]) || 0;
+    const m = Number(hhmm[2]) || 0;
+    const s = Number(hhmm[3]) || 0;
+    return h + (m / 60) + (s / 3600);
+  }
+
+  const hm = raw.match(/^(\d+(?:\.\d+)?)\s*h(?:ours?)?\s*(\d+(?:\.\d+)?)?\s*m?/);
+  if (hm) {
+    const h = Number(hm[1]) || 0;
+    const m = Number(hm[2]) || 0;
+    return h + (m / 60);
+  }
+
+  const mins = raw.match(/^(\d+(?:\.\d+)?)\s*(?:min|mins|minutes)$/);
+  if (mins) {
+    return (Number(mins[1]) || 0) / 60;
+  }
+
+  const n = Number(raw.replace(/[^0-9eE+\-.]/g, ''));
+  if (!Number.isFinite(n) || n < 0) return null;
+  // Values in minutes are occasionally exported for sleep durations.
+  if (n > 24 && n <= 1440) return n / 60;
+  return n;
+};
+
+const isAutoSleepCsvHeaders = (headers = []) => {
+  const hs = headers.map(normalizeCsvHeader).filter(Boolean);
+  if (!hs.length) return false;
+
+  const hasAutoSleepWord = hs.some(h => h.includes('autosleep'));
+  const score = [
+    hs.some(h => h === 'date' || h.includes('sleep date') || h.includes('day')),
+    hs.some(h => h.includes('asleep') || h.includes('total sleep') || h === 'sleep'),
+    hs.some(h => h.includes('in bed') || h.includes('time in bed')),
+    hs.some(h => h.includes('deep sleep') || h === 'deep'),
+    hs.some(h => h.includes('quality sleep') || h.includes('sleep quality') || h.includes('sleep bank')),
+  ].filter(Boolean).length;
+
+  return hasAutoSleepWord || score >= 3;
+};
+
+const pickRowValue = (row, testFn) => {
+  for (const [k, v] of Object.entries(row || {})) {
+    if (testFn(normalizeCsvHeader(k))) return v;
+  }
+  return null;
+};
+
+const autosleepTimestamp = (row) => {
+  const dateVal = pickRowValue(row, h => h === 'date' || h.includes('sleep date') || h === 'day');
+  if (!dateVal) return new Date().toISOString();
+  const d = new Date(String(dateVal));
+  if (Number.isNaN(d.getTime())) return new Date().toISOString();
+  d.setHours(12, 0, 0, 0);
+  return d.toISOString();
+};
+
+const buildAutoSleepRecords = (rows, userId) => {
+  const metrics = [
+    {
+      type: 'sleep_analysis_total_sleep_hr',
+      match: h => h.includes('time asleep') || h.includes('total sleep') || h === 'asleep' || h === 'sleep',
+    },
+    {
+      type: 'sleep_analysis_in_bed_hr',
+      match: h => h.includes('in bed') || h.includes('time in bed'),
+    },
+    {
+      type: 'sleep_analysis_deep_hr',
+      match: h => h.includes('deep sleep') || h === 'deep',
+    },
+    {
+      type: 'sleep_analysis_rem_hr',
+      match: h => h.includes('rem sleep') || h === 'rem',
+    },
+    {
+      type: 'sleep_analysis_awake_hr',
+      match: h => h.includes('awake') || h.includes('time awake') || h === 'wake',
+    },
+  ];
+
+  const out = [];
+  rows.forEach((row, idx) => {
+    const ts = autosleepTimestamp(row);
+    metrics.forEach((m) => {
+      const rawVal = pickRowValue(row, m.match);
+      const value = parseDurationHours(rawVal);
+      if (value == null) return;
+      out.push({
+        user_id: userId,
+        type: m.type,
+        value,
+        timestamp: ts,
+        raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }),
+      });
+    });
+  });
+
+  return out;
+};
+
+const SLEEP_BASE_TYPES = new Set([
+  'sleep_analysis_total_sleep_hr',
+  'sleep_analysis_asleep_hr',
+  'sleep_analysis_in_bed_hr',
+  'sleep_analysis_core_hr',
+  'sleep_analysis_rem_hr',
+  'sleep_analysis_deep_hr',
+  'sleep_analysis_awake_hr',
+]);
+
+const canonicalSleepType = (rawType) => {
+  const t = String(rawType || '');
+  const base = t.startsWith('macrofactor_') ? t.slice('macrofactor_'.length) : t;
+  return SLEEP_BASE_TYPES.has(base) ? base : null;
+};
+
+const sleepHours = (type, value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return null;
+  if (!String(type).endsWith('_hr')) return n;
+
+  // Uploaded sleep can mix hours/minutes/seconds under *_hr labels.
+  if (n > 240) return n / 3600;
+  if (n > 24) return n / 60;
+  return n;
+};
+
+const dayKeyWithOffset = (isoTimestamp, offsetMinutes = 0) => {
+  const d = new Date(isoTimestamp);
+  if (Number.isNaN(d.getTime())) return null;
+  const shifted = new Date(d.getTime() - offsetMinutes * 60000);
+  return shifted.toISOString().slice(0, 10);
+};
+
 const insertInChunks = async (tableName, rows, chunkSize = CHUNK_SIZE) => {
   for (let i = 0; i < rows.length; i += chunkSize) {
     await db(tableName).insert(rows.slice(i, i + chunkSize));
@@ -172,11 +320,18 @@ router.post('/import', authenticateOrIngestKey, async (req, res) => {
         relax_column_count: true,
         trim: true,
       });
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      const isAutoSleep = isAutoSleepCsvHeaders(headers);
       const records = [];
+
+      if (isAutoSleep) {
+        records.push(...buildAutoSleepRecords(rows, req.user.id));
+      }
 
       const tsCandidates = ['startDate', 'endDate', 'timestamp', 'date', 'time'];
 
       for (const row of rows) {
+        if (isAutoSleep) continue;
         // find a timestamp field in the row
         let ts = null;
         for (const k of Object.keys(row)) {
@@ -251,7 +406,12 @@ router.post('/import', authenticateOrIngestKey, async (req, res) => {
         const tagged = deduped.map(r => ({ ...r, import_id: importId }));
         await insertInChunks('health_data', tagged);
       }
-      return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length, duplicateFile });
+      return res.json({
+        imported: deduped.length,
+        skipped_duplicates: records.length - deduped.length,
+        duplicateFile,
+        source: isAutoSleep ? 'autosleep_csv' : 'health_csv',
+      });
     } catch (err) {
       console.error('CSV import parse error:', err);
       return res.status(500).json({ error: 'failed to parse csv', details: err.message });
@@ -710,6 +870,93 @@ router.get('/', authenticate, async (req, res) => {
   if (end) query = query.where('timestamp', '<=', end);
   const rows = await query.orderBy('timestamp', 'asc');
   res.json({ data: rows });
+});
+
+// Sleep-specific daily aggregation (small payload, robust unit normalization).
+router.get('/sleep/daily', authenticate, async (req, res) => {
+  const daysRaw = Number.parseInt(req.query.days, 10);
+  const days = Number.isFinite(daysRaw) ? Math.max(7, Math.min(730, daysRaw)) : 180;
+  const tzOffsetRaw = Number.parseInt(req.query.tzOffsetMinutes, 10);
+  const tzOffsetMinutes = Number.isFinite(tzOffsetRaw) ? tzOffsetRaw : 0;
+
+  const endIso = new Date().toISOString();
+  const startDate = new Date();
+  startDate.setUTCDate(startDate.getUTCDate() - days);
+  const startIso = startDate.toISOString();
+
+  const rows = await db('health_data')
+    .select('type', 'value', 'timestamp')
+    .where({ user_id: req.user.id })
+    .andWhere('timestamp', '>=', startIso)
+    .andWhere('timestamp', '<=', endIso)
+    .andWhere(function andSleep() {
+      this.where('type', 'like', 'sleep_analysis_%')
+        .orWhere('type', 'like', 'macrofactor_sleep_analysis_%');
+    })
+    .orderBy('timestamp', 'asc');
+
+  const byDay = new Map();
+
+  for (const row of rows) {
+    const type = canonicalSleepType(row.type);
+    if (!type) continue;
+    const day = dayKeyWithOffset(row.timestamp, tzOffsetMinutes);
+    if (!day) continue;
+    const value = sleepHours(type, row.value);
+    if (value == null) continue;
+
+    let bucket = byDay.get(day);
+    if (!bucket) {
+      bucket = { day, _raw: Object.create(null) };
+      byDay.set(day, bucket);
+    }
+
+    const prev = bucket._raw[type];
+    if (!prev || String(row.timestamp) > String(prev.timestamp)) {
+      bucket._raw[type] = { timestamp: row.timestamp, value };
+    }
+  }
+
+  const daily = [...byDay.values()]
+    .map((d) => {
+      const total = d._raw.sleep_analysis_total_sleep_hr?.value;
+      const asleep = d._raw.sleep_analysis_asleep_hr?.value;
+      const inBed = d._raw.sleep_analysis_in_bed_hr?.value;
+      const core = d._raw.sleep_analysis_core_hr?.value || 0;
+      const rem = d._raw.sleep_analysis_rem_hr?.value || 0;
+      const deep = d._raw.sleep_analysis_deep_hr?.value || 0;
+      const awake = d._raw.sleep_analysis_awake_hr?.value;
+
+      let interpretedTotal = total;
+      if (!Number.isFinite(interpretedTotal)) {
+        const staged = core + rem + deep;
+        interpretedTotal = staged > 0 ? staged : asleep;
+      }
+
+      return {
+        day: d.day,
+        total_sleep_hr: Number.isFinite(interpretedTotal) ? interpretedTotal : null,
+        asleep_hr: Number.isFinite(asleep) ? asleep : null,
+        in_bed_hr: Number.isFinite(inBed) ? inBed : null,
+        core_hr: core || null,
+        rem_hr: rem || null,
+        deep_hr: deep || null,
+        awake_hr: Number.isFinite(awake) ? awake : null,
+      };
+    })
+    .sort((a, b) => a.day.localeCompare(b.day));
+
+  const totals = daily.map((d) => d.total_sleep_hr).filter((v) => Number.isFinite(v));
+  const avgTotal = totals.length
+    ? totals.reduce((sum, n) => sum + n, 0) / totals.length
+    : null;
+
+  res.json({
+    range: { start: startIso, end: endIso, days },
+    nights: daily.length,
+    average_total_sleep_hr: avgTotal,
+    data: daily,
+  });
 });
 
 // Lightweight all-time summary for the 4 hero metrics (used as preview fallback)

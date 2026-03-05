@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import './HealthPage.css';
+import API_BASE from './apiBase';
 
 function HealthPage({ token }) {
   const [data, setData] = useState([]);
@@ -35,7 +36,7 @@ function HealthPage({ token }) {
   const [endDate, setEndDate] = useState(formatDate(new Date()));
 
   const fetchData = async () => {
-    const res = await fetch('http://localhost:4000/api/health', {
+    const res = await fetch(`${API_BASE}/api/health`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
@@ -43,7 +44,7 @@ function HealthPage({ token }) {
   };
 
   const fetchImports = async () => {
-    const res = await fetch('http://localhost:4000/api/health/imports', {
+    const res = await fetch(`${API_BASE}/api/health/imports`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
@@ -54,7 +55,7 @@ function HealthPage({ token }) {
 
   const deleteImport = async (id) => {
     if (!window.confirm('Delete this import and all its data?')) return;
-    await fetch(`http://localhost:4000/api/health/imports/${id}`, {
+    await fetch(`${API_BASE}/api/health/imports/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -63,7 +64,7 @@ function HealthPage({ token }) {
   };
 
   const deleteAllImports = async () => {
-    await fetch('http://localhost:4000/api/health/imports', {
+    await fetch(`${API_BASE}/api/health/imports`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -110,7 +111,7 @@ function HealthPage({ token }) {
       const form = new FormData();
       form.append('file', file);
       try {
-        const res = await fetch('http://localhost:4000/api/health/macro/import', {
+        const res = await fetch(`${API_BASE}/api/health/macro/import`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: form,
@@ -134,10 +135,11 @@ function HealthPage({ token }) {
 
     // Health Auto Export headers often include spaces/quotes (e.g. "Source Name", "Start Date").
     const isHealthAutoExport = /(source\s*name|start\s*date|end\s*date|creation\s*date)/i.test(firstLine);
+    const isAutoSleepCsv = /(autosleep|time\s*asleep|total\s*sleep|deep\s*sleep|sleep\s*bank|sleep\s*quality|time\s*in\s*bed|\basleep\b.*\bawake\b|\bawake\b.*\basleep\b)/i.test(firstLine);
     if (isHealthAutoExport) {
       // Health Auto Export CSV
       try {
-        const res = await fetch('http://localhost:4000/api/health/import', {
+        const res = await fetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ csv: text, filename: file.name }),
@@ -153,12 +155,31 @@ function HealthPage({ token }) {
       return;
     }
 
+    if (isAutoSleepCsv) {
+      // AutoSleep CSV maps into canonical sleep metrics server-side.
+      try {
+        const res = await fetch(`${API_BASE}/api/health/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ csv: text, filename: file.name }),
+        });
+        if (!res.ok) { alert('Failed to import AutoSleep CSV: ' + await res.text()); return; }
+        const r = await res.json();
+        alert(buildImportAlertMessage({ ...r, label: 'sleep records' }));
+        fetchData(); fetchImports();
+      } catch (err) {
+        console.error('AutoSleep CSV import error:', err);
+        alert('Error importing AutoSleep CSV');
+      }
+      return;
+    }
+
     // MacroFactor CSV — food log if header contains "meal" or "food"
     const isFoodLog = /\bmeal\b|\bfood\b/.test(firstLine);
     const form = new FormData();
     form.append('file', file);
     try {
-      const url = 'http://localhost:4000/api/health/macro/import' + (isFoodLog ? '?source=foodlog' : '');
+      const url = `${API_BASE}/api/health/macro/import` + (isFoodLog ? '?source=foodlog' : '');
       const res = await fetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -181,7 +202,7 @@ function HealthPage({ token }) {
       const resp = await fetch(apiUrl);
       const text = await resp.text();
       const samples = JSON.parse(text);
-      await fetch('http://localhost:4000/api/health/import', {
+      await fetch(`${API_BASE}/api/health/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ samples }),
@@ -330,6 +351,13 @@ function HealthPage({ token }) {
     macrofactor_expenditure:        'active_energy_kcal',
     macrofactor_energy_expenditure: 'active_energy_kcal',
     macrofactor_weight_kg:          'weight_lb',
+    macrofactor_sleep_analysis_total_sleep_hr: 'sleep_analysis_total_sleep_hr',
+    macrofactor_sleep_analysis_asleep_hr:      'sleep_analysis_asleep_hr',
+    macrofactor_sleep_analysis_in_bed_hr:      'sleep_analysis_in_bed_hr',
+    macrofactor_sleep_analysis_core_hr:        'sleep_analysis_core_hr',
+    macrofactor_sleep_analysis_rem_hr:         'sleep_analysis_rem_hr',
+    macrofactor_sleep_analysis_deep_hr:        'sleep_analysis_deep_hr',
+    macrofactor_sleep_analysis_awake_hr:       'sleep_analysis_awake_hr',
   };
 
   // Resolve a raw type key to its canonical key (or itself if no alias)
@@ -391,13 +419,6 @@ function HealthPage({ token }) {
       cur.setDate(cur.getDate() + 1);
     }
     return result;
-  };
-
-  const inRange = (d) => {
-    const t = new Date(d.date);
-    const s = new Date(startDate + 'T00:00:00');
-    const e = new Date(endDate + 'T23:59:59');
-    return t >= s && t <= e;
   };
 
   // build stats map for types
