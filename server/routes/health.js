@@ -591,8 +591,15 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           };
         }).filter(Boolean);
 
-        if (foodEntries.length > 0) {
-          await insertInChunks('food_log_entries', foodEntries);
+        // Skip entries for past dates that already exist from a previous import
+        const today = new Date().toISOString().slice(0, 10);
+        const existingDates = new Set(
+          await db('food_log_entries').where({ user_id: req.user.id }).distinct('date').pluck('date')
+        );
+        const newFoodEntries = foodEntries.filter(e => e.date === today || !existingDates.has(e.date));
+
+        if (newFoodEntries.length > 0) {
+          await insertInChunks('food_log_entries', newFoodEntries);
         }
       }
     }
