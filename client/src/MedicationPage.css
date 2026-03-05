@@ -97,16 +97,26 @@
 }
 
 .med-day {
-  border: 1px solid #e3e8ef;
+  border: 1px solid #d8e2f0;
   border-radius: 12px;
-  margin-top: 10px;
+  margin-top: 14px;
   overflow: hidden;
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.03);
 }
 
 .med-day-title {
-  background: #f7f9fc;
+  background: #ecf3ff;
   padding: 10px 12px;
   font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.med-day-count {
+  color: #1d4f91;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .med-list {

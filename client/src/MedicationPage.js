@@ -29,6 +29,7 @@ function MedicationPage({ token }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [name, setName] = useState('');
+  const [nameOptions, setNameOptions] = useState([]);
   const [dosage, setDosage] = useState('');
   const [notes, setNotes] = useState('');
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
@@ -69,6 +70,18 @@ function MedicationPage({ token }) {
   }, [token, getRange]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!token) return;
+    const params = new URLSearchParams();
+    if (name.trim()) params.set('q', name.trim());
+    fetch(`http://localhost:4000/api/medications/names?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => setNameOptions(Array.isArray(d.names) ? d.names : []))
+      .catch(() => {});
+  }, [token, name]);
 
   const grouped = useMemo(() => {
     const byDay = new Map();
@@ -158,9 +171,13 @@ function MedicationPage({ token }) {
           <input
             className="med-input"
             placeholder="Medication name"
+            list="medication-name-options"
             value={name}
             onChange={e => setName(e.target.value)}
           />
+          <datalist id="medication-name-options">
+            {nameOptions.map(opt => <option key={opt} value={opt} />)}
+          </datalist>
           <input
             className="med-input"
             placeholder="Dose (e.g. 10 mg)"
@@ -195,7 +212,10 @@ function MedicationPage({ token }) {
 
       {!loading && grouped.map(g => (
         <div key={g.day} className="med-day">
-          <div className="med-day-title">{formatDay(g.day)}</div>
+          <div className="med-day-title">
+            <span>{formatDay(g.day)}</span>
+            <span className="med-day-count">{g.items.length} entr{g.items.length === 1 ? 'y' : 'ies'}</span>
+          </div>
           <ul className="med-list">
             {g.items.map(item => (
               <li key={item.id} className="med-item">

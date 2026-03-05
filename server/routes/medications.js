@@ -1,7 +1,19 @@
 const express = require('express');
 const db = require('../db');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
+
+let medicationNameSeed = [];
+try {
+  const p = path.resolve(__dirname, '..', 'data', 'medication_names.json');
+  const raw = fs.readFileSync(p, 'utf8');
+  const parsed = JSON.parse(raw);
+  if (Array.isArray(parsed)) medicationNameSeed = parsed.map(x => String(x).trim()).filter(Boolean);
+} catch (_) {
+  medicationNameSeed = [];
+}
 
 function authenticate(req, res, next) {
   const auth = req.headers.authorization;
@@ -53,6 +65,36 @@ router.get('/status', authenticate, async (req, res) => {
     res.json({ count: n || 0, earliest: range?.earliest || null, latest: range?.latest || null });
   } catch (err) {
     console.error('medications status error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// GET /api/medications/names
+router.get('/names', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const q = String(req.query.q || '').trim().toLowerCase();
+    const userNames = await db('medication_entries')
+      .where({ user_id: userId })
+      .distinct('medication_name')
+      .pluck('medication_name');
+
+    const merged = [...medicationNameSeed, ...userNames]
+      .map(x => String(x || '').trim())
+      .filter(Boolean);
+
+    const uniq = [...new Set(merged.map(x => x.toLowerCase()))].map(lc => (
+      merged.find(v => v.toLowerCase() === lc)
+    ));
+
+    const filtered = q
+      ? uniq.filter(n => n.toLowerCase().includes(q))
+      : uniq;
+
+    const names = filtered.sort((a, b) => a.localeCompare(b)).slice(0, 200);
+    res.json({ names });
+  } catch (err) {
+    console.error('medications names error:', err);
     res.status(500).json({ error: 'server error' });
   }
 });
