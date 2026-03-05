@@ -56,6 +56,84 @@
   margin-bottom: 12px;
 }
 
+.med-quick-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.med-quick-sub {
+  color: #667085;
+  font-size: 0.88rem;
+}
+
+.med-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.med-quick-item {
+  border: 1px dashed #c8d4e6;
+  border-radius: 10px;
+  padding: 8px;
+  background: #f8fbff;
+}
+
+.med-quick-log-btn {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  text-align: left;
+  padding: 9px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.med-quick-name {
+  font-weight: 700;
+}
+
+.med-quick-dose {
+  font-size: 0.88rem;
+  opacity: 0.95;
+}
+
+.med-quick-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.med-quick-del {
+  border: 1px solid #f0b5b5;
+  background: #fff5f5;
+  color: #9b1c1c;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.med-create-quick-row {
+  margin-top: 8px;
+}
+
+.med-create-quick-btn {
+  border: 1px solid #b8d1f4;
+  background: #ebf3ff;
+  color: #0b4ea2;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
 .med-form-row {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr 0.9fr auto;

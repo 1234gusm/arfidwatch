@@ -31,6 +31,7 @@ function authenticate(req, res, next) {
 const pad = n => String(n).padStart(2, '0');
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const timeKey = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const isHexColor = s => /^#[0-9a-fA-F]{6}$/.test(String(s || ''));
 
 // GET /api/medications
 router.get('/', authenticate, async (req, res) => {
@@ -95,6 +96,120 @@ router.get('/names', authenticate, async (req, res) => {
     res.json({ names });
   } catch (err) {
     console.error('medications names error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// GET /api/medications/quick-buttons
+router.get('/quick-buttons', authenticate, async (req, res) => {
+  try {
+    const data = await db('medication_quick_buttons')
+      .where({ user_id: req.user.id })
+      .select('id', 'medication_name', 'dosage', 'color', 'sort_order')
+      .orderBy('sort_order', 'asc')
+      .orderBy('id', 'asc');
+    res.json({ data });
+  } catch (err) {
+    console.error('medications quick-buttons list error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// POST /api/medications/quick-buttons
+router.post('/quick-buttons', authenticate, async (req, res) => {
+  try {
+    const medicationName = String(req.body.medication_name || '').trim();
+    const dosage = String(req.body.dosage || '').trim();
+    const color = isHexColor(req.body.color) ? String(req.body.color) : '#0a66c2';
+    if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });
+
+    const maxRow = await db('medication_quick_buttons')
+      .where({ user_id: req.user.id })
+      .max('sort_order as max_sort')
+      .first();
+    const sortOrder = Number.isFinite(Number(maxRow?.max_sort)) ? Number(maxRow.max_sort) + 1 : 0;
+
+    const [id] = await db('medication_quick_buttons').insert({
+      user_id: req.user.id,
+      medication_name: medicationName,
+      dosage: dosage || null,
+      color,
+      sort_order: sortOrder,
+      created_at: new Date().toISOString(),
+    });
+    const row = await db('medication_quick_buttons').where({ id, user_id: req.user.id }).first();
+    res.json({ ok: true, button: row });
+  } catch (err) {
+    console.error('medications quick-buttons create error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// PUT /api/medications/quick-buttons/reorder
+router.put('/quick-buttons/reorder', authenticate, async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.map(x => parseInt(x, 10)).filter(Number.isFinite) : [];
+    if (!ids.length) return res.status(400).json({ error: 'ids array is required' });
+
+    const existing = await db('medication_quick_buttons')
+      .where({ user_id: req.user.id })
+      .whereIn('id', ids)
+      .pluck('id');
+    if (existing.length !== ids.length) return res.status(400).json({ error: 'ids contain invalid entries' });
+
+    await db.transaction(async trx => {
+      for (let i = 0; i < ids.length; i += 1) {
+        await trx('medication_quick_buttons')
+          .where({ user_id: req.user.id, id: ids[i] })
+          .update({ sort_order: i });
+      }
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('medications quick-buttons reorder error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// PUT /api/medications/quick-buttons/:id
+router.put('/quick-buttons/:id', authenticate, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+
+    const updates = {};
+    if (req.body.medication_name !== undefined) {
+      const medicationName = String(req.body.medication_name || '').trim();
+      if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });
+      updates.medication_name = medicationName;
+    }
+    if (req.body.dosage !== undefined) updates.dosage = String(req.body.dosage || '').trim() || null;
+    if (req.body.color !== undefined) {
+      if (!isHexColor(req.body.color)) return res.status(400).json({ error: 'invalid color' });
+      updates.color = String(req.body.color);
+    }
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'no updates provided' });
+
+    const changed = await db('medication_quick_buttons').where({ id, user_id: req.user.id }).update(updates);
+    if (!changed) return res.status(404).json({ error: 'not found' });
+    const row = await db('medication_quick_buttons').where({ id, user_id: req.user.id }).first();
+    res.json({ ok: true, button: row });
+  } catch (err) {
+    console.error('medications quick-buttons update error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// DELETE /api/medications/quick-buttons/:id
+router.delete('/quick-buttons/:id', authenticate, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'invalid id' });
+    const deleted = await db('medication_quick_buttons').where({ id, user_id: req.user.id }).delete();
+    if (!deleted) return res.status(404).json({ error: 'not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('medications quick-buttons delete error:', err);
     res.status(500).json({ error: 'server error' });
   }
 });

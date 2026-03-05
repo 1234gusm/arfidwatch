@@ -138,6 +138,20 @@ async function setup() {
     }
   });
 
+  await db.schema.hasTable('medication_quick_buttons').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('medication_quick_buttons', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users');
+        table.string('medication_name').notNullable();
+        table.string('dosage').nullable();
+        table.string('color').notNullable().defaultTo('#0a66c2');
+        table.integer('sort_order').notNullable().defaultTo(0);
+        table.datetime('created_at').notNullable();
+      });
+    }
+  });
+
   // Performance indexes for frequent import, dedupe, and lookup queries.
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_data_user_type_ts ON health_data(user_id, type, timestamp)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_data_user_import ON health_data(user_id, import_id)');
@@ -147,6 +161,7 @@ async function setup() {
   await db.raw('CREATE INDEX IF NOT EXISTS idx_user_profiles_ingest_key_hash ON user_profiles(ingest_key_hash)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_date ON medication_entries(user_id, date)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_taken_at ON medication_entries(user_id, taken_at)');
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_med_quick_buttons_user_order ON medication_quick_buttons(user_id, sort_order)');
 }
 
 setup();

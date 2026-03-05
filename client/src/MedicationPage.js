@@ -22,9 +22,22 @@ const formatDay = key => {
   });
 };
 
+const readableTextColor = (hex) => {
+  const m = String(hex || '').match(/^#([0-9a-fA-F]{6})$/);
+  if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return yiq >= 160 ? '#0f172a' : '#ffffff';
+};
+
 function MedicationPage({ token }) {
   const [range, setRange] = useState('30');
   const [rows, setRows] = useState([]);
+  const [quickButtons, setQuickButtons] = useState([]);
+  const [draggingButtonId, setDraggingButtonId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -33,6 +46,11 @@ function MedicationPage({ token }) {
   const [dosage, setDosage] = useState('');
   const [notes, setNotes] = useState('');
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
+
+  const existingQuickNameKeys = useMemo(
+    () => new Set(quickButtons.map(b => String(b.medication_name || '').trim().toLowerCase())),
+    [quickButtons]
+  );
 
   const getRange = useCallback(() => {
     if (range === 'all') return {};
@@ -70,6 +88,22 @@ function MedicationPage({ token }) {
   }, [token, getRange]);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadQuickButtons = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('http://localhost:4000/api/medications/quick-buttons', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to load quick buttons');
+      setQuickButtons(json.data || []);
+    } catch (e) {
+      setError(e.message || 'Failed to load quick buttons');
+    }
+  }, [token]);
+
+  useEffect(() => { loadQuickButtons(); }, [loadQuickButtons]);
 
   useEffect(() => {
     if (!token) return;
@@ -146,6 +180,106 @@ function MedicationPage({ token }) {
     }
   };
 
+  const handleCreateQuickButton = async () => {
+    if (!name.trim()) return;
+    try {
+      const res = await fetch('http://localhost:4000/api/medications/quick-buttons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          medication_name: name.trim(),
+          dosage: dosage.trim(),
+          color: '#0a66c2',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to create quick button');
+      await loadQuickButtons();
+    } catch (e) {
+      setError(e.message || 'Failed to create quick button');
+    }
+  };
+
+  const handleQuickLog = async (button) => {
+    try {
+      const res = await fetch('http://localhost:4000/api/medications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          medication_name: button.medication_name,
+          dosage: button.dosage || '',
+          notes: '',
+          taken_at: toLocalDateTimeInput(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed quick log');
+      await load();
+    } catch (e) {
+      setError(e.message || 'Failed quick log');
+    }
+  };
+
+  const handleDeleteQuickButton = async (id) => {
+    if (!window.confirm('Delete this quick medication button?')) return;
+    try {
+      const res = await fetch(`http://localhost:4000/api/medications/quick-buttons/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to delete button');
+      await loadQuickButtons();
+    } catch (e) {
+      setError(e.message || 'Failed to delete button');
+    }
+  };
+
+  const handleColorChange = async (id, color) => {
+    setQuickButtons(prev => prev.map(b => b.id === id ? { ...b, color } : b));
+    try {
+      const res = await fetch(`http://localhost:4000/api/medications/quick-buttons/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ color }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to update color');
+    } catch (e) {
+      setError(e.message || 'Failed to update color');
+      await loadQuickButtons();
+    }
+  };
+
+  const persistQuickButtonOrder = async (buttons) => {
+    const ids = buttons.map(b => b.id);
+    const res = await fetch('http://localhost:4000/api/medications/quick-buttons/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ids }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to reorder');
+  };
+
+  const moveQuickButton = async (fromId, toId) => {
+    if (fromId == null || toId == null || fromId === toId) return;
+    const fromIndex = quickButtons.findIndex(b => b.id === fromId);
+    const toIndex = quickButtons.findIndex(b => b.id === toId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const reordered = [...quickButtons];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setQuickButtons(reordered);
+    try {
+      await persistQuickButtonOrder(reordered);
+    } catch (e) {
+      setError(e.message || 'Failed to reorder');
+      await loadQuickButtons();
+    }
+  };
+
   if (!token) return <div className="med-page"><p className="med-empty">Please log in.</p></div>;
 
   return (
@@ -167,6 +301,52 @@ function MedicationPage({ token }) {
       </div>
 
       <div className="med-card">
+        <div className="med-quick-header">
+          <strong>Quick Log Buttons</strong>
+          <span className="med-quick-sub">Drag to reorder. Tap button to log instantly.</span>
+        </div>
+
+        {quickButtons.length > 0 && (
+          <div className="med-quick-grid">
+            {quickButtons.map(btn => (
+              <div
+                key={btn.id}
+                className="med-quick-item"
+                draggable
+                onDragStart={() => setDraggingButtonId(btn.id)}
+                onDragOver={e => e.preventDefault()}
+                onDrop={async () => {
+                  const fromId = draggingButtonId;
+                  setDraggingButtonId(null);
+                  await moveQuickButton(fromId, btn.id);
+                }}
+              >
+                <button
+                  className="med-quick-log-btn"
+                  style={{
+                    backgroundColor: btn.color || '#0a66c2',
+                    color: readableTextColor(btn.color || '#0a66c2'),
+                  }}
+                  onClick={() => handleQuickLog(btn)}
+                  title={`Quick log ${btn.medication_name}`}
+                >
+                  <span className="med-quick-name">{btn.medication_name}</span>
+                  {btn.dosage && <span className="med-quick-dose">{btn.dosage}</span>}
+                </button>
+                <div className="med-quick-controls">
+                  <input
+                    type="color"
+                    value={btn.color || '#0a66c2'}
+                    onChange={e => handleColorChange(btn.id, e.target.value)}
+                    title="Set button color"
+                  />
+                  <button className="med-quick-del" onClick={() => handleDeleteQuickButton(btn.id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="med-form-row">
           <input
             className="med-input"
@@ -194,6 +374,13 @@ function MedicationPage({ token }) {
             {saving ? 'Saving...' : 'Add'}
           </button>
         </div>
+        {name.trim() && !existingQuickNameKeys.has(name.trim().toLowerCase()) && (
+          <div className="med-create-quick-row">
+            <button className="med-create-quick-btn" onClick={handleCreateQuickButton}>
+              Create quick button for "{name.trim()}"{dosage.trim() ? ` (${dosage.trim()})` : ''}
+            </button>
+          </div>
+        )}
         <textarea
           className="med-notes"
           rows={2}
