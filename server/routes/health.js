@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const multer = require('multer');
 const exceljs = require('exceljs');
+const { triggerAutoHealthPullNow, getAutoHealthPullStatus } = require('../utils/autoHealthPull');
 
 const router = express.Router();
 const crypto = require('crypto');
@@ -724,6 +725,24 @@ router.get('/hero', authenticate, async (req, res) => {
     .whereIn('type', HERO_TYPES)
     .orderBy('timestamp', 'asc');
   res.json({ data: rows });
+});
+
+// Auto-pull status (server worker)
+router.get('/auto-pull/status', authenticate, async (_req, res) => {
+  res.json(getAutoHealthPullStatus());
+});
+
+// Manual trigger for auto-pull worker
+router.post('/auto-pull/pull', authenticate, async (_req, res) => {
+  const status = getAutoHealthPullStatus();
+  if (!status.configured) {
+    return res.status(400).json({ error: 'auto pull is not configured on server' });
+  }
+  const result = await triggerAutoHealthPullNow();
+  if (!result.ok) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
 });
 
 module.exports = router;

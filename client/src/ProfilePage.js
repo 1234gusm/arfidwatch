@@ -28,6 +28,8 @@ function ProfilePage({ token }) {
   const [ingestKey,       setIngestKey]       = useState('');
   const [ingestCopied,    setIngestCopied]    = useState(false);
   const [ingestLastUsed,  setIngestLastUsed]  = useState(null);
+  const [autoPullStatus,  setAutoPullStatus]  = useState(null);
+  const [autoPullBusy,    setAutoPullBusy]    = useState(false);
 
   const appBasePath = window.location.pathname.replace(/\/$/, '');
   const shareUrl = shareToken
@@ -66,6 +68,13 @@ function ProfilePage({ token }) {
     })
       .then(r => r.json())
       .then(d => setMedStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
+      .catch(() => {});
+
+    fetch('http://localhost:4000/api/health/auto-pull/status', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => setAutoPullStatus(d))
       .catch(() => {});
   }, [token]);
 
@@ -195,6 +204,34 @@ function ProfilePage({ token }) {
       setIngestCopied(true);
       setTimeout(() => setIngestCopied(false), 2000);
     });
+  };
+
+  const refreshAutoPullStatus = async () => {
+    try {
+      const r = await fetch('http://localhost:4000/api/health/auto-pull/status', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (r.ok) setAutoPullStatus(d);
+    } catch (_) {}
+  };
+
+  const handleManualAutoPull = async () => {
+    setAutoPullBusy(true);
+    try {
+      const r = await fetch('http://localhost:4000/api/health/auto-pull/pull', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Pull failed');
+      showFlash('Manual pull complete');
+      await refreshAutoPullStatus();
+    } catch (e) {
+      setError(e.message || 'Failed to pull now');
+    } finally {
+      setAutoPullBusy(false);
+    }
   };
 
   if (loading) return <div className="profile-page"><p>Loading…</p></div>;
@@ -337,10 +374,31 @@ function ProfilePage({ token }) {
           {hasIngestKey && (
             <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
           )}
+          <button
+            className="profile-btn-secondary"
+            onClick={handleManualAutoPull}
+            disabled={autoPullBusy || autoPullStatus?.running || !autoPullStatus?.configured}
+          >
+            {autoPullBusy ? 'Pulling...' : (autoPullStatus?.running ? 'Pull in progress...' : 'Pull now')}
+          </button>
         </div>
 
         {ingestLastUsed && (
           <p className="profile-hint">Last used: {new Date(ingestLastUsed).toLocaleString()}</p>
+        )}
+        {autoPullStatus && (
+          <>
+            <p className="profile-hint">
+              Auto pull: {autoPullStatus.enabled ? 'Enabled' : 'Disabled'}
+              {autoPullStatus.interval_minutes ? ` · every ${autoPullStatus.interval_minutes} min` : ''}
+            </p>
+            {autoPullStatus.last_success_at && (
+              <p className="profile-hint">Last success: {new Date(autoPullStatus.last_success_at).toLocaleString()}</p>
+            )}
+            {autoPullStatus.last_error && (
+              <p className="profile-error">Auto pull error: {String(autoPullStatus.last_error).slice(0, 180)}</p>
+            )}
+          </>
         )}
       </div>
 
