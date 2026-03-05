@@ -112,6 +112,12 @@ async function setup() {
   await db.schema.hasColumn('user_profiles', 'share_food_log').then(exists => {
     if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_food_log').defaultTo(false));
   });
+  await db.schema.hasColumn('user_profiles', 'ingest_key_hash').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.string('ingest_key_hash').nullable());
+  });
+  await db.schema.hasColumn('user_profiles', 'ingest_key_last_used_at').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.datetime('ingest_key_last_used_at').nullable());
+  });
 
   // Performance indexes for frequent import, dedupe, and lookup queries.
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_data_user_type_ts ON health_data(user_id, type, timestamp)');
@@ -119,6 +125,7 @@ async function setup() {
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_imports_user_source_hash ON health_imports(user_id, source, file_hash)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_imports_user_imported_at ON health_imports(user_id, imported_at)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_food_log_user_import_date ON food_log_entries(user_id, import_id, date)');
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_user_profiles_ingest_key_hash ON user_profiles(ingest_key_hash)');
 }
 
 setup();

@@ -22,6 +22,10 @@ function ProfilePage({ token }) {
   const [flash,           setFlash]           = useState(null);
   const [foodLogStatus,   setFoodLogStatus]   = useState({ count: 0, earliest: null, latest: null });
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
+  const [hasIngestKey,    setHasIngestKey]    = useState(false);
+  const [ingestKey,       setIngestKey]       = useState('');
+  const [ingestCopied,    setIngestCopied]    = useState(false);
+  const [ingestLastUsed,  setIngestLastUsed]  = useState(null);
 
   const appBasePath = window.location.pathname.replace(/\/$/, '');
   const shareUrl = shareToken
@@ -41,6 +45,8 @@ function ProfilePage({ token }) {
         setShareToken(d.share_token || null);
         setHasPasscode(!!d.has_passcode);
         setShareFoodLog(!!d.share_food_log);
+        setHasIngestKey(!!d.has_ingest_key);
+        setIngestLastUsed(d.ingest_key_last_used_at || null);
       })
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false));
@@ -139,6 +145,39 @@ function ProfilePage({ token }) {
       setShareFoodLog(val);
       await callPut({ share_food_log: val });
     } catch { setError('Failed to update'); setShareFoodLog(!val); }
+  };
+
+  const handleGenerateIngestKey = async () => {
+    try {
+      const d = await callPut({ regenerate_ingest_key: true });
+      setHasIngestKey(!!d.has_ingest_key);
+      setIngestLastUsed(d.ingest_key_last_used_at || null);
+      setIngestKey(d.ingest_key || '');
+      showFlash('Auto-export key generated. Copy it now.');
+    } catch {
+      setError('Failed to generate auto-export key');
+    }
+  };
+
+  const handleRevokeIngestKey = async () => {
+    if (!window.confirm('Revoke auto-export key? Existing automations will stop working.')) return;
+    try {
+      const d = await callPut({ clear_ingest_key: true });
+      setHasIngestKey(!!d.has_ingest_key);
+      setIngestLastUsed(null);
+      setIngestKey('');
+      showFlash('Auto-export key revoked');
+    } catch {
+      setError('Failed to revoke auto-export key');
+    }
+  };
+
+  const handleCopyIngestKey = () => {
+    if (!ingestKey) return;
+    navigator.clipboard.writeText(ingestKey).then(() => {
+      setIngestCopied(true);
+      setTimeout(() => setIngestCopied(false), 2000);
+    });
   };
 
   if (loading) return <div className="profile-page"><p>Loading…</p></div>;
@@ -255,6 +294,39 @@ function ProfilePage({ token }) {
       </div>
 
       {/* Food Log */}
+      <div className="profile-card">
+        <div className="profile-section-title">Health Auto Export API</div>
+        <p className="profile-hint">
+          Use a dedicated API key for automatic REST imports. Endpoint:
+          <br />
+          <code className="profile-code">POST https://arfidwatch.onrender.com/api/health/import</code>
+        </p>
+
+        {ingestKey ? (
+          <div className="share-link-row">
+            <input className="share-link-input" readOnly value={ingestKey} />
+            <button className="profile-btn-secondary" onClick={handleCopyIngestKey}>
+              {ingestCopied ? 'Copied!' : 'Copy key'}
+            </button>
+          </div>
+        ) : (
+          <p className="profile-hint">No key shown. Generate one below to connect your automation.</p>
+        )}
+
+        <div className="share-actions">
+          <button className="profile-save-btn" onClick={handleGenerateIngestKey}>
+            {hasIngestKey ? 'Rotate key' : 'Generate key'}
+          </button>
+          {hasIngestKey && (
+            <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
+          )}
+        </div>
+
+        {ingestLastUsed && (
+          <p className="profile-hint">Last used: {new Date(ingestLastUsed).toLocaleString()}</p>
+        )}
+      </div>
+
       <div className="profile-card">
         <div className="profile-section-title">Food Log</div>
         <p className="profile-hint">

@@ -5,6 +5,7 @@ const db = require('../db');
 
 const router = express.Router();
 const SALT_ROUNDS = 12;
+const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
 
 function authenticate(req, res, next) {
   const auth = req.headers.authorization;
@@ -37,6 +38,8 @@ router.get('/', authenticate, async (req, res) => {
       share_token: profile.share_token || null,
       has_passcode: !!profile.share_passcode_hash,
       share_food_log: !!profile.share_food_log,
+      has_ingest_key: !!profile.ingest_key_hash,
+      ingest_key_last_used_at: profile.ingest_key_last_used_at || null,
     });
   } catch (err) {
     console.error('profile GET error:', err);
@@ -48,8 +51,18 @@ router.get('/', authenticate, async (req, res) => {
 router.put('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { export_period, passcode, clear_passcode, regenerate_share, clear_share, share_food_log } = req.body;
+    const {
+      export_period,
+      passcode,
+      clear_passcode,
+      regenerate_share,
+      clear_share,
+      share_food_log,
+      regenerate_ingest_key,
+      clear_ingest_key,
+    } = req.body;
     const updates = {};
+    let plainIngestKey = null;
 
     if (export_period !== undefined) {
       if (!VALID_PERIODS.includes(export_period)) {
@@ -79,6 +92,17 @@ router.put('/', authenticate, async (req, res) => {
       updates.share_food_log = !!share_food_log;
     }
 
+    if (regenerate_ingest_key) {
+      plainIngestKey = `awk_${crypto.randomBytes(24).toString('hex')}`;
+      updates.ingest_key_hash = hashIngestKey(plainIngestKey);
+      updates.ingest_key_last_used_at = null;
+    }
+
+    if (clear_ingest_key) {
+      updates.ingest_key_hash = null;
+      updates.ingest_key_last_used_at = null;
+    }
+
     if (Object.keys(updates).length > 0) {
       const exists = await db('user_profiles').where({ user_id: userId }).first();
       if (exists) {
@@ -99,6 +123,9 @@ router.put('/', authenticate, async (req, res) => {
       share_token: profile?.share_token || null,
       has_passcode: !!(profile?.share_passcode_hash),
       share_food_log: !!(profile?.share_food_log),
+      has_ingest_key: !!(profile?.ingest_key_hash),
+      ingest_key_last_used_at: profile?.ingest_key_last_used_at || null,
+      ingest_key: plainIngestKey,
     });
   } catch (err) {
     console.error('profile PUT error:', err);

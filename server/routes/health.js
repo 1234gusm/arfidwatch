@@ -4,6 +4,7 @@ const multer = require('multer');
 const exceljs = require('exceljs');
 
 const router = express.Router();
+const crypto = require('crypto');
 
 // middleware to authenticate token
 function authenticate(req, res, next) {
@@ -16,6 +17,45 @@ function authenticate(req, res, next) {
     next();
   } catch (e) {
     res.status(401).json({ error: 'invalid token' });
+  }
+}
+
+const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
+
+async function authenticateOrIngestKey(req, res, next) {
+  const auth = req.headers.authorization;
+  if (auth) {
+    const token = auth.split(' ')[1];
+    try {
+      const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
+      req.user = payload;
+      return next();
+    } catch (e) {
+      return res.status(401).json({ error: 'invalid token' });
+    }
+  }
+
+  const ingestKey = req.headers['x-ingest-key'];
+  if (!ingestKey) {
+    return res.status(401).json({ error: 'missing token or ingest key' });
+  }
+
+  try {
+    const keyHash = hashIngestKey(ingestKey);
+    const profile = await db('user_profiles')
+      .where({ ingest_key_hash: keyHash })
+      .select('user_id')
+      .first();
+
+    if (!profile) return res.status(401).json({ error: 'invalid ingest key' });
+
+    req.user = { id: profile.user_id, type: 'ingest_key' };
+    await db('user_profiles')
+      .where({ user_id: profile.user_id })
+      .update({ ingest_key_last_used_at: new Date().toISOString() });
+    return next();
+  } catch (e) {
+    return res.status(500).json({ error: 'ingest key auth failed' });
   }
 }
 
@@ -92,7 +132,7 @@ const filterDuplicateStats = async (userId, inputRecords) => {
 };
 
 // import health data from Health Auto Export JSON
-router.post('/import', authenticate, async (req, res) => {
+router.post('/import', authenticateOrIngestKey, async (req, res) => {
   // accept either samples array (from JSON) or csv string
   if (req.body.samples) {
     const samples = req.body.samples;
@@ -223,7 +263,6 @@ router.post('/import', authenticate, async (req, res) => {
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 
 const normalizeKey = k =>
   String(k).trim().toLowerCase()
