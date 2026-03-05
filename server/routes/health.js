@@ -391,6 +391,15 @@ const parseCsvTextLenient = (text) => {
   return rows;
 };
 
+const isHealthAutoExportHeaders = (headers = []) => {
+  const normHeaders = headers
+    .map(h => String(h || '').trim().toLowerCase())
+    .filter(Boolean);
+  const hasSourceName = normHeaders.some(h => /^source\s*name$/.test(h));
+  const hasStartDate = normHeaders.some(h => /^start\s*date$/.test(h));
+  return hasSourceName || hasStartDate;
+};
+
 const toRecord = (userId, typeKey, val, ts, meta = {}) => {
   const num = parseFloat(String(val).replace(/[^0-9eE+\-.]/g, ''));
   return {
@@ -438,6 +447,11 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       sheet.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => {
         headers[col] = String(cell.value || '').trim();
       });
+      if (isHealthAutoExportHeaders(headers)) {
+        return res.status(400).json({
+          error: 'health auto export file detected; use /api/health/import for this file type'
+        });
+      }
 
       const toCellValue = (v) => {
         if (v == null) return '';
@@ -489,6 +503,13 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       // Parse CSV using the lenient parser which correctly handles MacroFactor's
       // malformed embedded quotes (inch marks in serving-size fields).
       const csvText = fs.readFileSync(req.file.path, 'utf8');
+      const csvLines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
+      const csvHeaders = csvLines.length ? parseCsvLineLenient(csvLines[0]) : [];
+      if (isHealthAutoExportHeaders(csvHeaders)) {
+        return res.status(400).json({
+          error: 'health auto export file detected; use /api/health/import for this file type'
+        });
+      }
       const parsedRows = parseCsvTextLenient(csvText);
       parsedRowsForFoodLog = parsedRows;
 
