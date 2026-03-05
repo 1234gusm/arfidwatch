@@ -407,7 +407,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
   const ext = path.extname(req.file.originalname || req.file.filename || '').toLowerCase();
   const fileHash = crypto.createHash('sha256').update(fs.readFileSync(req.file.path)).digest('hex');
-  const uploadFilename = req.file.originalname || 'ArfidWatch Import';
+  const uploadFilename = 'ArfidWatch Import';
   const records = [];
   const tsCandidates = /date|time|day/i;
   let skippedRows = 0;
