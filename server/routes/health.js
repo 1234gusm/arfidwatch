@@ -585,12 +585,12 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           };
         }).filter(Boolean);
 
-        // Skip entries for past dates that already exist from a previous import
-        const today = new Date().toISOString().slice(0, 10);
-        const existingDates = new Set(
-          await db('food_log_entries').where({ user_id: req.user.id }).distinct('date').pluck('date')
-        );
-        const newFoodEntries = foodEntries.filter(e => e.date === today || !existingDates.has(e.date));
+        // Deduplicate at item level: skip entries where (date, meal, food_name) already exists
+        const existingItems = await db('food_log_entries')
+          .where({ user_id: req.user.id })
+          .select('date', 'meal', 'food_name');
+        const existingKeys = new Set(existingItems.map(e => `${e.date}|${e.meal}|${e.food_name}`));
+        const newFoodEntries = foodEntries.filter(e => !existingKeys.has(`${e.date}|${e.meal}|${e.food_name}`));
 
         if (newFoodEntries.length > 0) {
           // Create a dedicated 'foodlog' import record — separate from the stats import
