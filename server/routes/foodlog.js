@@ -39,6 +39,27 @@ router.get('/daily', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/food-log/items  — raw food log entries (meal-by-meal)
+router.get('/items', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    let query = db('food_log_entries')
+      .where({ user_id: userId })
+      .select('id', 'date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g')
+      .orderBy('date', 'desc')
+      .orderBy('id', 'desc');
+
+    if (req.query.start) query = query.where('date', '>=', req.query.start.slice(0, 10));
+    if (req.query.end)   query = query.where('date', '<=', req.query.end.slice(0, 10));
+
+    const rows = await query;
+    res.json({ data: rows });
+  } catch (err) {
+    console.error('food log items error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
 // GET /api/food-log/status
 router.get('/status', authenticate, async (req, res) => {
   try {
