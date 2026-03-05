@@ -132,7 +132,9 @@ function HealthPage({ token }) {
     try { text = await file.text(); } catch { alert('Could not read file'); return; }
     const firstLine = text.split('\n')[0].toLowerCase();
 
-    if (/sourcename|startdate/.test(firstLine)) {
+    // Health Auto Export headers often include spaces/quotes (e.g. "Source Name", "Start Date").
+    const isHealthAutoExport = /(source\s*name|start\s*date|end\s*date|creation\s*date)/i.test(firstLine);
+    if (isHealthAutoExport) {
       // Health Auto Export CSV
       try {
         const res = await fetch('http://localhost:4000/api/health/import', {
@@ -164,7 +166,7 @@ function HealthPage({ token }) {
       });
       if (!res.ok) { alert('Failed to import MacroFactor file: ' + await res.text()); return; }
       const r = await res.json();
-      const label = isFoodLog ? 'food log records' : 'MacroFactor records';
+      const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
       alert(buildImportAlertMessage({ ...r, label }));
       fetchData(); fetchImports();
     } catch (err) {

@@ -585,12 +585,27 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           };
         }).filter(Boolean);
 
-        // Deduplicate at item level: skip entries where (date, meal, food_name) already exists
+        const foodEntryKey = (e) => {
+          const norm = (v) => String(v == null ? '' : v).trim().toLowerCase();
+          const num = (v) => (v == null || v === '') ? '' : Number(v).toString();
+          return [
+            norm(e.date),
+            norm(e.meal),
+            norm(e.food_name),
+            norm(e.quantity),
+            num(e.calories),
+            num(e.protein_g),
+            num(e.carbs_g),
+            num(e.fat_g),
+          ].join('|');
+        };
+
+        // Deduplicate by normalized full food-log row fingerprint across uploads.
         const existingItems = await db('food_log_entries')
           .where({ user_id: req.user.id })
-          .select('date', 'meal', 'food_name');
-        const existingKeys = new Set(existingItems.map(e => `${e.date}|${e.meal}|${e.food_name}`));
-        const newFoodEntries = foodEntries.filter(e => !existingKeys.has(`${e.date}|${e.meal}|${e.food_name}`));
+          .select('date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g');
+        const existingKeys = new Set(existingItems.map(foodEntryKey));
+        const newFoodEntries = foodEntries.filter(e => !existingKeys.has(foodEntryKey(e)));
 
         if (newFoodEntries.length > 0) {
           // Create a dedicated 'foodlog' import record — separate from the stats import
