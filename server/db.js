@@ -7,20 +7,31 @@ const configuredDbPath = process.env.SQLITE_PATH
   ? path.resolve(process.env.SQLITE_PATH)
   : defaultDbPath;
 
-const dbDir = path.dirname(configuredDbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+let activeDbPath = configuredDbPath;
+
+function ensureWritableDbPath(dbPath) {
+  const dbDirPath = path.dirname(dbPath);
+  fs.mkdirSync(dbDirPath, { recursive: true });
+  fs.accessSync(dbDirPath, fs.constants.W_OK);
+}
+
+try {
+  ensureWritableDbPath(activeDbPath);
+} catch (err) {
+  console.warn(`SQLite path not writable at ${activeDbPath}. Falling back to ${defaultDbPath}.`);
+  activeDbPath = defaultDbPath;
+  ensureWritableDbPath(activeDbPath);
 }
 
 const db = knex({
   client: 'sqlite3',
   connection: {
-    filename: configuredDbPath,
+    filename: activeDbPath,
   },
   useNullAsDefault: true,
 });
 
-console.log(`SQLite DB path: ${configuredDbPath}`);
+console.log(`SQLite DB path: ${activeDbPath}`);
 
 // ensure tables exist
 async function setup() {
