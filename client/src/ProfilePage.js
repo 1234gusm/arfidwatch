@@ -21,7 +21,9 @@ function ProfilePage({ token }) {
   const [error,           setError]           = useState(null);
   const [flash,           setFlash]           = useState(null);
   const [foodLogStatus,   setFoodLogStatus]   = useState({ count: 0, earliest: null, latest: null });
+  const [medStatus,       setMedStatus]       = useState({ count: 0, earliest: null, latest: null });
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
+  const [shareMeds,       setShareMeds]       = useState(false);
   const [hasIngestKey,    setHasIngestKey]    = useState(false);
   const [ingestKey,       setIngestKey]       = useState('');
   const [ingestCopied,    setIngestCopied]    = useState(false);
@@ -45,6 +47,7 @@ function ProfilePage({ token }) {
         setShareToken(d.share_token || null);
         setHasPasscode(!!d.has_passcode);
         setShareFoodLog(!!d.share_food_log);
+        setShareMeds(!!d.share_medications);
         setHasIngestKey(!!d.has_ingest_key);
         setIngestLastUsed(d.ingest_key_last_used_at || null);
       })
@@ -56,6 +59,13 @@ function ProfilePage({ token }) {
     })
       .then(r => r.json())
       .then(d => setFoodLogStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
+      .catch(() => {});
+
+    fetch('http://localhost:4000/api/medications/status', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => setMedStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
       .catch(() => {});
   }, [token]);
 
@@ -145,6 +155,13 @@ function ProfilePage({ token }) {
       setShareFoodLog(val);
       await callPut({ share_food_log: val });
     } catch { setError('Failed to update'); setShareFoodLog(!val); }
+  };
+
+  const handleToggleMedsShare = async (val) => {
+    try {
+      setShareMeds(val);
+      await callPut({ share_medications: val });
+    } catch { setError('Failed to update'); setShareMeds(!val); }
   };
 
   const handleGenerateIngestKey = async () => {
@@ -365,6 +382,37 @@ function ProfilePage({ token }) {
           </>
         ) : (
           <p className="profile-hint" style={{ fontStyle: 'italic' }}>No food log data yet — upload your MacroFactor food log CSV on the Health page.</p>
+        )}
+      </div>
+
+      <div className="profile-card">
+        <div className="profile-section-title">Medication Log</div>
+        <p className="profile-hint">
+          Log medications from the Medications tab.
+        </p>
+
+        {medStatus.count > 0 ? (
+          <div className="profile-toggle-row">
+            <div className="profile-toggle-info">
+              <span className="profile-toggle-label">
+                {medStatus.count.toLocaleString()} entries
+                {medStatus.earliest && medStatus.latest ? ` · ${medStatus.earliest} - ${medStatus.latest}` : ''}
+              </span>
+              <span className="profile-toggle-sub">
+                {shareMeds ? 'Medication log visible to doctor' : 'Medication log hidden from share view'}
+              </span>
+            </div>
+            <button
+              className={`profile-toggle-switch${shareMeds ? ' profile-toggle-switch--on' : ''}`}
+              onClick={() => handleToggleMedsShare(!shareMeds)}
+              aria-pressed={shareMeds}
+              role="switch"
+            >
+              <span className="profile-toggle-knob" />
+            </button>
+          </div>
+        ) : (
+          <p className="profile-hint" style={{ fontStyle: 'italic' }}>No medication entries yet.</p>
         )}
       </div>
     </div>

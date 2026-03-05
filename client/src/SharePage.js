@@ -159,6 +159,18 @@ function groupFoodLog(entries) {
   }));
 }
 
+function groupMedications(entries) {
+  const byDate = {};
+  entries.forEach(e => {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  });
+  return Object.keys(byDate).sort().reverse().map(date => ({
+    date,
+    items: byDate[date].sort((a, b) => String(a.taken_at || '') > String(b.taken_at || '') ? 1 : -1),
+  }));
+}
+
 function fmt(v, dp) {
   if (v === null || !Number.isFinite(v)) return null;
   return dp === 0 ? Math.round(v).toLocaleString() : v.toFixed(dp);
@@ -278,6 +290,7 @@ function SharePage() {
   const maps         = buildMaps(healthInfo?.data || []);
   const journal      = healthInfo?.journal || [];
   const foodLog      = healthInfo?.food_log || [];
+  const medications  = healthInfo?.medications || [];
   const periodLabel  = PERIOD_LABEL[healthInfo?.export_period] || healthInfo?.export_period;
 
   return (
@@ -405,6 +418,34 @@ function SharePage() {
                         </table>
                       </div>
                     ))}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          );
+        })()}
+
+        {/* Medications — collapsed by default, only shown if data exists */}
+        {medications.length > 0 && (() => {
+          const grouped = groupMedications(medications);
+          return (
+            <Section title="Medications" badge={grouped.length + 'd'} defaultOpen={false}>
+              <div className="share-foodlog-list">
+                {grouped.map(({ date, items }) => (
+                  <div key={date} className="share-foodlog-day">
+                    <div className="share-foodlog-date">{localDateStr(date)}</div>
+                    <table className="share-table share-foodlog-table">
+                      <tbody>
+                        {items.map((item, i) => (
+                          <tr key={i}>
+                            <td className="share-foodlog-food">{item.medication_name}</td>
+                            <td className="share-foodlog-qty">{item.dosage || ''}</td>
+                            <td className="share-foodlog-cals">{item.time || ''}</td>
+                            <td className="share-foodlog-macros">{item.notes || ''}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ))}
               </div>

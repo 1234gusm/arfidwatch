@@ -7,6 +7,7 @@ const journalRoutes = require('./routes/journal');
 const profileRoutes = require('./routes/profile');
 const shareRoutes = require('./routes/share');
 const foodLogRoutes = require('./routes/foodlog');
+const medicationsRoutes = require('./routes/medications');
 
 const app = express();
 app.use(cors());
@@ -26,6 +27,7 @@ app.use('/api/journal', journalRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/food-log', foodLogRoutes);
+app.use('/api/medications', medicationsRoutes);
 
 // 404 handler
 app.use((req, res) => {

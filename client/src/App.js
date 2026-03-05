@@ -12,6 +12,7 @@ import CalendarPage from './CalendarPage';
 import ExportPage from './ExportPage';
 import FoodLog from './FoodLog';
 import FoodItemsPage from './FoodItemsPage';
+import MedicationPage from './MedicationPage';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import ProfilePage from './ProfilePage';
@@ -41,6 +42,8 @@ function App() {
             <span className="nav-divider">|</span>
             <Link to="/food">Food Log</Link>
             <span className="nav-divider">|</span>
+            <Link to="/medications">Medications</Link>
+            <span className="nav-divider">|</span>
             <Link to="/calendar">Journal</Link>
             <span className="nav-divider">|</span>
             <Link to="/export">Export</Link>
@@ -69,6 +72,10 @@ function App() {
         <Route
           path="/food"
           element={token ? <FoodItemsPage token={token} /> : <LoginPage setToken={setToken} />}
+        />
+        <Route
+          path="/medications"
+          element={token ? <MedicationPage token={token} /> : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/calendar"

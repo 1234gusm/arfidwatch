@@ -118,6 +118,16 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
           .orderBy('date', 'asc')
       : [];
 
+    const medications = profile?.share_medications
+      ? await db('medication_entries')
+          .where({ user_id: userId })
+          .where('date', '>=', startDate)
+          .where('date', '<=', endDate)
+          .select('date', 'time', 'medication_name', 'dosage', 'notes', 'taken_at')
+          .orderBy('date', 'asc')
+          .orderBy('taken_at', 'asc')
+      : [];
+
     res.json({
       username: user.username,
       export_period: exportPeriod,
@@ -126,6 +136,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
       data: healthData,
       journal: journalEntries,
       food_log: foodLog,
+      medications,
     });
   } catch (err) {
     console.error('share data error:', err);

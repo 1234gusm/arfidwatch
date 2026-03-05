@@ -118,6 +118,25 @@ async function setup() {
   await db.schema.hasColumn('user_profiles', 'ingest_key_last_used_at').then(exists => {
     if (!exists) return db.schema.table('user_profiles', t => t.datetime('ingest_key_last_used_at').nullable());
   });
+  await db.schema.hasColumn('user_profiles', 'share_medications').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_medications').defaultTo(false));
+  });
+
+  await db.schema.hasTable('medication_entries').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('medication_entries', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users');
+        table.string('date'); // YYYY-MM-DD
+        table.string('time'); // HH:mm (optional)
+        table.string('medication_name').notNullable();
+        table.string('dosage').nullable();
+        table.text('notes').nullable();
+        table.datetime('taken_at').notNullable();
+        table.datetime('created_at').notNullable();
+      });
+    }
+  });
 
   // Performance indexes for frequent import, dedupe, and lookup queries.
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_data_user_type_ts ON health_data(user_id, type, timestamp)');
@@ -126,6 +145,8 @@ async function setup() {
   await db.raw('CREATE INDEX IF NOT EXISTS idx_health_imports_user_imported_at ON health_imports(user_id, imported_at)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_food_log_user_import_date ON food_log_entries(user_id, import_id, date)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_user_profiles_ingest_key_hash ON user_profiles(ingest_key_hash)');
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_date ON medication_entries(user_id, date)');
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_taken_at ON medication_entries(user_id, taken_at)');
 }
 
 setup();

@@ -38,6 +38,7 @@ router.get('/', authenticate, async (req, res) => {
       share_token: profile.share_token || null,
       has_passcode: !!profile.share_passcode_hash,
       share_food_log: !!profile.share_food_log,
+      share_medications: !!profile.share_medications,
       has_ingest_key: !!profile.ingest_key_hash,
       ingest_key_last_used_at: profile.ingest_key_last_used_at || null,
     });
@@ -58,6 +59,7 @@ router.put('/', authenticate, async (req, res) => {
       regenerate_share,
       clear_share,
       share_food_log,
+      share_medications,
       regenerate_ingest_key,
       clear_ingest_key,
     } = req.body;
@@ -92,6 +94,10 @@ router.put('/', authenticate, async (req, res) => {
       updates.share_food_log = !!share_food_log;
     }
 
+    if (share_medications !== undefined) {
+      updates.share_medications = !!share_medications;
+    }
+
     if (regenerate_ingest_key) {
       plainIngestKey = `awk_${crypto.randomBytes(24).toString('hex')}`;
       updates.ingest_key_hash = hashIngestKey(plainIngestKey);
@@ -123,6 +129,7 @@ router.put('/', authenticate, async (req, res) => {
       share_token: profile?.share_token || null,
       has_passcode: !!(profile?.share_passcode_hash),
       share_food_log: !!(profile?.share_food_log),
+      share_medications: !!(profile?.share_medications),
       has_ingest_key: !!(profile?.ingest_key_hash),
       ingest_key_last_used_at: profile?.ingest_key_last_used_at || null,
       ingest_key: plainIngestKey,

@@ -1,0 +1,164 @@
+.med-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.med-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.med-title {
+  margin: 0;
+}
+
+.med-subtitle {
+  margin: 4px 0 0;
+  color: #666;
+}
+
+.med-range-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.med-range-btn {
+  border: 1px solid #cfd7e3;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.med-range-btn.active {
+  background: #0a66c2;
+  color: #fff;
+  border-color: #0a66c2;
+}
+
+.med-card {
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  margin-bottom: 12px;
+}
+
+.med-form-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 0.9fr auto;
+  gap: 8px;
+}
+
+.med-input {
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.med-add-btn {
+  border: none;
+  border-radius: 8px;
+  background: #1a7f37;
+  color: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.med-notes {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.med-error {
+  color: #b42318;
+  margin: 8px 0;
+}
+
+.med-loading,
+.med-empty-state {
+  color: #666;
+  margin-top: 8px;
+}
+
+.med-day {
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.med-day-title {
+  background: #f7f9fc;
+  padding: 10px 12px;
+  font-weight: 600;
+}
+
+.med-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.med-item {
+  padding: 10px 12px;
+  border-top: 1px solid #eef2f7;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+}
+
+.med-main {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.med-name {
+  font-weight: 600;
+}
+
+.med-dose {
+  color: #475467;
+}
+
+.med-meta {
+  display: flex;
+  gap: 8px;
+  color: #667085;
+  font-size: 0.92rem;
+}
+
+.med-note {
+  font-style: italic;
+}
+
+.med-del {
+  grid-column: 2;
+  border: 1px solid #f0b5b5;
+  background: #fff5f5;
+  color: #9b1c1c;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .med-form-row {
+    grid-template-columns: 1fr;
+  }
+  .med-del {
+    grid-column: auto;
+    justify-self: start;
+  }
+}
