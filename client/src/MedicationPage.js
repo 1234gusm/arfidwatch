@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './MedicationPage.css';
+import API_BASE from './apiBase';
 
 const RANGE_OPTIONS = [
   { id: '7', label: 'Last 7 days' },
@@ -33,6 +34,11 @@ const readableTextColor = (hex) => {
   return yiq >= 160 ? '#0f172a' : '#ffffff';
 };
 
+const normalizeMatchKey = (v) => String(v || '')
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]/g, '');
+
 function MedicationPage({ token }) {
   const [range, setRange] = useState('30');
   const [rows, setRows] = useState([]);
@@ -51,11 +57,29 @@ function MedicationPage({ token }) {
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
   const longPressTimerRef = useRef(null);
   const didLongPressRef = useRef(false);
+  const [entryColors, setEntryColors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('medEntryColors_v1') || '{}'); } catch { return {}; }
+  });
+
+  const handleEntryColorChange = (id, color) => {
+    const next = { ...entryColors, [id]: color };
+    setEntryColors(next);
+    localStorage.setItem('medEntryColors_v1', JSON.stringify(next));
+  };
 
   const existingQuickNameKeys = useMemo(
     () => new Set(quickButtons.map(b => String(b.medication_name || '').trim().toLowerCase())),
     [quickButtons]
   );
+
+  const hasCloseAutocompleteMatch = useMemo(() => {
+    const typed = normalizeMatchKey(name);
+    if (!typed) return false;
+    return nameOptions.some((opt) => {
+      const candidate = normalizeMatchKey(opt);
+      return candidate === typed || candidate.includes(typed) || typed.includes(candidate);
+    });
+  }, [name, nameOptions]);
 
   const getRange = useCallback(() => {
     if (range === 'all') return {};
@@ -79,7 +103,7 @@ function MedicationPage({ token }) {
         params.set('start', start);
         params.set('end', end);
       }
-      const res = await fetch(`http://localhost:4000/api/medications?${params.toString()}`, {
+      const res = await fetch(`${API_BASE}/api/medications?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -97,7 +121,7 @@ function MedicationPage({ token }) {
   const loadQuickButtons = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch('http://localhost:4000/api/medications/quick-buttons', {
+      const res = await fetch(`${API_BASE}/api/medications/quick-buttons`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -114,7 +138,7 @@ function MedicationPage({ token }) {
     if (!token) return;
     const params = new URLSearchParams();
     if (name.trim()) params.set('q', name.trim());
-    fetch(`http://localhost:4000/api/medications/names?${params.toString()}`, {
+    fetch(`${API_BASE}/api/medications/names?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -146,7 +170,7 @@ function MedicationPage({ token }) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:4000/api/medications', {
+      const res = await fetch(`${API_BASE}/api/medications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -173,7 +197,7 @@ function MedicationPage({ token }) {
   const handleDelete = async id => {
     if (!window.confirm('Delete this medication log entry?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/medications/${id}`, {
+      const res = await fetch(`${API_BASE}/api/medications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -188,7 +212,7 @@ function MedicationPage({ token }) {
   const handleCreateQuickButton = async () => {
     if (!name.trim()) return;
     try {
-      const res = await fetch('http://localhost:4000/api/medications/quick-buttons', {
+      const res = await fetch(`${API_BASE}/api/medications/quick-buttons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -207,7 +231,7 @@ function MedicationPage({ token }) {
 
   const handleQuickLog = async (button) => {
     try {
-      const res = await fetch('http://localhost:4000/api/medications', {
+      const res = await fetch(`${API_BASE}/api/medications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -228,7 +252,7 @@ function MedicationPage({ token }) {
   const handleDeleteQuickButton = async (id) => {
     if (!window.confirm('Delete this quick medication button?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/medications/quick-buttons/${id}`, {
+      const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -259,7 +283,7 @@ function MedicationPage({ token }) {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:4000/api/medications/quick-buttons/${id}`, {
+      const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -295,7 +319,7 @@ function MedicationPage({ token }) {
   const handleColorChange = async (id, color) => {
     setQuickButtons(prev => prev.map(b => b.id === id ? { ...b, color } : b));
     try {
-      const res = await fetch(`http://localhost:4000/api/medications/quick-buttons/${id}`, {
+      const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ color }),
@@ -310,7 +334,7 @@ function MedicationPage({ token }) {
 
   const persistQuickButtonOrder = async (buttons) => {
     const ids = buttons.map(b => b.id);
-    const res = await fetch('http://localhost:4000/api/medications/quick-buttons/reorder', {
+    const res = await fetch(`${API_BASE}/api/medications/quick-buttons/reorder`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ ids }),
@@ -424,12 +448,15 @@ function MedicationPage({ token }) {
                       {btn.dosage && <span className="med-quick-dose">{btn.dosage}</span>}
                     </button>
                     <div className="med-quick-controls">
-                      <input
-                        type="color"
-                        value={btn.color || '#0a66c2'}
-                        onChange={e => handleColorChange(btn.id, e.target.value)}
-                        title="Set button color"
-                      />
+                      <label className="med-color-btn" title="Set button color" style={{ backgroundColor: btn.color || '#0a66c2' }}>
+                        🖌️
+                        <input
+                          type="color"
+                          value={btn.color || '#0a66c2'}
+                          onChange={e => handleColorChange(btn.id, e.target.value)}
+                          style={{ position: 'absolute', width: 0, height: 0, opacity: 0, border: 'none', padding: 0 }}
+                        />
+                      </label>
                       <button className="med-quick-del" onClick={() => beginQuickButtonEdit(btn)}>Edit</button>
                       <button className="med-quick-del" onClick={() => handleDeleteQuickButton(btn.id)}>Delete</button>
                     </div>
@@ -467,6 +494,16 @@ function MedicationPage({ token }) {
             {saving ? 'Saving...' : 'Add'}
           </button>
         </div>
+        <p className="med-name-hint">
+          Autocomplete includes brand and generic names. If a name is not listed, just type it and add it. Entries are saved under one canonical generic name when an alias match exists.
+        </p>
+        {name.trim() && !hasCloseAutocompleteMatch && (
+          <div className="med-custom-add-row">
+            <button className="med-custom-add-chip" onClick={handleAdd} disabled={saving}>
+              Add "{name.trim()}" as custom entry
+            </button>
+          </div>
+        )}
         {name.trim() && !existingQuickNameKeys.has(name.trim().toLowerCase()) && (
           <div className="med-create-quick-row">
             <button className="med-create-quick-btn" onClick={handleCreateQuickButton}>
@@ -498,16 +535,27 @@ function MedicationPage({ token }) {
           </div>
           <ul className="med-list">
             {g.items.map(item => (
-              <li key={item.id} className="med-item">
+              <li key={item.id} className="med-item" style={{ borderLeft: `3px solid ${entryColors[item.id] || 'transparent'}` }}>
                 <div className="med-main">
                   <span className="med-name">{item.medication_name}</span>
                   {item.dosage && <span className="med-dose">{item.dosage}</span>}
+                </div>
+                <div className="med-actions">
+                  <label className="med-color-entry-btn" title="Color-code this entry" style={{ backgroundColor: entryColors[item.id] || 'rgba(255,255,255,0.08)' }}>
+                    🖌️
+                    <input
+                      type="color"
+                      value={entryColors[item.id] || '#4a90e2'}
+                      onChange={e => handleEntryColorChange(item.id, e.target.value)}
+                      style={{ position: 'absolute', width: 0, height: 0, opacity: 0, border: 'none', padding: 0 }}
+                    />
+                  </label>
+                  <button className="med-del" onClick={() => handleDelete(item.id)}>Delete</button>
                 </div>
                 <div className="med-meta">
                   <span>{item.time || ''}</span>
                   {item.notes && <span className="med-note">{item.notes}</span>}
                 </div>
-                <button className="med-del" onClick={() => handleDelete(item.id)}>Delete</button>
               </li>
             ))}
           </ul>

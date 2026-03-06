@@ -15,6 +15,133 @@ try {
   medicationNameSeed = [];
 }
 
+const BRAND_GENERIC_PAIRS = [
+  { generic: 'Cannabidiol (CBD)', brands: ['CBD', 'CBD Oil', 'CBD Gummies', 'Hemp CBD'] },
+  { generic: 'Acetaminophen', brands: ['Tylenol'] },
+  { generic: 'Ibuprofen', brands: ['Advil', 'Motrin'] },
+  { generic: 'Naproxen', brands: ['Aleve'] },
+  { generic: 'Diphenhydramine', brands: ['Benadryl'] },
+  { generic: 'Loratadine', brands: ['Claritin'] },
+  { generic: 'Cetirizine', brands: ['Zyrtec'] },
+  { generic: 'Fexofenadine', brands: ['Allegra'] },
+  { generic: 'Omeprazole', brands: ['Prilosec'] },
+  { generic: 'Esomeprazole', brands: ['Nexium'] },
+  { generic: 'Pantoprazole', brands: ['Protonix'] },
+  { generic: 'Famotidine', brands: ['Pepcid'] },
+  { generic: 'Metformin', brands: ['Glucophage'] },
+  { generic: 'Empagliflozin', brands: ['Jardiance'] },
+  { generic: 'Dapagliflozin', brands: ['Farxiga'] },
+  { generic: 'Sitagliptin', brands: ['Januvia'] },
+  { generic: 'Semaglutide', brands: ['Ozempic', 'Wegovy', 'Rybelsus'] },
+  { generic: 'Insulin Glargine', brands: ['Lantus', 'Basaglar', 'Toujeo'] },
+  { generic: 'Insulin Lispro', brands: ['Humalog', 'Admelog'] },
+  { generic: 'Amlodipine', brands: ['Norvasc'] },
+  { generic: 'Lisinopril', brands: ['Zestril', 'Prinivil'] },
+  { generic: 'Losartan', brands: ['Cozaar'] },
+  { generic: 'Valsartan', brands: ['Diovan'] },
+  { generic: 'Irbesartan', brands: ['Avapro'] },
+  { generic: 'Enalapril', brands: ['Vasotec'] },
+  { generic: 'Benazepril', brands: ['Lotensin'] },
+  { generic: 'Metoprolol', brands: ['Lopressor', 'Toprol XL'] },
+  { generic: 'Carvedilol', brands: ['Coreg'] },
+  { generic: 'Propranolol', brands: ['Inderal'] },
+  { generic: 'Spironolactone', brands: ['Aldactone'] },
+  { generic: 'Hydrochlorothiazide', brands: ['Microzide'] },
+  { generic: 'Furosemide', brands: ['Lasix'] },
+  { generic: 'Atorvastatin', brands: ['Lipitor'] },
+  { generic: 'Rosuvastatin', brands: ['Crestor'] },
+  { generic: 'Ezetimibe', brands: ['Zetia'] },
+  { generic: 'Apixaban', brands: ['Eliquis'] },
+  { generic: 'Warfarin', brands: ['Coumadin', 'Jantoven'] },
+  { generic: 'Clopidogrel', brands: ['Plavix'] },
+  { generic: 'Levothyroxine', brands: ['Synthroid', 'Levoxyl'] },
+  { generic: 'Albuterol', brands: ['Ventolin', 'ProAir', 'Proventil'] },
+  { generic: 'Montelukast', brands: ['Singulair'] },
+  { generic: 'Fluticasone', brands: ['Flonase'] },
+  { generic: 'Gabapentin', brands: ['Neurontin'] },
+  { generic: 'Pregabalin', brands: ['Lyrica'] },
+  { generic: 'Duloxetine', brands: ['Cymbalta'] },
+  { generic: 'Venlafaxine', brands: ['Effexor'] },
+  { generic: 'Escitalopram', brands: ['Lexapro'] },
+  { generic: 'Sertraline', brands: ['Zoloft'] },
+  { generic: 'Fluoxetine', brands: ['Prozac'] },
+  { generic: 'Paroxetine', brands: ['Paxil'] },
+  { generic: 'Citalopram', brands: ['Celexa'] },
+  { generic: 'Bupropion', brands: ['Wellbutrin'] },
+  { generic: 'Trazodone', brands: ['Desyrel'] },
+  { generic: 'Quetiapine', brands: ['Seroquel'] },
+  { generic: 'Lamotrigine', brands: ['Lamictal'] },
+  { generic: 'Levetiracetam', brands: ['Keppra'] },
+  { generic: 'Topiramate', brands: ['Topamax'] },
+  { generic: 'Clonazepam', brands: ['Klonopin'] },
+  { generic: 'Diazepam', brands: ['Valium'] },
+  { generic: 'Hydroxyzine', brands: ['Vistaril', 'Atarax'] },
+  { generic: 'Zolpidem', brands: ['Ambien'] },
+  { generic: 'Meloxicam', brands: ['Mobic'] },
+  { generic: 'Cyclobenzaprine', brands: ['Flexeril'] },
+  { generic: 'Baclofen', brands: ['Lioresal'] },
+  { generic: 'Diclofenac', brands: ['Voltaren'] },
+  { generic: 'Ondansetron', brands: ['Zofran'] },
+  { generic: 'Sumatriptan', brands: ['Imitrex'] },
+  { generic: 'Tamsulosin', brands: ['Flomax'] },
+  { generic: 'Nitrofurantoin', brands: ['Macrobid'] },
+  { generic: 'Amoxicillin', brands: ['Amoxil'] },
+  { generic: 'Azithromycin', brands: ['Zithromax', 'Z-Pak'] },
+  { generic: 'Doxycycline', brands: ['Vibramycin'] },
+  { generic: 'Clindamycin', brands: ['Cleocin'] },
+  { generic: 'Fluconazole', brands: ['Diflucan'] },
+  { generic: 'Valacyclovir', brands: ['Valtrex'] },
+  { generic: 'Prednisone', brands: ['Deltasone'] },
+  { generic: 'Dexamethasone', brands: ['Decadron'] },
+  { generic: 'Tramadol', brands: ['Ultram'] },
+];
+
+const normalizeMedicationKey = (v) => String(v || '')
+  .trim()
+  .toLowerCase()
+  .replace(/[()\[\],.]/g, ' ')
+  .replace(/\s+/g, ' ');
+
+const toTitleLike = (s) => String(s || '').trim().replace(/\s+/g, ' ');
+
+const medicationAliasMap = new Map();
+const medicationAutocompleteSet = new Set();
+
+const registerMedicationAlias = (alias, generic) => {
+  const aliasNorm = normalizeMedicationKey(alias);
+  const genericName = toTitleLike(generic);
+  if (!aliasNorm || !genericName) return;
+  medicationAliasMap.set(aliasNorm, genericName);
+  medicationAutocompleteSet.add(toTitleLike(alias));
+  medicationAutocompleteSet.add(genericName);
+};
+
+for (const n of medicationNameSeed) {
+  if (typeof n === 'string') {
+    registerMedicationAlias(n, n);
+    continue;
+  }
+  if (n && typeof n === 'object') {
+    const generic = n.generic || n.name;
+    if (!generic) continue;
+    registerMedicationAlias(generic, generic);
+    const aliases = Array.isArray(n.brands) ? n.brands : [];
+    const extraAliases = Array.isArray(n.aliases) ? n.aliases : [];
+    [...aliases, ...extraAliases].forEach((a) => registerMedicationAlias(a, generic));
+  }
+}
+
+for (const pair of BRAND_GENERIC_PAIRS) {
+  registerMedicationAlias(pair.generic, pair.generic);
+  (pair.brands || []).forEach((b) => registerMedicationAlias(b, pair.generic));
+}
+
+const canonicalMedicationName = (name) => {
+  const key = normalizeMedicationKey(name);
+  if (!key) return '';
+  return medicationAliasMap.get(key) || toTitleLike(name);
+};
+
 function authenticate(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'missing token' });
@@ -45,7 +172,11 @@ router.get('/', authenticate, async (req, res) => {
     if (req.query.start) query = query.where('date', '>=', req.query.start.slice(0, 10));
     if (req.query.end) query = query.where('date', '<=', req.query.end.slice(0, 10));
 
-    const data = await query;
+    const dataRaw = await query;
+    const data = dataRaw.map(r => ({
+      ...r,
+      medication_name: canonicalMedicationName(r.medication_name),
+    }));
     res.json({ data });
   } catch (err) {
     console.error('medications list error:', err);
@@ -80,7 +211,11 @@ router.get('/names', authenticate, async (req, res) => {
       .distinct('medication_name')
       .pluck('medication_name');
 
-    const merged = [...medicationNameSeed, ...userNames]
+    const merged = [
+      ...medicationAutocompleteSet,
+      ...userNames.map(canonicalMedicationName),
+      ...userNames,
+    ]
       .map(x => String(x || '').trim())
       .filter(Boolean);
 
@@ -103,11 +238,15 @@ router.get('/names', authenticate, async (req, res) => {
 // GET /api/medications/quick-buttons
 router.get('/quick-buttons', authenticate, async (req, res) => {
   try {
-    const data = await db('medication_quick_buttons')
+    const dataRaw = await db('medication_quick_buttons')
       .where({ user_id: req.user.id })
       .select('id', 'medication_name', 'dosage', 'color', 'sort_order')
       .orderBy('sort_order', 'asc')
       .orderBy('id', 'asc');
+    const data = dataRaw.map(r => ({
+      ...r,
+      medication_name: canonicalMedicationName(r.medication_name),
+    }));
     res.json({ data });
   } catch (err) {
     console.error('medications quick-buttons list error:', err);
@@ -118,7 +257,7 @@ router.get('/quick-buttons', authenticate, async (req, res) => {
 // POST /api/medications/quick-buttons
 router.post('/quick-buttons', authenticate, async (req, res) => {
   try {
-    const medicationName = String(req.body.medication_name || '').trim();
+    const medicationName = canonicalMedicationName(req.body.medication_name);
     const dosage = String(req.body.dosage || '').trim();
     const color = isHexColor(req.body.color) ? String(req.body.color) : '#0a66c2';
     if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });
@@ -179,7 +318,7 @@ router.put('/quick-buttons/:id', authenticate, async (req, res) => {
 
     const updates = {};
     if (req.body.medication_name !== undefined) {
-      const medicationName = String(req.body.medication_name || '').trim();
+      const medicationName = canonicalMedicationName(req.body.medication_name);
       if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });
       updates.medication_name = medicationName;
     }
@@ -218,7 +357,7 @@ router.delete('/quick-buttons/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const medicationName = String(req.body.medication_name || '').trim();
+    const medicationName = canonicalMedicationName(req.body.medication_name);
     const dosage = String(req.body.dosage || '').trim();
     const notes = String(req.body.notes || '').trim();
     const takenAtInput = String(req.body.taken_at || '').trim();

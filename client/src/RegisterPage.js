@@ -1,35 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+import API_BASE from './apiBase';
 
 function RegisterPage({ setToken }) {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async e => {
-    e.preventDefault();
+  const doRegister = async () => {
     setError('');
-    if (!username || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
     try {
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, email: email.trim() || undefined }),
       });
-
       let data = {};
-      try {
-        data = await res.json();
-      } catch (_) {
-        data = { error: 'Server returned an unexpected response.' };
-      }
-
+      try { data = await res.json(); } catch (_) { data = { error: 'Server returned an unexpected response.' }; }
       if (res.ok && data.token) {
         localStorage.setItem('token', data.token);
         setToken(data.token);
@@ -42,6 +31,19 @@ function RegisterPage({ setToken }) {
     }
   };
 
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!username || !password) {
+      setError('Username and password are required.');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Email is required for account recovery and password reset.');
+      return;
+    }
+    await doRegister();
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -49,7 +51,7 @@ function RegisterPage({ setToken }) {
         <p className="auth-tagline">Your personal health companion</p>
         <h2>Create your account</h2>
         <p style={{ color: '#5a7a99', fontSize: '0.87rem', textAlign: 'center', marginTop: -8, marginBottom: 18 }}>
-          Just a username and password — that’s it!
+          Create your account with username, email, and password.
         </p>
         {error && <div className="error-msg">{error}</div>}
         <form onSubmit={handleSubmit}>
@@ -61,6 +63,16 @@ function RegisterPage({ setToken }) {
             value={username}
             onChange={e => setUsername(e.target.value)}
             autoFocus
+          />
+        </div>
+        <div className="auth-field">
+          <label>Email</label>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            autoComplete="email"
           />
         </div>
         <div className="auth-field">

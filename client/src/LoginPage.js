@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+import API_BASE from './apiBase';
 
 function LoginPage({ setToken }) {
   const [username, setUsername] = useState('');
@@ -51,13 +50,14 @@ function LoginPage({ setToken }) {
         {error && <div className="error-msg">{error}</div>}
         <form onSubmit={handleSubmit}>
         <div className="auth-field">
-          <label>Username</label>
+          <label>Username or Email</label>
           <input
             type="text"
-            placeholder="Enter your username"
+            placeholder="Enter your username or email"
             value={username}
             onChange={e => setUsername(e.target.value)}
             autoFocus
+            autoComplete="username"
           />
         </div>
         <div className="auth-field">
@@ -70,6 +70,9 @@ function LoginPage({ setToken }) {
           />
         </div>
         <button type="submit" className="auth-submit">Log In</button>
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <Link to="/forgot-password" style={{ fontSize: '0.84rem', color: '#5a7a99' }}>Forgot password?</Link>
+        </div>
         </form>
       </div>
       <p className="auth-footer">

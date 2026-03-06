@@ -400,7 +400,7 @@ nav {
   background: var(--primary);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0,31,77,0.15);
-  height: 52px;
+  min-height: 52px;
   margin-bottom: 20px;
 }
 .nav-brand {
@@ -408,10 +408,44 @@ nav {
   font-size: 1.1rem;
   color: #fff;
   letter-spacing: 0.04em;
-  margin-right: auto;
   text-decoration: none;
 }
-.nav-links { display: flex; gap: 4px; align-items: center; }
+
+.nav-left-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+  margin-left: auto;
+}
+.auto-pull-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+.auto-pull-badge--ok {
+  background: #0e9f6e;
+  color: #fff;
+}
+.auto-pull-badge--warn {
+  background: #f59e0b;
+  color: #1f2937;
+}
 .nav-links a, .nav-links button {
   color: rgba(255,255,255,0.85);
   text-decoration: none;
@@ -429,6 +463,60 @@ nav {
   color: #fff;
 }
 .nav-divider { color: rgba(255,255,255,0.25); margin: 0 2px; }
+
+/* Draggable tab links */
+.nav-tab-link {
+  display: inline-flex;
+  align-items: center;
+  cursor: grab;
+  border-radius: 4px;
+  transition: background 0.15s;
+  user-select: none;
+}
+.nav-tab-link:active { cursor: grabbing; }
+.nav-tab-link--dragging { opacity: 0.45; }
+.nav-tab-link--drop-target {
+  background: rgba(255,255,255,0.18) !important;
+  border-radius: 4px;
+}
+@media (max-width: 900px) {
+  .App,
+  .App--export > nav {
+    padding: 12px;
+    margin: 0;
+  }
+
+  nav {
+    height: auto;
+    min-height: 52px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .nav-brand {
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-links {
+    gap: 2px;
+  }
+
+  form,
+  .health-list,
+  .calendar-section {
+    max-width: 100%;
+    padding: 14px;
+    margin: 10px auto;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
 
 /* ── Auth page polish ── */
 .auth-container {
@@ -504,6 +592,45 @@ nav {
   letter-spacing: 0.02em;
 }
 .auth-submit:hover { background: var(--primary-lighter); }
+.auth-submit:disabled { opacity: 0.6; cursor: default; }
+.auth-field-optional {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #5a7a99;
+}
+.auth-warning-box {
+  background: #fff8e1;
+  border: 1px solid #f0c040;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 0.88rem;
+  color: #5a3e00;
+  margin-bottom: 8px;
+}
+.auth-warning-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.auth-warning-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #444;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.auth-warning-btn:hover { background: #f5f5f5; }
+.auth-warning-btn--primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.auth-warning-btn--primary:hover { background: var(--primary-lighter); }
 .auth-footer {
   text-align: center;
   margin-top: 18px;

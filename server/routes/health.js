@@ -229,18 +229,21 @@ const insertInChunks = async (tableName, rows, chunkSize = CHUNK_SIZE) => {
   }
 };
 
-// Keep repeats from the uploaded file intact; only remove stats that already
-// exist in previously stored health_data rows for the same user.
+// Remove duplicate stats both within the incoming upload and against existing
+// stored rows for the same user.
 const filterDuplicateStats = async (userId, inputRecords) => {
   if (!inputRecords.length) return [];
 
-  // Keep repeats exactly as provided by the upload. We only normalize values
-  // and compare against already-stored rows from previous imports.
   const uploadRecords = [];
+  const seenInUpload = new Set();
   for (const rec of inputRecords) {
     const ts = normalizeStatTimestamp(rec.timestamp);
     if (!ts) continue;
-    uploadRecords.push({ ...rec, timestamp: ts, value: normalizeStatValue(rec.value) });
+    const normalized = { ...rec, timestamp: ts, value: normalizeStatValue(rec.value) };
+    const key = statKey(normalized);
+    if (seenInUpload.has(key)) continue;
+    seenInUpload.add(key);
+    uploadRecords.push(normalized);
   }
   if (!uploadRecords.length) return [];
 
@@ -266,14 +269,13 @@ const filterDuplicateStats = async (userId, inputRecords) => {
     existingKeyCounts.set(key, (existingKeyCounts.get(key) || 0) + 1);
   }
 
-  // For repeated rows in one upload, only remove as many as already exist.
-  // Example: upload has 4 identical shakes and DB has 1 already -> keep 3.
+  // Remove anything that already exists in storage.
   const keep = [];
   for (const rec of uploadRecords) {
     const key = statKey(rec);
-    const used = existingKeyCounts.get(key) || 0;
-    if (used > 0) {
-      existingKeyCounts.set(key, used - 1);
+    const existingCount = existingKeyCounts.get(key) || 0;
+    if (existingCount > 0) {
+      existingKeyCounts.set(key, existingCount - 1);
       continue;
     }
     keep.push(rec);

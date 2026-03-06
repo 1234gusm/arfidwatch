@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import API_BASE from './apiBase';
 
 const MOODS = [
   { val: 1, emoji: '😢', label: 'Very Bad' },
@@ -40,7 +41,7 @@ function CalendarPage({ token }) {
   };
 
   const fetchEntries = async () => {
-    const res = await fetch('http://localhost:4000/api/journal?start=1970-01-01', {
+    const res = await fetch(`${API_BASE}/api/journal?start=1970-01-01`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -74,7 +75,7 @@ function CalendarPage({ token }) {
     base.setHours(parseInt(h), parseInt(m), 0, 0);
     // Build ISO string manually using local date parts to avoid UTC day shift.
     const iso = `${localDateStr(base)}T${String(base.getHours()).padStart(2,'0')}:${String(base.getMinutes()).padStart(2,'0')}:00`;
-    const res = await fetch('http://localhost:4000/api/journal', {
+    const res = await fetch(`${API_BASE}/api/journal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ date: iso, title, text, mood }),
@@ -104,7 +105,7 @@ function CalendarPage({ token }) {
         return;
       }
       
-      const url = `http://localhost:4000/api/journal/${entryId}`;
+      const url = `${API_BASE}/api/journal/${entryId}`;
       console.log('Delete URL:', url);
       
       const response = await fetch(url, {

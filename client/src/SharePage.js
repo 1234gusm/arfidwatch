@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import './SharePage.css';
+import API_BASE from './apiBase';
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 const canonical = t => {
@@ -208,7 +209,7 @@ function SharePage() {
   const [unlocking,  setUnlocking]  = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/api/share/${shareToken}`)
+    fetch(`${API_BASE}/api/share/${shareToken}`)
       .then(r => r.json())
       .then(d => {
         if (d.error) { setErrMsg(d.error); setPhase('error'); return; }
@@ -223,7 +224,7 @@ function SharePage() {
   const doUnlock = async (code, autoUnlock = false) => {
     setUnlocking(true); setErrMsg('');
     try {
-      const res = await fetch(`http://localhost:4000/api/share/${shareToken}/unlock`, {
+      const res = await fetch(`${API_BASE}/api/share/${shareToken}/unlock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode: code }),
@@ -235,7 +236,7 @@ function SharePage() {
         else { setErrMsg(d.error || 'Incorrect passcode.'); }
         setUnlocking(false); return;
       }
-      const dr = await fetch(`http://localhost:4000/api/share/${shareToken}/data`, {
+      const dr = await fetch(`${API_BASE}/api/share/${shareToken}/data`, {
         headers: { Authorization: `Bearer ${d.token}` },
       });
       const dd = await dr.json();

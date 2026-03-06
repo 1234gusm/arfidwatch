@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './FoodLog.css';
+import API_BASE from './apiBase';
 
 const NUTRITION_META = {
   dietary_energy_kcal: { label: 'Calories',  unit: 'kcal',  dp: 0, primary: true  },
@@ -11,7 +12,6 @@ const NUTRITION_META = {
   sodium_mg:           { label: 'Sodium',    unit: 'mg',    dp: 0, primary: false },
   water_fl_oz_us:      { label: 'Water',     unit: 'fl oz', dp: 1, primary: false },
 };
-const NUTRITION_TYPES = new Set(Object.keys(NUTRITION_META));
 
 const fmtVal = (v, meta) => {
   const s = meta.dp === 0 ? Math.round(v).toLocaleString() : v.toFixed(meta.dp);
@@ -68,7 +68,7 @@ function FoodLog({ token }) {
       const { start, end } = buildDates();
       const params = new URLSearchParams();
       if (start) { params.set('start', start); params.set('end', end); }
-      const res  = await fetch(`http://localhost:4000/api/food-log/daily?${params}`, {
+      const res  = await fetch(`${API_BASE}/api/food-log/daily?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();

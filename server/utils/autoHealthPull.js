@@ -103,7 +103,7 @@ function startAutoHealthPull({ port }) {
   state.source_url = sourceUrl;
 
   if (!configured) {
-    state.last_error = 'Auto pull not configured: set source URL and ingest key env vars.';
+    state.last_error = null;
     console.log('[auto-pull] not configured (missing source URL or ingest key)');
     return;
   }

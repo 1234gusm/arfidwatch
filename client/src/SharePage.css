@@ -401,3 +401,39 @@
   white-space: nowrap;
   text-align: right;
 }
+
+@media (max-width: 800px) {
+  .share-header {
+    padding: 12px 14px;
+  }
+
+  .share-header-inner {
+    gap: 10px;
+  }
+
+  .share-body {
+    padding: 16px 10px 40px;
+    gap: 12px;
+  }
+
+  .share-group-header,
+  .share-table td,
+  .share-journal-entry {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .share-group-body,
+  .share-foodlog-meal {
+    overflow-x: auto;
+  }
+
+  .share-table,
+  .share-foodlog-table {
+    min-width: 560px;
+  }
+
+  .share-foodlog-food {
+    max-width: 180px;
+  }
+}

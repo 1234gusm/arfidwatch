@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import './ExportPage.css';
+import API_BASE from './apiBase';
 
 // ── Type system (mirrors pdf.js) ───────────────────────────────────────────────
 const TYPE_ALIASES = {
@@ -170,7 +171,7 @@ function ExportPage({ token }) {
 
   // Load the user's default export period from their profile
   useEffect(() => {
-    fetch('http://localhost:4000/api/profile', {
+    fetch(`${API_BASE}/api/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -189,9 +190,9 @@ function ExportPage({ token }) {
     const { start, end } = getRange();
     try {
       const [jRes, hRes, heroRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`http://localhost:4000/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`http://localhost:4000/api/health/hero`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/health/hero`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const jData    = await jRes.json();
       const hData    = await hRes.json();
@@ -211,7 +212,7 @@ function ExportPage({ token }) {
     const { start, end } = getRange();
     const params = new URLSearchParams({ start, end, includeJournal: includeJournal ? '1' : '0', quick: quickExport ? '1' : '0' });
     try {
-      const res = await fetch(`http://localhost:4000/api/journal/export?${params}`, {
+      const res = await fetch(`${API_BASE}/api/journal/export?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) { setError('Export failed \u2014 check server logs.'); return; }

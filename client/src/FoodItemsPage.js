@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './FoodItemsPage.css';
+import API_BASE from './apiBase';
 
 const RANGE_OPTIONS = [
   { id: '7',   label: 'Last 7 days' },
@@ -40,7 +41,7 @@ function FoodItemsPage({ token }) {
       const { start, end } = getRange();
       const params = new URLSearchParams();
       if (start) { params.set('start', start); params.set('end', end); }
-      const res = await fetch(`http://localhost:4000/api/food-log/items?${params}`, {
+      const res = await fetch(`${API_BASE}/api/food-log/items?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
