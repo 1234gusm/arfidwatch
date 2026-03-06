@@ -155,6 +155,8 @@ const pickRowValueByHeaders = (row, headerNames = []) => {
   return null;
 };
 
+const MONTH_MAP = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+
 const parseDateOnlyLocal = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -182,6 +184,15 @@ const parseDateOnlyLocal = (value) => {
     const d = Number(us[2]);
     const y = Number(us[3]);
     return new Date(y, m, d, 12, 0, 0, 0);
+  }
+
+  // Human-readable: "Friday, Mar 6, 2026" or "Mar 6, 2026" or "February 14, 2026"
+  const human = raw.match(/^(?:\w+,\s*)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+(\d{1,2}),?\s+(\d{4})$/i);
+  if (human) {
+    const m = MONTH_MAP[human[1].toLowerCase().slice(0, 3)];
+    const d = Number(human[2]);
+    const y = Number(human[3]);
+    if (m != null) return new Date(y, m, d, 12, 0, 0, 0);
   }
 
   const parsed = new Date(raw);
@@ -796,6 +807,11 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           error: 'health auto export file detected; use /api/health/import for this file type'
         });
       }
+      if (isAutoSleepCsvHeaders(headers)) {
+        return res.status(400).json({
+          error: 'AutoSleep file detected; use /api/health/import for this file type'
+        });
+      }
 
       const toCellValue = (v) => {
         if (v == null) return '';
@@ -852,6 +868,11 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       if (isHealthAutoExportHeaders(csvHeaders)) {
         return res.status(400).json({
           error: 'health auto export file detected; use /api/health/import for this file type'
+        });
+      }
+      if (isAutoSleepCsvHeaders(csvHeaders)) {
+        return res.status(400).json({
+          error: 'AutoSleep file detected; use /api/health/import for this file type'
         });
       }
       const parsedRows = parseCsvTextLenient(csvText);
