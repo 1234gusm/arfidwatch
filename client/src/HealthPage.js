@@ -11,9 +11,10 @@ import {
 import './HealthPage.css';
 import API_BASE from './apiBase';
 
-function HealthPage({ token }) {
+function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
   const [data, setData] = useState([]);
-  const [apiUrl, setApiUrl] = useState(localStorage.getItem('apiUrl') || '');
+  const [apiUrl, setApiUrl] = useState(accountApiUrl || '');
+  const [savingApiUrl, setSavingApiUrl] = useState(false);
   const [imports, setImports] = useState([]);
   const [hiddenTypes, setHiddenTypes] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('hiddenHealthTypes') || '[]')); }
@@ -49,6 +50,35 @@ function HealthPage({ token }) {
     });
     const json = await res.json();
     setImports(json.imports || []);
+  };
+
+  useEffect(() => {
+    setApiUrl(accountApiUrl || '');
+  }, [accountApiUrl]);
+
+  const saveApiUrl = async () => {
+    const trimmed = apiUrl.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      alert('Health Auto Export API URL must start with http:// or https://');
+      return;
+    }
+    setSavingApiUrl(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ health_auto_export_url: trimmed || null }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed to save URL');
+      const saved = d.health_auto_export_url || '';
+      setApiUrl(saved);
+      if (onAccountApiUrlSaved) onAccountApiUrlSaved(saved);
+    } catch (err) {
+      alert(err.message || 'Failed to save URL');
+    } finally {
+      setSavingApiUrl(false);
+    }
   };
 
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
@@ -548,9 +578,10 @@ function HealthPage({ token }) {
             type="text"
             placeholder="https://example.com/health.json"
             value={apiUrl}
-            onChange={e => { setApiUrl(e.target.value); localStorage.setItem('apiUrl', e.target.value); }}
+            onChange={e => setApiUrl(e.target.value)}
             className="api-url-input"
           />
+          <button onClick={saveApiUrl} disabled={savingApiUrl}>{savingApiUrl ? 'Saving…' : 'Save URL'}</button>
           <button onClick={handleFetchFromApi}>Fetch</button>
         </div>
       </div>

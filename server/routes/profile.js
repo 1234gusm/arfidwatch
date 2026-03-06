@@ -7,6 +7,7 @@ const router = express.Router();
 const SALT_ROUNDS = 12;
 const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const URL_RE = /^https?:\/\//i;
 
 function authenticate(req, res, next) {
   const auth = req.headers.authorization;
@@ -43,6 +44,7 @@ router.get('/', authenticate, async (req, res) => {
       share_medications: !!profile.share_medications,
       has_ingest_key: !!profile.ingest_key_hash,
       ingest_key_last_used_at: profile.ingest_key_last_used_at || null,
+      health_auto_export_url: profile.health_auto_export_url || null,
     });
   } catch (err) {
     console.error('profile GET error:', err);
@@ -67,6 +69,7 @@ router.put('/', authenticate, async (req, res) => {
       share_medications,
       regenerate_ingest_key,
       clear_ingest_key,
+      health_auto_export_url,
     } = req.body;
     const updates = {};
     const userUpdates = {};
@@ -159,6 +162,14 @@ router.put('/', authenticate, async (req, res) => {
       updates.ingest_key_last_used_at = null;
     }
 
+    if (health_auto_export_url !== undefined) {
+      const normalizedUrl = health_auto_export_url ? String(health_auto_export_url).trim() : null;
+      if (normalizedUrl && !URL_RE.test(normalizedUrl)) {
+        return res.status(400).json({ error: 'health_auto_export_url must start with http:// or https://' });
+      }
+      updates.health_auto_export_url = normalizedUrl;
+    }
+
     if (Object.keys(userUpdates).length > 0) {
       await db('users').where({ id: userId }).update(userUpdates);
     }
@@ -190,6 +201,7 @@ router.put('/', authenticate, async (req, res) => {
       share_medications: !!(profile?.share_medications),
       has_ingest_key: !!(profile?.ingest_key_hash),
       ingest_key_last_used_at: profile?.ingest_key_last_used_at || null,
+      health_auto_export_url: profile?.health_auto_export_url || null,
       ingest_key: plainIngestKey,
     });
   } catch (err) {

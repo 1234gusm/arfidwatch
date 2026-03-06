@@ -85,6 +85,7 @@ function App() {
   useEffect(() => {
     if (!token) {
       setAutoPullStatus(null);
+      setHealthApiUrl('');
       return undefined;
     }
 
@@ -113,6 +114,28 @@ function App() {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+
+    const loadProfileApiUrl = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!active) return;
+        setHealthApiUrl(data?.health_auto_export_url || '');
+      } catch (_) {
+        if (active) setHealthApiUrl('');
+      }
+    };
+
+    loadProfileApiUrl();
+    return () => { active = false; };
+  }, [token]);
+
   const showAutoPullBadge = Boolean(token && autoPullStatus && autoPullStatus.configured);
   const isAutoPullHealthy = Boolean(
     autoPullStatus &&
@@ -134,14 +157,6 @@ function App() {
     setToken(null);
     navigate('/login');
   };
-
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === 'apiUrl') setHealthApiUrl(e.newValue || '');
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   useEffect(() => {
     if (!token || !healthApiUrl) return undefined;
@@ -272,7 +287,13 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={token ? <HealthPage token={token} /> : <LoginPage setToken={setToken} />}
+          element={token ? (
+            <HealthPage
+              token={token}
+              accountApiUrl={healthApiUrl}
+              onAccountApiUrlSaved={setHealthApiUrl}
+            />
+          ) : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/macros"

@@ -6,6 +6,7 @@ const { triggerAutoHealthPullNow, getAutoHealthPullStatus } = require('../utils/
 
 const router = express.Router();
 const crypto = require('crypto');
+const rawTextParser = express.text({ type: ['text/*', 'application/csv', 'application/octet-stream'], limit: '10mb' });
 
 // middleware to authenticate token
 function authenticate(req, res, next) {
@@ -38,7 +39,7 @@ async function authenticateOrIngestKey(req, res, next) {
 
   const ingestKey = req.headers['x-ingest-key'];
   if (!ingestKey) {
-    return res.status(401).json({ error: 'missing token or ingest key' });
+    return res.status(401).json({ error: 'missing token or x-ingest-key header' });
   }
 
   try {
@@ -281,22 +282,37 @@ const filterDuplicateStats = async (userId, inputRecords) => {
 };
 
 // import health data from Health Auto Export JSON
-router.post('/import', authenticateOrIngestKey, async (req, res) => {
+router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) => {
+  const rawBodyText = typeof req.body === 'string' ? req.body : null;
+  const jsonBody = req.body && typeof req.body === 'object' ? req.body : {};
+
+  // Health Auto Export and automation tools can post one of several shapes:
+  // - array of samples
+  // - { samples: [...] }
+  // - { data: [...] } / { records: [...] }
+  const sampleArray = Array.isArray(req.body)
+    ? req.body
+    : (Array.isArray(jsonBody.samples)
+      ? jsonBody.samples
+      : (Array.isArray(jsonBody.data)
+        ? jsonBody.data
+        : (Array.isArray(jsonBody.records) ? jsonBody.records : null)));
+
   // accept either samples array (from JSON) or csv string
-  if (req.body.samples) {
-    const samples = req.body.samples;
+  if (sampleArray) {
+    const samples = sampleArray;
     const records = samples.map(s => ({
       user_id: req.user.id,
-      type: s.type,
+      type: s.type || s.dataType || s.name,
       value: s.value,
-      timestamp: s.startDate || s.timestamp,
+      timestamp: s.startDate || s.timestamp || s.date,
       raw: JSON.stringify(s),
-    }));
+    })).filter(r => r.type && r.timestamp && r.value !== undefined && r.value !== null);
     const deduped = await filterDuplicateStats(req.user.id, records);
     if (deduped.length) await insertInChunks('health_data', deduped);
     return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length });
-  } else if (req.body.csv) {
-    const csvText = req.body.csv;
+  } else if (jsonBody.csv || rawBodyText) {
+    const csvText = jsonBody.csv || rawBodyText;
     let fileHash = null;
     let duplicateFile = false;
     try {

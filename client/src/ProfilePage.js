@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ProfilePage.css';
+import API_BASE from './apiBase';
 
 const PERIOD_OPTIONS = [
   { id: 'today', label: 'Today' },
@@ -10,12 +11,27 @@ const PERIOD_OPTIONS = [
 
 function ProfilePage({ token }) {
   const [username,        setUsername]        = useState('');
+  const [usernameEdit,    setUsernameEdit]    = useState(false);
+  const [newUsername,     setNewUsername]     = useState('');
+  const [usernamePassword,setUsernamePassword]= useState('');
+  const [email,           setEmail]           = useState('');
+  const [emailEdit,       setEmailEdit]       = useState(false);
+  const [newEmail,        setNewEmail]        = useState('');
+  const [changingPw,      setChangingPw]      = useState(false);
+  const [currentPw,       setCurrentPw]       = useState('');
+  const [newPw,           setNewPw]           = useState('');
+  const [confirmPw,       setConfirmPw]       = useState('');
+  const [resetCodeSent,   setResetCodeSent]   = useState(false);
+  const [resetDevCode,    setResetDevCode]    = useState('');
+  const [resetCode,       setResetCode]       = useState('');
+  const [resetPw,         setResetPw]         = useState('');
+  const [resetPwConfirm,  setResetPwConfirm]  = useState('');
+  const [resetBusy,       setResetBusy]       = useState(false);
   const [exportPeriod,    setExportPeriod]    = useState('week');
   const [shareToken,      setShareToken]      = useState(null);
   const [hasPasscode,     setHasPasscode]     = useState(false);
   const [changingPasscode,setChangingPasscode]= useState(false);
   const [newPasscode,     setNewPasscode]     = useState('');
-  const [periodSaved,     setPeriodSaved]     = useState(false);
   const [copied,          setCopied]          = useState(false);
   const [loading,         setLoading]         = useState(true);
   const [error,           setError]           = useState(null);
@@ -38,39 +54,43 @@ function ProfilePage({ token }) {
 
   const showFlash = msg => { setFlash(msg); setTimeout(() => setFlash(null), 2500); };
 
+  const applyProfileData = (d) => {
+    if (!d || typeof d !== 'object') return;
+    if (d.username !== undefined) setUsername(d.username || '');
+    if (d.email !== undefined) setEmail(d.email || '');
+    if (d.export_period !== undefined) setExportPeriod(d.export_period || 'week');
+    if (d.share_token !== undefined) setShareToken(d.share_token || null);
+    if (d.has_passcode !== undefined) setHasPasscode(!!d.has_passcode);
+    if (d.share_food_log !== undefined) setShareFoodLog(!!d.share_food_log);
+    if (d.share_medications !== undefined) setShareMeds(!!d.share_medications);
+    if (d.has_ingest_key !== undefined) setHasIngestKey(!!d.has_ingest_key);
+    if (d.ingest_key_last_used_at !== undefined) setIngestLastUsed(d.ingest_key_last_used_at || null);
+  };
+
   useEffect(() => {
-    fetch('http://localhost:4000/api/profile', {
+    fetch(`${API_BASE}/api/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => {
-        setUsername(d.username || '');
-        setExportPeriod(d.export_period || 'week');
-        setShareToken(d.share_token || null);
-        setHasPasscode(!!d.has_passcode);
-        setShareFoodLog(!!d.share_food_log);
-        setShareMeds(!!d.share_medications);
-        setHasIngestKey(!!d.has_ingest_key);
-        setIngestLastUsed(d.ingest_key_last_used_at || null);
-      })
+      .then(applyProfileData)
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false));
 
-    fetch('http://localhost:4000/api/food-log/status', {
+    fetch(`${API_BASE}/api/food-log/status`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
       .then(d => setFoodLogStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
       .catch(() => {});
 
-    fetch('http://localhost:4000/api/medications/status', {
+    fetch(`${API_BASE}/api/medications/status`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
       .then(d => setMedStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
       .catch(() => {});
 
-    fetch('http://localhost:4000/api/health/auto-pull/status', {
+    fetch(`${API_BASE}/api/health/auto-pull/status`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -78,23 +98,167 @@ function ProfilePage({ token }) {
       .catch(() => {});
   }, [token]);
 
+  const handleSaveEmail = async () => {
+    const trimmed = newEmail.trim().toLowerCase();
+    if (trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    try {
+      const d = await callPut({ email: trimmed || null });
+      const savedEmail = Object.prototype.hasOwnProperty.call(d || {}, 'email')
+        ? (d?.email || '')
+        : (trimmed || '');
+      setEmail(savedEmail);
+      setNewEmail('');
+      setEmailEdit(false);
+      showFlash(savedEmail.trim() ? 'Email saved' : 'Email removed');
+    } catch { setError('Failed to save email'); }
+  };
+
+  const handleSaveUsername = async () => {
+    const trimmed = newUsername.trim();
+    if (!trimmed) {
+      setError('Please enter a username.');
+      return;
+    }
+    if (!usernamePassword.trim()) {
+      setError('Enter your account password to confirm username change.');
+      return;
+    }
+    try {
+      const d = await callPut({ username: trimmed, username_password: usernamePassword });
+      setUsername(d.username || trimmed);
+      setUsernamePassword('');
+      setUsernameEdit(false);
+      showFlash('Username updated');
+    } catch {
+      setError('Failed to update username. Check your account password and try again.');
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw) { setError('Fill in both password fields.'); return; }
+    if (newPw !== confirmPw) { setError('New passwords do not match.'); return; }
+    if (newPw.length < 6) { setError('New password must be at least 6 characters.'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setError(d.error || 'Failed to change password'); return; }
+      setCurrentPw(''); setNewPw(''); setConfirmPw(''); setChangingPw(false);
+      showFlash('Password changed');
+    } catch { setError('Failed to change password'); }
+  };
+
+  const handleSendResetCode = async () => {
+    if (!username || !email) {
+      setError('Add an email address first to use reset-by-email code.');
+      return;
+    }
+    setError(null);
+    setResetBusy(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(d.error || 'Failed to send reset code');
+        return;
+      }
+      setResetCodeSent(true);
+      setResetDevCode(d.dev_reset_code || '');
+      showFlash('Reset code sent to your email');
+    } catch {
+      setError('Failed to send reset code');
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
+  const handleResetByCode = async () => {
+    if (!username || !email) {
+      setError('Username and email are required.');
+      return;
+    }
+    if (!resetCode.trim()) {
+      setError('Enter the reset code from your email.');
+      return;
+    }
+    if (!resetPw) {
+      setError('Enter a new password.');
+      return;
+    }
+    if (resetPw.length < 6) {
+      setError('New password must be at least 6 characters.');
+      return;
+    }
+    if (resetPw !== resetPwConfirm) {
+      setError('Reset passwords do not match.');
+      return;
+    }
+
+    setError(null);
+    setResetBusy(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          email,
+          code: resetCode.trim(),
+          password: resetPw,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setError(d.error || 'Failed to reset password');
+        return;
+      }
+
+      setResetCode('');
+      setResetPw('');
+      setResetPwConfirm('');
+      setResetCodeSent(false);
+      setResetDevCode('');
+      showFlash('Password reset complete');
+    } catch {
+      setError('Failed to reset password');
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
   const callPut = async body => {
     setError(null);
-    const res = await fetch('http://localhost:4000/api/profile', {
+    const res = await fetch(`${API_BASE}/api/profile`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error('save failed');
-    return res.json();
+    const d = await res.json();
+    applyProfileData(d);
+    return d;
   };
 
-  const handleSavePeriod = async () => {
+  const handleSavePeriod = async (nextPeriod) => {
+    const prev = exportPeriod;
+    setExportPeriod(nextPeriod);
     try {
-      await callPut({ export_period: exportPeriod });
-      setPeriodSaved(true);
-      setTimeout(() => setPeriodSaved(false), 2500);
-    } catch { setError('Failed to save'); }
+      await callPut({ export_period: nextPeriod });
+      showFlash('Export period saved');
+    } catch {
+      setExportPeriod(prev);
+      setError('Failed to save');
+    }
   };
 
   const handleGenerateShare = async () => {
@@ -146,7 +310,7 @@ function ProfilePage({ token }) {
   const handleClearFoodLog = async () => {
     if (!window.confirm('Remove all food log entries?')) return;
     try {
-      await fetch('http://localhost:4000/api/food-log/clear', {
+      await fetch(`${API_BASE}/api/food-log/clear`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -208,7 +372,7 @@ function ProfilePage({ token }) {
 
   const refreshAutoPullStatus = async () => {
     try {
-      const r = await fetch('http://localhost:4000/api/health/auto-pull/status', {
+      const r = await fetch(`${API_BASE}/api/health/auto-pull/status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await r.json();
@@ -219,7 +383,7 @@ function ProfilePage({ token }) {
   const handleManualAutoPull = async () => {
     setAutoPullBusy(true);
     try {
-      const r = await fetch('http://localhost:4000/api/health/auto-pull/pull', {
+      const r = await fetch(`${API_BASE}/api/health/auto-pull/pull`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -238,7 +402,7 @@ function ProfilePage({ token }) {
 
   return (
     <div className="profile-page">
-      <h2>Profile</h2>
+      <h2>Settings</h2>
 
       {error  && <p className="profile-error">{error}</p>}
       {flash  && <p className="profile-flash">{flash}</p>}
@@ -247,12 +411,183 @@ function ProfilePage({ token }) {
       <div className="profile-card">
         <div className="profile-row">
           <span className="profile-field-label">Username</span>
-          <span className="profile-field-value">{username}</span>
+          {!usernameEdit ? (
+            <>
+              <span className="profile-field-value" style={{ flex: 1 }}>{username}</span>
+              <button
+                className="profile-btn-secondary"
+                onClick={() => {
+                  setNewUsername(username);
+                  setUsernamePassword('');
+                  setUsernameEdit(true);
+                }}
+              >
+                Change
+              </button>
+            </>
+          ) : (
+            <div className="profile-passcode-row" style={{ width: '100%' }}>
+              <input
+                type="text"
+                className="profile-passcode-input"
+                placeholder="New username"
+                value={newUsername}
+                onChange={e => setNewUsername(e.target.value)}
+                autoFocus
+              />
+              <input
+                type="password"
+                className="profile-passcode-input"
+                placeholder="Confirm with account password"
+                value={usernamePassword}
+                onChange={e => setUsernamePassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveUsername()}
+              />
+              <button className="profile-save-btn" onClick={handleSaveUsername}>Save</button>
+              <button
+                className="profile-btn-secondary"
+                onClick={() => {
+                  setUsernameEdit(false);
+                  setNewUsername('');
+                  setUsernamePassword('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
+        {!usernameEdit && (
+          <p className="profile-hint" style={{ marginTop: 8 }}>
+            Changing your username requires your current account password.
+          </p>
+        )}
+
+        <div className="profile-section-title">Email Address</div>
+        {!emailEdit ? (
+          <div className="profile-row">
+            {email ? (
+              <>
+                <span className="profile-field-value" style={{ flex: 1 }}>{email}</span>
+                <button className="profile-btn-secondary" onClick={() => { setNewEmail(email); setEmailEdit(true); }}>Change</button>
+              </>
+            ) : (
+              <>
+                <span className="profile-hint" style={{ flex: 1, color: '#b05800' }}>No email — add one for account recovery</span>
+                <button className="profile-btn-secondary" onClick={() => { setNewEmail(''); setEmailEdit(true); }}>Add email</button>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="profile-passcode-row">
+            <input
+              type="email"
+              className="profile-passcode-input"
+              placeholder="Enter email address"
+              value={newEmail}
+              onChange={e => setNewEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSaveEmail()}
+              autoFocus
+            />
+            <button className="profile-save-btn" onClick={handleSaveEmail}>Save</button>
+            {email && (
+              <button className="profile-btn-danger" onClick={() => { setNewEmail(''); handleSaveEmail(); }}>Remove</button>
+            )}
+            <button className="profile-btn-secondary" onClick={() => { setEmailEdit(false); setNewEmail(''); }}>Cancel</button>
+          </div>
+        )}
+
+        <div className="profile-section-title">Change Password</div>
+        {!changingPw ? (
+          <button className="profile-btn-secondary" onClick={() => setChangingPw(true)}>Change password</button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input
+              type="password"
+              className="profile-passcode-input"
+              placeholder="Current password"
+              value={currentPw}
+              onChange={e => setCurrentPw(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="password"
+              className="profile-passcode-input"
+              placeholder="New password"
+              value={newPw}
+              onChange={e => setNewPw(e.target.value)}
+            />
+            <input
+              type="password"
+              className="profile-passcode-input"
+              placeholder="Confirm new password"
+              value={confirmPw}
+              onChange={e => setConfirmPw(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+            />
+            <div className="profile-row">
+              <button className="profile-save-btn" onClick={handleChangePassword}>Save new password</button>
+              <button className="profile-btn-secondary" onClick={() => { setChangingPw(false); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <div className="profile-section-title" style={{ marginTop: 14 }}>Reset Password Via Email Code</div>
+        <p className="profile-hint" style={{ marginBottom: 8 }}>
+          Sends a verification code to your account email and lets you reset without current password.
+        </p>
         <div className="profile-row">
-          <span className="profile-field-label">Account security</span>
-          <span className="profile-badge">bcrypt (cost 12)</span>
+          <button className="profile-btn-secondary" onClick={handleSendResetCode} disabled={resetBusy || !email}>
+            {resetBusy ? 'Sending…' : 'Send reset code'}
+          </button>
+          {!email && <span className="profile-hint" style={{ marginLeft: 8 }}>Add an email first</span>}
         </div>
+        {resetCodeSent && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {resetDevCode && (
+              <p className="profile-hint">Dev code: <strong>{resetDevCode}</strong></p>
+            )}
+            <input
+              type="text"
+              className="profile-passcode-input"
+              placeholder="Email reset code"
+              value={resetCode}
+              onChange={e => setResetCode(e.target.value)}
+            />
+            <input
+              type="password"
+              className="profile-passcode-input"
+              placeholder="New password"
+              value={resetPw}
+              onChange={e => setResetPw(e.target.value)}
+            />
+            <input
+              type="password"
+              className="profile-passcode-input"
+              placeholder="Confirm new password"
+              value={resetPwConfirm}
+              onChange={e => setResetPwConfirm(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleResetByCode()}
+            />
+            <div className="profile-row">
+              <button className="profile-save-btn" onClick={handleResetByCode} disabled={resetBusy}>
+                {resetBusy ? 'Saving…' : 'Reset password'}
+              </button>
+              <button
+                className="profile-btn-secondary"
+                onClick={() => {
+                  setResetCodeSent(false);
+                  setResetDevCode('');
+                  setResetCode('');
+                  setResetPw('');
+                  setResetPwConfirm('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Export settings */}
@@ -264,16 +599,14 @@ function ProfilePage({ token }) {
             id="export-period"
             className="profile-select"
             value={exportPeriod}
-            onChange={e => setExportPeriod(e.target.value)}
+            onChange={e => handleSavePeriod(e.target.value)}
           >
             {PERIOD_OPTIONS.map(p => (
               <option key={p.id} value={p.id}>{p.label}</option>
             ))}
           </select>
         </div>
-        <button className="profile-save-btn" onClick={handleSavePeriod}>
-          {periodSaved ? 'Saved!' : 'Save'}
-        </button>
+        <p className="profile-hint">Saved automatically when changed.</p>
       </div>
 
       {/* Doctor share link */}
@@ -351,7 +684,7 @@ function ProfilePage({ token }) {
       <div className="profile-card">
         <div className="profile-section-title">Health Auto Export API</div>
         <p className="profile-hint">
-          Use a dedicated API key for automatic REST imports. Endpoint:
+          Use a dedicated API key for push-based automatic REST imports. Endpoint:
           <br />
           <code className="profile-code">POST https://arfidwatch.onrender.com/api/health/import</code>
         </p>
@@ -374,13 +707,15 @@ function ProfilePage({ token }) {
           {hasIngestKey && (
             <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
           )}
-          <button
-            className="profile-btn-secondary"
-            onClick={handleManualAutoPull}
-            disabled={autoPullBusy || autoPullStatus?.running || !autoPullStatus?.configured}
-          >
-            {autoPullBusy ? 'Pulling...' : (autoPullStatus?.running ? 'Pull in progress...' : 'Pull now')}
-          </button>
+          {autoPullStatus?.configured && (
+            <button
+              className="profile-btn-secondary"
+              onClick={handleManualAutoPull}
+              disabled={autoPullBusy || autoPullStatus?.running}
+            >
+              {autoPullBusy ? 'Pulling...' : (autoPullStatus?.running ? 'Pull in progress...' : 'Pull now')}
+            </button>
+          )}
         </div>
 
         {ingestLastUsed && (
@@ -389,9 +724,12 @@ function ProfilePage({ token }) {
         {autoPullStatus && (
           <>
             <p className="profile-hint">
-              Auto pull: {autoPullStatus.enabled ? 'Enabled' : 'Disabled'}
+              Auto pull worker: {autoPullStatus.enabled ? 'Enabled' : 'Disabled'}
               {autoPullStatus.interval_minutes ? ` · every ${autoPullStatus.interval_minutes} min` : ''}
             </p>
+            {!autoPullStatus.configured && (
+              <p className="profile-hint">Push mode is active. Configure server source URL only if you want pull mode.</p>
+            )}
             {autoPullStatus.last_success_at && (
               <p className="profile-hint">Last success: {new Date(autoPullStatus.last_success_at).toLocaleString()}</p>
             )}
@@ -431,8 +769,8 @@ function ProfilePage({ token }) {
               <button
                 className={`profile-toggle-switch${shareFoodLog ? ' profile-toggle-switch--on' : ''}`}
                 onClick={() => handleToggleFoodLogShare(!shareFoodLog)}
-                aria-pressed={shareFoodLog}
                 role="switch"
+                aria-checked={shareFoodLog}
               >
                 <span className="profile-toggle-knob" />
               </button>
@@ -463,8 +801,8 @@ function ProfilePage({ token }) {
             <button
               className={`profile-toggle-switch${shareMeds ? ' profile-toggle-switch--on' : ''}`}
               onClick={() => handleToggleMedsShare(!shareMeds)}
-              aria-pressed={shareMeds}
               role="switch"
+              aria-checked={shareMeds}
             >
               <span className="profile-toggle-knob" />
             </button>
