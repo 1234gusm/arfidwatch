@@ -11,23 +11,16 @@ import {
 import './HealthPage.css';
 import API_BASE from './apiBase';
 
-function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
+function HealthPage({ token }) {
   const [data, setData] = useState([]);
-  const [apiUrl, setApiUrl] = useState(accountApiUrl || '');
-  const [savingApiUrl, setSavingApiUrl] = useState(false);
   const [imports, setImports] = useState([]);
-  const [hiddenTypes, setHiddenTypes] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('hiddenHealthTypes') || '[]')); }
-    catch { return new Set(); }
-  });
+  const [hiddenTypes, setHiddenTypes] = useState(new Set());
   const [expandedType, setExpandedType] = useState(null);
   const [addPickerOpen, setAddPickerOpen] = useState(false);
-  const [statOrder, setStatOrder] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('statOrder') || '[]'); }
-    catch { return []; }
-  });
+  const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
   const dragSrc = useRef(null);
+  const uploadInputRef = useRef(null);
 
   // date range for charts (YYYY-MM-DD)
   const formatDate = d => d.toISOString().slice(0,10);
@@ -52,34 +45,45 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
     setImports(json.imports || []);
   };
 
-  useEffect(() => {
-    setApiUrl(accountApiUrl || '');
-  }, [accountApiUrl]);
-
-  const saveApiUrl = async () => {
-    const trimmed = apiUrl.trim();
-    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-      alert('Health Auto Export API URL must start with http:// or https://');
-      return;
-    }
-    setSavingApiUrl(true);
+  const persistDashboardPrefs = async (nextHiddenTypes, nextStatOrder) => {
     try {
-      const res = await fetch(`${API_BASE}/api/profile`, {
+      await fetch(`${API_BASE}/api/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ health_auto_export_url: trimmed || null }),
+        body: JSON.stringify({
+          hidden_health_types: [...nextHiddenTypes],
+          health_stat_order: nextStatOrder,
+        }),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || 'Failed to save URL');
-      const saved = d.health_auto_export_url || '';
-      setApiUrl(saved);
-      if (onAccountApiUrlSaved) onAccountApiUrlSaved(saved);
-    } catch (err) {
-      alert(err.message || 'Failed to save URL');
-    } finally {
-      setSavingApiUrl(false);
+    } catch (_) {
+      // Keep current UI state if preference save fails.
     }
   };
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+
+    const loadDashboardPrefs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!active) return;
+        setHiddenTypes(new Set(Array.isArray(d.hidden_health_types) ? d.hidden_health_types : []));
+        setStatOrder(Array.isArray(d.health_stat_order) ? d.health_stat_order : []);
+      } catch (_) {
+        if (!active) return;
+        setHiddenTypes(new Set());
+        setStatOrder([]);
+      }
+    };
+
+    loadDashboardPrefs();
+    return () => { active = false; };
+  }, [token]);
 
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
 
@@ -107,7 +111,7 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
     setHiddenTypes(prev => {
       const next = new Set(prev);
       next.add(t);
-      localStorage.setItem('hiddenHealthTypes', JSON.stringify([...next]));
+      persistDashboardPrefs(next, statOrder);
       return next;
     });
   };
@@ -116,7 +120,7 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
     setHiddenTypes(prev => {
       const next = new Set(prev);
       next.delete(t);
-      localStorage.setItem('hiddenHealthTypes', JSON.stringify([...next]));
+      persistDashboardPrefs(next, statOrder);
       return next;
     });
   };
@@ -165,7 +169,8 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
 
     // Health Auto Export headers often include spaces/quotes (e.g. "Source Name", "Start Date").
     const isHealthAutoExport = /(source\s*name|start\s*date|end\s*date|creation\s*date)/i.test(firstLine);
-    const isAutoSleepCsv = /(autosleep|time\s*asleep|total\s*sleep|deep\s*sleep|sleep\s*bank|sleep\s*quality|time\s*in\s*bed|\basleep\b.*\bawake\b|\bawake\b.*\basleep\b)/i.test(firstLine);
+    const isAutoSleepHeaderShape = /(iso8601,.*fromdate,.*todate|\binbed\b|\bfellasleepin\b|\basleepavg7\b|\befficiencyavg7\b)/i.test(firstLine.replace(/\s+/g, ''));
+    const isAutoSleepCsv = isAutoSleepHeaderShape || /(autosleep|time\s*asleep|total\s*sleep|deep\s*sleep|sleep\s*bank|sleep\s*quality|time\s*in\s*bed|\basleep\b.*\bawake\b|\bawake\b.*\basleep\b)/i.test(firstLine);
     if (isHealthAutoExport) {
       // Health Auto Export CSV
       try {
@@ -223,23 +228,6 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
     } catch (err) {
       console.error('MacroFactor import error:', err);
       alert('Error importing MacroFactor CSV');
-    }
-  };
-
-  const handleFetchFromApi = async () => {
-    if (!apiUrl) return;
-    try {
-      const resp = await fetch(apiUrl);
-      const text = await resp.text();
-      const samples = JSON.parse(text);
-      await fetch(`${API_BASE}/api/health/import`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ samples }),
-      });
-      fetchData();
-    } catch (err) {
-      alert('failed to fetch from url');
     }
   };
 
@@ -517,20 +505,19 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
   const handleDrop = (targetType) => {
     const src = dragSrc.current;
     if (!src || src === targetType) { setDragOver(null); return; }
-    setStatOrder(prev => {
-      const current = [
-        ...prev.filter(t => !hiddenTypes.has(t) && typesOfInterest.includes(t)),
-        ...typesOfInterest.filter(t => !hiddenTypes.has(t) && !prev.includes(t)),
-      ];
-      const from = current.indexOf(src);
-      const to = current.indexOf(targetType);
-      if (from === -1 || to === -1) return prev;
+    const current = [
+      ...statOrder.filter(t => !hiddenTypes.has(t) && typesOfInterest.includes(t)),
+      ...typesOfInterest.filter(t => !hiddenTypes.has(t) && !statOrder.includes(t)),
+    ];
+    const from = current.indexOf(src);
+    const to = current.indexOf(targetType);
+    if (from !== -1 && to !== -1) {
       const next = [...current];
       next.splice(from, 1);
       next.splice(to, 0, src);
-      localStorage.setItem('statOrder', JSON.stringify(next));
-      return next;
-    });
+      setStatOrder(next);
+      persistDashboardPrefs(hiddenTypes, next);
+    }
     dragSrc.current = null;
     setDragOver(null);
   };
@@ -539,7 +526,23 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
     <div className="health-page">
       <div className="health-page-header">
         <h2>Health Dashboard</h2>
-        <button className="add-metrics-btn" title="Add hidden metrics back" onClick={() => setAddPickerOpen(true)}>＋</button>
+        <div className="health-page-actions">
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleUnifiedUpload}
+            className="health-upload-input"
+          />
+          <button
+            className="health-upload-btn"
+            onClick={() => uploadInputRef.current?.click()}
+            title="Upload health data file"
+          >
+            Upload
+          </button>
+          <button className="add-metrics-btn" title="Add hidden metrics back" onClick={() => setAddPickerOpen(true)}>＋</button>
+        </div>
       </div>
 
       {/* ── Today's Eating banner ── */}
@@ -566,26 +569,6 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
         )}
       </div>
 
-      {/* Import controls */}
-      <div className="import-controls">
-        <div className="import-block">
-          <span className="import-label">Import File</span>
-          <input type="file" accept=".csv,.xlsx,.xls" onChange={handleUnifiedUpload} />
-        </div>
-        <div className="import-block">
-          <span className="import-label">Health Auto Export API URL</span>
-          <input
-            type="text"
-            placeholder="https://example.com/health.json"
-            value={apiUrl}
-            onChange={e => setApiUrl(e.target.value)}
-            className="api-url-input"
-          />
-          <button onClick={saveApiUrl} disabled={savingApiUrl}>{savingApiUrl ? 'Saving…' : 'Save URL'}</button>
-          <button onClick={handleFetchFromApi}>Fetch</button>
-        </div>
-      </div>
-
       <section className="dashboard-analytics">
         <div className="date-controls">
           <label>Start: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
@@ -598,7 +581,10 @@ function HealthPage({ token, accountApiUrl, onAccountApiUrlSaved }) {
           <button
             className="reset-order-btn"
             title="Reset card order"
-            onClick={() => { localStorage.removeItem('statOrder'); setStatOrder([]); }}
+            onClick={() => {
+              setStatOrder([]);
+              persistDashboardPrefs(hiddenTypes, []);
+            }}
           >↺ Reset layout</button>
         </div>
 
