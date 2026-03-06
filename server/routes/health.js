@@ -3,6 +3,7 @@ const db = require('../db');
 const multer = require('multer');
 const exceljs = require('exceljs');
 const { triggerAutoHealthPullNow, getAutoHealthPullStatus } = require('../utils/autoHealthPull');
+const path = require('path');
 
 const router = express.Router();
 const crypto = require('crypto');
@@ -23,6 +24,16 @@ function authenticate(req, res, next) {
 }
 
 const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
+
+const resolveImportFilename = (fallback, ...candidates) => {
+  for (const candidate of candidates) {
+    const raw = String(candidate || '').trim();
+    if (!raw) continue;
+    const clean = path.basename(raw).replace(/\0/g, '');
+    if (clean) return clean;
+  }
+  return fallback;
+};
 
 async function authenticateOrIngestKey(req, res, next) {
   const auth = req.headers.authorization;
@@ -389,6 +400,12 @@ const filterDuplicateStats = async (userId, inputRecords) => {
 router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) => {
   const rawBodyText = typeof req.body === 'string' ? req.body : null;
   const jsonBody = req.body && typeof req.body === 'object' ? req.body : {};
+  const uploadFilename = resolveImportFilename(
+    'ArfidWatch Import',
+    jsonBody.filename,
+    req.headers['x-upload-filename'],
+    req.headers['x-file-name'],
+  );
 
   // Health Auto Export and automation tools can post one of several shapes:
   // - array of samples
@@ -535,10 +552,9 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
       }
       if (deduped.length > 0) {
         // Create an import tracking record first
-        const filename = 'ArfidWatch Import';
         const importRow = {
           user_id: req.user.id,
-          filename,
+          filename: uploadFilename,
           source: 'health',
           imported_at: new Date().toISOString(),
           record_count: deduped.length,
@@ -578,7 +594,6 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
 // upload macrofactor .xlsx or .csv
 const upload = multer({ dest: 'uploads/' });
 const fs = require('fs');
-const path = require('path');
 
 const normalizeKey = k =>
   String(k).trim().toLowerCase()
@@ -740,7 +755,12 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
   const ext = path.extname(req.file.originalname || req.file.filename || '').toLowerCase();
   const fileHash = crypto.createHash('sha256').update(fs.readFileSync(req.file.path)).digest('hex');
-  const uploadFilename = 'ArfidWatch Import';
+  const uploadFilename = resolveImportFilename(
+    'ArfidWatch Import',
+    req.file.originalname,
+    req.body && req.body.filename,
+    req.file.filename,
+  );
   const records = [];
   const tsCandidates = /date|time|day/i;
   let skippedRows = 0;
