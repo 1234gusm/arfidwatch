@@ -983,13 +983,17 @@ router.get('/auto-pull/status', authenticate, async (_req, res) => {
 router.post('/auto-pull/pull', authenticate, async (_req, res) => {
   const status = getAutoHealthPullStatus();
   if (!status.configured) {
-    return res.status(400).json({ error: 'auto pull is not configured on server' });
+    return res.status(400).json({
+      error: 'auto pull is not configured on server',
+      hint: 'Set AUTO_PULL_SOURCE_URL (or HEALTH_AUTO_EXPORT_API_URL) and AUTO_PULL_INGEST_KEY on the backend.',
+    });
   }
   const result = await triggerAutoHealthPullNow();
   if (!result.ok) {
     return res.status(400).json(result);
   }
-  res.json(result);
+  const refreshed = getAutoHealthPullStatus();
+  res.json({ ...result, status: refreshed });
 });
 
 module.exports = router;

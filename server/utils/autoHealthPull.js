@@ -41,11 +41,16 @@ function normalizePayload(text) {
 
 function buildSourceHeaders() {
   const headers = {};
-  if (process.env.AUTO_PULL_SOURCE_AUTH_BEARER) {
-    headers.Authorization = `Bearer ${process.env.AUTO_PULL_SOURCE_AUTH_BEARER}`;
+  const bearer = process.env.AUTO_PULL_SOURCE_AUTH_BEARER
+    || process.env.HEALTH_AUTO_EXPORT_AUTH_BEARER
+    || process.env.HEALTH_AUTO_EXPORT_REST_API_BEARER;
+  if (bearer) {
+    headers.Authorization = `Bearer ${bearer}`;
   }
-  if (process.env.AUTO_PULL_SOURCE_HEADER_NAME && process.env.AUTO_PULL_SOURCE_HEADER_VALUE) {
-    headers[process.env.AUTO_PULL_SOURCE_HEADER_NAME] = process.env.AUTO_PULL_SOURCE_HEADER_VALUE;
+  const headerName = process.env.AUTO_PULL_SOURCE_HEADER_NAME || process.env.HEALTH_AUTO_EXPORT_HEADER_NAME;
+  const headerValue = process.env.AUTO_PULL_SOURCE_HEADER_VALUE || process.env.HEALTH_AUTO_EXPORT_HEADER_VALUE;
+  if (headerName && headerValue) {
+    headers[headerName] = headerValue;
   }
   return headers;
 }
@@ -56,12 +61,25 @@ function getIntervalMs() {
   return n * 60 * 1000;
 }
 
+function getSourceUrl() {
+  return process.env.AUTO_PULL_SOURCE_URL
+    || process.env.HEALTH_AUTO_EXPORT_API_URL
+    || process.env.HEALTH_AUTO_EXPORT_REST_API_URL
+    || null;
+}
+
+function getIngestKey() {
+  return process.env.AUTO_PULL_INGEST_KEY
+    || process.env.HEALTH_AUTO_EXPORT_INGEST_KEY
+    || null;
+}
+
+function isEnabledFlag() {
+  return process.env.AUTO_PULL_ENABLED === 'true';
+}
+
 function shouldRun() {
-  return (
-    process.env.AUTO_PULL_ENABLED === 'true' &&
-    !!process.env.AUTO_PULL_SOURCE_URL &&
-    !!process.env.AUTO_PULL_INGEST_KEY
-  );
+  return isEnabledFlag() && !!getSourceUrl() && !!getIngestKey();
 }
 
 function getAutoHealthPullStatus() {
@@ -76,19 +94,20 @@ async function triggerAutoHealthPullNow() {
 }
 
 function startAutoHealthPull({ port }) {
-  const configured = !!process.env.AUTO_PULL_SOURCE_URL && !!process.env.AUTO_PULL_INGEST_KEY;
+  const sourceUrl = getSourceUrl();
+  const ingestKey = getIngestKey();
+  const configured = !!sourceUrl && !!ingestKey;
   state.configured = configured;
   state.enabled = shouldRun();
   state.interval_minutes = Math.round(getIntervalMs() / 60000);
-  state.source_url = process.env.AUTO_PULL_SOURCE_URL || null;
+  state.source_url = sourceUrl;
 
-  if (!shouldRun()) {
-    console.log('[auto-pull] disabled (set AUTO_PULL_ENABLED=true plus source URL and ingest key)');
+  if (!configured) {
+    state.last_error = 'Auto pull not configured: set source URL and ingest key env vars.';
+    console.log('[auto-pull] not configured (missing source URL or ingest key)');
     return;
   }
 
-  const sourceUrl = process.env.AUTO_PULL_SOURCE_URL;
-  const ingestKey = process.env.AUTO_PULL_INGEST_KEY;
   const localImportUrl = `http://127.0.0.1:${port}/api/health/import`;
   const intervalMs = getIntervalMs();
 
@@ -151,9 +170,14 @@ function startAutoHealthPull({ port }) {
   };
 
   runtime.runOnce = runOnce;
+  state.started = true;
+
+  if (!isEnabledFlag()) {
+    console.log('[auto-pull] scheduler disabled; manual pull is available');
+    return;
+  }
 
   console.log(`[auto-pull] enabled: every ${Math.round(intervalMs / 60000)} min from ${sourceUrl}`);
-  state.started = true;
 
   // Kick once on startup, then every interval.
   runOnce({ manual: false });
