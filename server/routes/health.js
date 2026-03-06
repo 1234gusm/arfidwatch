@@ -119,11 +119,11 @@ const isAutoSleepCsvHeaders = (headers = []) => {
 
   const hasAutoSleepWord = hs.some(h => h.includes('autosleep'));
   const score = [
-    hs.some(h => h === 'date' || h.includes('sleep date') || h.includes('day')),
+    hs.some(h => h === 'date' || h === 'iso8601' || h === 'fromdate' || h === 'todate' || h.includes('sleep date') || h.includes('day')),
     hs.some(h => h.includes('asleep') || h.includes('total sleep') || h === 'sleep'),
-    hs.some(h => h.includes('in bed') || h.includes('time in bed')),
-    hs.some(h => h.includes('deep sleep') || h === 'deep'),
-    hs.some(h => h.includes('quality sleep') || h.includes('sleep quality') || h.includes('sleep bank')),
+    hs.some(h => h === 'inbed' || h.includes('in bed') || h.includes('time in bed')),
+    hs.some(h => h === 'deep' || h.includes('deep sleep')),
+    hs.some(h => h === 'quality' || h.includes('quality sleep') || h.includes('sleep quality') || h.includes('sleep bank')),
   ].filter(Boolean).length;
 
   return hasAutoSleepWord || score >= 3;
@@ -136,12 +136,47 @@ const pickRowValue = (row, testFn) => {
   return null;
 };
 
+const pickRowValueByHeaders = (row, headerNames = []) => {
+  const wanted = new Set(headerNames.map(h => normalizeCsvHeader(h)));
+  for (const [k, v] of Object.entries(row || {})) {
+    if (wanted.has(normalizeCsvHeader(k))) return v;
+  }
+  return null;
+};
+
+const parseDateOnlyLocal = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const y = Number(iso[1]);
+    const m = Number(iso[2]) - 1;
+    const d = Number(iso[3]);
+    return new Date(y, m, d, 12, 0, 0, 0);
+  }
+
+  const us = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (us) {
+    const m = Number(us[1]) - 1;
+    const d = Number(us[2]);
+    const y = Number(us[3]);
+    return new Date(y, m, d, 12, 0, 0, 0);
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(12, 0, 0, 0);
+  return parsed;
+};
+
 const autosleepTimestamp = (row) => {
-  const dateVal = pickRowValue(row, h => h === 'date' || h.includes('sleep date') || h === 'day');
+  const dateVal =
+    pickRowValueByHeaders(row, ['toDate', 'ISO8601', 'date', 'sleep date', 'day', 'fromDate']) ||
+    pickRowValue(row, h => h === 'todate' || h === 'iso8601' || h === 'date' || h.includes('sleep date') || h === 'day' || h === 'fromdate');
   if (!dateVal) return new Date().toISOString();
-  const d = new Date(String(dateVal));
-  if (Number.isNaN(d.getTime())) return new Date().toISOString();
-  d.setHours(12, 0, 0, 0);
+  const d = parseDateOnlyLocal(dateVal);
+  if (!d) return new Date().toISOString();
   return d.toISOString();
 };
 
@@ -153,7 +188,7 @@ const buildAutoSleepRecords = (rows, userId) => {
     },
     {
       type: 'sleep_analysis_in_bed_hr',
-      match: h => h.includes('in bed') || h.includes('time in bed'),
+      match: h => h === 'inbed' || h.includes('in bed') || h.includes('time in bed'),
     },
     {
       type: 'sleep_analysis_deep_hr',
@@ -247,11 +282,38 @@ const filterDuplicateStats = async (userId, inputRecords) => {
   }
   if (!uploadRecords.length) return [];
 
-  const types = [...new Set(uploadRecords.map(r => r.type))];
-  let minTs = uploadRecords[0].timestamp;
-  let maxTs = uploadRecords[0].timestamp;
-  for (let i = 1; i < uploadRecords.length; i += 1) {
-    const ts = uploadRecords[i].timestamp;
+  // For sleep records, dedupe by night/day+type (not exact value+timestamp)
+  // so repeated exports keep one record per metric per night.
+  const nonSleepUpload = [];
+  const sleepLatestByNight = new Map();
+  for (const rec of uploadRecords) {
+    const sleepType = canonicalSleepType(rec.type);
+    if (!sleepType) {
+      nonSleepUpload.push(rec);
+      continue;
+    }
+    const nightKey = `${sleepType}|${String(rec.timestamp).slice(0, 10)}`;
+    const prev = sleepLatestByNight.get(nightKey);
+    if (!prev || String(rec.timestamp) > String(prev.timestamp)) {
+      sleepLatestByNight.set(nightKey, rec);
+    }
+  }
+  const normalizedUpload = [...nonSleepUpload, ...sleepLatestByNight.values()];
+  if (!normalizedUpload.length) return [];
+
+  const types = new Set();
+  for (const r of normalizedUpload) {
+    types.add(r.type);
+    const sleepType = canonicalSleepType(r.type);
+    if (sleepType) {
+      types.add(sleepType);
+      types.add(`macrofactor_${sleepType}`);
+    }
+  }
+  let minTs = normalizedUpload[0].timestamp;
+  let maxTs = normalizedUpload[0].timestamp;
+  for (let i = 1; i < normalizedUpload.length; i += 1) {
+    const ts = normalizedUpload[i].timestamp;
     if (ts < minTs) minTs = ts;
     if (ts > maxTs) maxTs = ts;
   }
@@ -259,7 +321,7 @@ const filterDuplicateStats = async (userId, inputRecords) => {
   const existing = await db('health_data')
     .select('type', 'timestamp', 'value')
     .where({ user_id: userId })
-    .whereIn('type', types)
+    .whereIn('type', [...types])
     .andWhere('timestamp', '>=', minTs)
     .andWhere('timestamp', '<=', maxTs);
 
@@ -269,9 +331,37 @@ const filterDuplicateStats = async (userId, inputRecords) => {
     existingKeyCounts.set(key, (existingKeyCounts.get(key) || 0) + 1);
   }
 
+  const existingSleepNights = new Set();
+  for (const row of existing) {
+    const sleepType = canonicalSleepType(row.type);
+    if (!sleepType) continue;
+    existingSleepNights.add(`${sleepType}|${String(row.timestamp).slice(0, 10)}`);
+  }
+
+  const replacedSleepNights = new Set();
+
   // Remove anything that already exists in storage.
   const keep = [];
-  for (const rec of uploadRecords) {
+  for (const rec of normalizedUpload) {
+    const sleepType = canonicalSleepType(rec.type);
+    if (sleepType) {
+      const nightKey = `${sleepType}|${String(rec.timestamp).slice(0, 10)}`;
+      if (existingSleepNights.has(nightKey)) {
+        const deleteKey = `${sleepType}|${String(rec.timestamp).slice(0, 10)}`;
+        if (!replacedSleepNights.has(deleteKey)) {
+          const day = String(rec.timestamp).slice(0, 10);
+          await db('health_data')
+            .where({ user_id: userId })
+            .whereIn('type', [sleepType, `macrofactor_${sleepType}`])
+            .andWhereRaw('substr(timestamp, 1, 10) = ?', [day])
+            .delete();
+          replacedSleepNights.add(deleteKey);
+        }
+      }
+      keep.push(rec);
+      continue;
+    }
+
     const key = statKey(rec);
     const existingCount = existingKeyCounts.get(key) || 0;
     if (existingCount > 0) {
@@ -580,11 +670,19 @@ const isHealthAutoExportHeaders = (headers = []) => {
 };
 
 const toRecord = (userId, typeKey, val, ts, meta = {}) => {
+  const sleepTypeMatch = /sleep_analysis_/.test(typeKey);
+  const parsedSleepHours = sleepTypeMatch ? parseDurationHours(val) : null;
   const num = parseFloat(String(val).replace(/[^0-9eE+\-.]/g, ''));
+  let normalizedValue = Number.isFinite(num) ? num : String(val);
+
+  if (sleepTypeMatch && parsedSleepHours != null) {
+    normalizedValue = parsedSleepHours;
+  }
+
   return {
     user_id: userId,
     type: 'macrofactor_' + typeKey,
-    value: Number.isFinite(num) ? num : String(val),
+    value: normalizedValue,
     timestamp: ts,
     raw: JSON.stringify({ column: typeKey, value: val, ...meta }),
   };
