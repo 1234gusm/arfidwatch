@@ -170,7 +170,7 @@ function HealthPage({ token }) {
     // Health Auto Export headers often include spaces/quotes (e.g. "Source Name", "Start Date").
     const isHealthAutoExport = /(source\s*name|start\s*date|end\s*date|creation\s*date)/i.test(firstLine);
     const isAutoSleepHeaderShape = /(iso8601,.*fromdate,.*todate|\binbed\b|\bfellasleepin\b|\basleepavg7\b|\befficiencyavg7\b)/i.test(firstLine.replace(/\s+/g, ''));
-    const isAutoSleepCsv = isAutoSleepHeaderShape || /(autosleep|time\s*asleep|total\s*sleep|deep\s*sleep|sleep\s*bank|sleep\s*quality|time\s*in\s*bed|\basleep\b.*\bawake\b|\bawake\b.*\basleep\b)/i.test(firstLine);
+    const isAutoSleepCsv = isAutoSleepHeaderShape || /\bautosleep\b/i.test(firstLine);
     if (isHealthAutoExport) {
       // Health Auto Export CSV
       try {

@@ -129,15 +129,18 @@ const isAutoSleepCsvHeaders = (headers = []) => {
   if (!hs.length) return false;
 
   const hasAutoSleepWord = hs.some(h => h.includes('autosleep'));
-  const score = [
-    hs.some(h => h === 'date' || h === 'iso8601' || h === 'fromdate' || h === 'todate' || h.includes('sleep date') || h.includes('day')),
-    hs.some(h => h.includes('asleep') || h.includes('total sleep') || h === 'sleep'),
-    hs.some(h => h === 'inbed' || h.includes('in bed') || h.includes('time in bed')),
-    hs.some(h => h === 'deep' || h.includes('deep sleep')),
-    hs.some(h => h === 'quality' || h.includes('quality sleep') || h.includes('sleep quality') || h.includes('sleep bank')),
+  if (hasAutoSleepWord) return true;
+
+  // AutoSleep-specific headers that don't appear in other health exports
+  const autoSleepSpecific = [
+    hs.some(h => h === 'iso8601'),
+    hs.some(h => h === 'fromdate' || h === 'todate'),
+    hs.some(h => h === 'inbed'),
+    hs.some(h => h === 'fellasleepin'),
+    hs.some(h => h === 'asleepavg7' || h === 'efficiencyavg7' || h === 'qualityavg7' || h === 'deepavg7'),
   ].filter(Boolean).length;
 
-  return hasAutoSleepWord || score >= 3;
+  return autoSleepSpecific >= 2;
 };
 
 const pickRowValue = (row, testFn) => {
