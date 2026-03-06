@@ -148,6 +148,15 @@ const parseDateOnlyLocal = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return null;
 
+  // Handle full datetime strings by anchoring to the literal date portion.
+  const isoDatePrefix = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T\s]/);
+  if (isoDatePrefix) {
+    const y = Number(isoDatePrefix[1]);
+    const m = Number(isoDatePrefix[2]) - 1;
+    const d = Number(isoDatePrefix[3]);
+    return new Date(y, m, d, 12, 0, 0, 0);
+  }
+
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
     const y = Number(iso[1]);
@@ -171,11 +180,14 @@ const parseDateOnlyLocal = (value) => {
 };
 
 const autosleepTimestamp = (row) => {
-  const dateVal =
-    pickRowValueByHeaders(row, ['toDate', 'ISO8601', 'date', 'sleep date', 'day', 'fromDate']) ||
-    pickRowValue(row, h => h === 'todate' || h === 'iso8601' || h === 'date' || h.includes('sleep date') || h === 'day' || h === 'fromdate');
-  if (!dateVal) return new Date().toISOString();
-  const d = parseDateOnlyLocal(dateVal);
+  const toDateVal =
+    pickRowValueByHeaders(row, ['toDate']) ||
+    pickRowValue(row, h => h === 'todate');
+  const fallbackDateVal =
+    pickRowValueByHeaders(row, ['ISO8601', 'date', 'sleep date', 'day', 'fromDate']) ||
+    pickRowValue(row, h => h === 'iso8601' || h === 'date' || h.includes('sleep date') || h === 'day' || h === 'fromdate');
+
+  const d = parseDateOnlyLocal(toDateVal || fallbackDateVal);
   if (!d) return new Date().toISOString();
   return d.toISOString();
 };
@@ -481,7 +493,42 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
 
       let deduped = records;
       try {
-        deduped = await filterDuplicateStats(req.user.id, records);
+        if (isAutoSleep) {
+          // AutoSleep exports are nightly snapshots; replace nights present in
+          // this upload so corrected values always win over prior shifted rows.
+          const normalized = [];
+          const seenUpload = new Set();
+          for (const rec of records) {
+            const ts = normalizeStatTimestamp(rec.timestamp);
+            if (!ts) continue;
+            const normalizedRec = { ...rec, timestamp: ts, value: normalizeStatValue(rec.value) };
+            const key = statKey(normalizedRec);
+            if (seenUpload.has(key)) continue;
+            seenUpload.add(key);
+            normalized.push(normalizedRec);
+          }
+
+          const nightsToReplace = new Map();
+          for (const rec of normalized) {
+            const sleepType = canonicalSleepType(rec.type);
+            if (!sleepType) continue;
+            const day = String(rec.timestamp).slice(0, 10);
+            const k = `${sleepType}|${day}`;
+            nightsToReplace.set(k, { sleepType, day });
+          }
+
+          for (const { sleepType, day } of nightsToReplace.values()) {
+            await db('health_data')
+              .where({ user_id: req.user.id })
+              .whereIn('type', [sleepType, `macrofactor_${sleepType}`])
+              .andWhereRaw('substr(timestamp, 1, 10) = ?', [day])
+              .delete();
+          }
+
+          deduped = normalized;
+        } else {
+          deduped = await filterDuplicateStats(req.user.id, records);
+        }
       } catch (e) {
         // Dedupe should be best-effort; preserve upload ability on any failure.
         console.warn('health csv dedupe failed, importing raw rows:', e.message);
