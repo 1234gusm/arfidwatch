@@ -83,6 +83,15 @@ const scoreBand = (score) => {
   return { label: 'Needs Work', className: 'sleep-score-badge sleep-score-badge--low' };
 };
 
+const fmtHours = (value) => (Number.isFinite(value) ? `${value.toFixed(2)} hr` : 'N/A');
+
+const fmtDate = (dayKey) => {
+  if (!dayKey) return '-';
+  const d = new Date(`${dayKey}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return dayKey;
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+};
+
 function SleepPage({ token }) {
   const [rows, setRows] = useState([]);
   const [rangeDays, setRangeDays] = useState(90);
@@ -146,10 +155,40 @@ function SleepPage({ token }) {
   const latestScoreBand = scoreBand(latestScore);
   const averageScoreBand = scoreBand(averageScore);
 
+  const { goalHitRate, bestNight, worstNight, recentAvg7 } = useMemo(() => {
+    const validNights = dailyRows.filter((n) => Number.isFinite(n.total_sleep_hr));
+    const hits = validNights.filter((n) => n.total_sleep_hr >= 7 && n.total_sleep_hr <= 9).length;
+    const rate = validNights.length ? Math.round((hits / validNights.length) * 100) : null;
+
+    let best = null;
+    let worst = null;
+    for (const n of validNights) {
+      if (!best || n.total_sleep_hr > best.total_sleep_hr) best = n;
+      if (!worst || n.total_sleep_hr < worst.total_sleep_hr) worst = n;
+    }
+
+    const last7 = [...validNights].slice(-7).map((n) => n.total_sleep_hr);
+    const avg7 = last7.length ? (last7.reduce((a, b) => a + b, 0) / last7.length) : null;
+
+    return {
+      goalHitRate: rate,
+      bestNight: best,
+      worstNight: worst,
+      recentAvg7: avg7,
+    };
+  }, [dailyRows]);
+
+  if (!token) return <div className="sleep-page"><p>Please log in.</p></div>;
+
   return (
     <div className="sleep-page">
-      <h2>Sleep</h2>
-      <p className="sleep-subtitle">Fast daily sleep view with server-side normalization and aggregation.</p>
+      <div className="sleep-header">
+        <div>
+          <h2>Sleep</h2>
+          <p className="sleep-subtitle">Nightly trends with normalized sleep stages and quality scoring.</p>
+        </div>
+        <p className="sleep-note">Night date reflects the sleep period ending that morning.</p>
+      </div>
 
       <div className="sleep-toolbar">
         <div className="sleep-range-buttons">
@@ -175,20 +214,24 @@ function SleepPage({ token }) {
         <div className="sleep-cards">
           <div className="sleep-card sleep-card--primary">
             <small>Latest Night</small>
-            <strong>{latestNight.day}</strong>
-            <span>{latestNight.total_sleep_hr != null ? `${latestNight.total_sleep_hr.toFixed(2)} hr total` : 'No total yet'}</span>
+            <strong>{fmtDate(latestNight.day)}</strong>
+            <span>{fmtHours(latestNight.total_sleep_hr)}</span>
           </div>
           <div className="sleep-card">
             <small>Range Average</small>
-            <strong>
-              {avgTotal != null ? `${avgTotal.toFixed(2)} hr` : 'N/A'}
-            </strong>
+            <strong>{fmtHours(avgTotal)}</strong>
           </div>
           <div className="sleep-card">
             <small>Consistency (Std Dev)</small>
-            <strong>
-              {consistency != null ? `${consistency.toFixed(2)} hr` : 'N/A'}
-            </strong>
+            <strong>{fmtHours(consistency)}</strong>
+          </div>
+          <div className="sleep-card">
+            <small>7-9h Goal Hit Rate</small>
+            <strong>{goalHitRate != null ? `${goalHitRate}%` : 'N/A'}</strong>
+          </div>
+          <div className="sleep-card">
+            <small>Last 7 Nights Avg</small>
+            <strong>{fmtHours(recentAvg7)}</strong>
           </div>
           <div className="sleep-card">
             <small>Latest Quality Score</small>
@@ -200,16 +243,42 @@ function SleepPage({ token }) {
             <strong>{averageScore != null ? `${averageScore}/100` : 'N/A'}</strong>
             <span className={averageScoreBand.className}>{averageScoreBand.label}</span>
           </div>
+          <div className="sleep-card">
+            <small>Longest Night</small>
+            <strong>{bestNight ? fmtDate(bestNight.day) : 'N/A'}</strong>
+            <span>{bestNight ? fmtHours(bestNight.total_sleep_hr) : ''}</span>
+          </div>
+          <div className="sleep-card">
+            <small>Shortest Night</small>
+            <strong>{worstNight ? fmtDate(worstNight.day) : 'N/A'}</strong>
+            <span>{worstNight ? fmtHours(worstNight.total_sleep_hr) : ''}</span>
+          </div>
         </div>
       ) : null}
 
       {dailyRows.length > 0 ? (
         <>
           <div className="sleep-toggles" role="group" aria-label="Sleep chart metrics">
-            <label><input type="checkbox" checked={showDeep} onChange={(e) => setShowDeep(e.target.checked)} /> Deep</label>
-            <label><input type="checkbox" checked={showRem} onChange={(e) => setShowRem(e.target.checked)} /> REM</label>
-            <label><input type="checkbox" checked={showCore} onChange={(e) => setShowCore(e.target.checked)} /> Core</label>
-            <label><input type="checkbox" checked={showAwake} onChange={(e) => setShowAwake(e.target.checked)} /> Awake</label>
+            <label className="sleep-toggle-item">
+              <input type="checkbox" checked={showDeep} onChange={(e) => setShowDeep(e.target.checked)} />
+              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_deep_hr }} />
+              Deep
+            </label>
+            <label className="sleep-toggle-item">
+              <input type="checkbox" checked={showRem} onChange={(e) => setShowRem(e.target.checked)} />
+              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_rem_hr }} />
+              REM
+            </label>
+            <label className="sleep-toggle-item">
+              <input type="checkbox" checked={showCore} onChange={(e) => setShowCore(e.target.checked)} />
+              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_core_hr }} />
+              Core
+            </label>
+            <label className="sleep-toggle-item">
+              <input type="checkbox" checked={showAwake} onChange={(e) => setShowAwake(e.target.checked)} />
+              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_awake_hr }} />
+              Awake
+            </label>
           </div>
         <div className="sleep-chart-wrap">
           <ResponsiveContainer width="100%" height={320}>
@@ -231,6 +300,7 @@ function SleepPage({ token }) {
 
       {dailyRows.length > 0 ? (
         <div className="sleep-table-wrap">
+          <div className="sleep-table-title">Last 30 Nights</div>
           <table className="sleep-table">
             <thead>
               <tr>

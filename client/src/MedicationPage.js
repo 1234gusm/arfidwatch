@@ -55,16 +55,46 @@ function MedicationPage({ token }) {
   const [dosage, setDosage] = useState('');
   const [notes, setNotes] = useState('');
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
+  const [collapsedDays, setCollapsedDays] = useState(new Set());
   const longPressTimerRef = useRef(null);
   const didLongPressRef = useRef(false);
-  const [entryColors, setEntryColors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('medEntryColors_v1') || '{}'); } catch { return {}; }
-  });
+  const [entryColors, setEntryColors] = useState({});
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+
+    const loadEntryColors = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!active) return;
+        const colors = d && d.med_entry_colors && typeof d.med_entry_colors === 'object'
+          ? d.med_entry_colors
+          : {};
+        setEntryColors(colors);
+      } catch (_) {
+        if (active) setEntryColors({});
+      }
+    };
+
+    loadEntryColors();
+    return () => { active = false; };
+  }, [token]);
 
   const handleEntryColorChange = (id, color) => {
     const next = { ...entryColors, [id]: color };
     setEntryColors(next);
-    localStorage.setItem('medEntryColors_v1', JSON.stringify(next));
+    fetch(`${API_BASE}/api/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ med_entry_colors: next }),
+    }).catch(() => {
+      // Keep UI color in place even if preference save fails.
+    });
   };
 
   const existingQuickNameKeys = useMemo(
@@ -161,6 +191,23 @@ function MedicationPage({ token }) {
         items: items.sort((a, b) => String(a.taken_at || '') < String(b.taken_at || '') ? 1 : -1),
       }));
   }, [rows]);
+
+  useEffect(() => {
+    const validDays = new Set(grouped.map(g => g.day));
+    setCollapsedDays(prev => {
+      const next = new Set([...prev].filter(day => validDays.has(day)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [grouped]);
+
+  const toggleDayCollapsed = (day) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  };
 
   const handleAdd = async () => {
     if (!name.trim()) {
@@ -384,7 +431,7 @@ function MedicationPage({ token }) {
       <div className="med-card">
         <div className="med-quick-header">
           <strong>Quick Log Buttons</strong>
-          <span className="med-quick-sub">Drag to reorder. Tap button to log instantly.</span>
+          <span className="med-quick-sub">Saved to your account until you delete them. Drag to reorder. Tap button to log instantly.</span>
         </div>
 
         {quickButtons.length > 0 && (
@@ -393,8 +440,6 @@ function MedicationPage({ token }) {
               <div
                 key={btn.id}
                 className="med-quick-item"
-                draggable={editingQuickButtonId !== btn.id}
-                onDragStart={() => setDraggingButtonId(btn.id)}
                 onDragOver={e => e.preventDefault()}
                 onDrop={async () => {
                   const fromId = draggingButtonId;
@@ -448,17 +493,36 @@ function MedicationPage({ token }) {
                       {btn.dosage && <span className="med-quick-dose">{btn.dosage}</span>}
                     </button>
                     <div className="med-quick-controls">
-                      <label className="med-color-btn" title="Set button color" style={{ backgroundColor: btn.color || '#0a66c2' }}>
+                      <button
+                        className="med-quick-drag-handle"
+                        draggable={editingQuickButtonId !== btn.id}
+                        onDragStart={() => setDraggingButtonId(btn.id)}
+                        onMouseDown={e => e.stopPropagation()}
+                        onClick={e => e.preventDefault()}
+                        title="Drag to reorder"
+                        aria-label="Drag to reorder"
+                      >
+                        ≡
+                      </button>
+                      <label
+                        className="med-color-btn"
+                        title="Set button color"
+                        style={{ backgroundColor: btn.color || '#0a66c2' }}
+                        onMouseDown={e => e.stopPropagation()}
+                        onTouchStart={e => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
+                      >
                         🖌️
                         <input
                           type="color"
                           value={btn.color || '#0a66c2'}
+                          onClick={e => e.stopPropagation()}
                           onChange={e => handleColorChange(btn.id, e.target.value)}
                           style={{ position: 'absolute', width: 0, height: 0, opacity: 0, border: 'none', padding: 0 }}
                         />
                       </label>
-                      <button className="med-quick-del" onClick={() => beginQuickButtonEdit(btn)}>Edit</button>
-                      <button className="med-quick-del" onClick={() => handleDeleteQuickButton(btn.id)}>Delete</button>
+                      <button className="med-quick-del" onMouseDown={e => e.stopPropagation()} onClick={() => beginQuickButtonEdit(btn)}>Edit</button>
+                      <button className="med-quick-del" onMouseDown={e => e.stopPropagation()} onClick={() => handleDeleteQuickButton(btn.id)}>Delete</button>
                     </div>
                   </>
                 )}
@@ -529,36 +593,46 @@ function MedicationPage({ token }) {
 
       {!loading && grouped.map(g => (
         <div key={g.day} className="med-day">
-          <div className="med-day-title">
-            <span>{formatDay(g.day)}</span>
+          <button
+            type="button"
+            className="med-day-title med-day-title-btn"
+            onClick={() => toggleDayCollapsed(g.day)}
+            aria-expanded={!collapsedDays.has(g.day)}
+          >
+            <span className="med-day-left">
+              <span className="med-day-chevron">{collapsedDays.has(g.day) ? '▸' : '▾'}</span>
+              <span>{formatDay(g.day)}</span>
+            </span>
             <span className="med-day-count">{g.items.length} entr{g.items.length === 1 ? 'y' : 'ies'}</span>
-          </div>
-          <ul className="med-list">
-            {g.items.map(item => (
-              <li key={item.id} className="med-item" style={{ borderLeft: `3px solid ${entryColors[item.id] || 'transparent'}` }}>
-                <div className="med-main">
-                  <span className="med-name">{item.medication_name}</span>
-                  {item.dosage && <span className="med-dose">{item.dosage}</span>}
-                </div>
-                <div className="med-actions">
-                  <label className="med-color-entry-btn" title="Color-code this entry" style={{ backgroundColor: entryColors[item.id] || 'rgba(255,255,255,0.08)' }}>
-                    🖌️
-                    <input
-                      type="color"
-                      value={entryColors[item.id] || '#4a90e2'}
-                      onChange={e => handleEntryColorChange(item.id, e.target.value)}
-                      style={{ position: 'absolute', width: 0, height: 0, opacity: 0, border: 'none', padding: 0 }}
-                    />
-                  </label>
-                  <button className="med-del" onClick={() => handleDelete(item.id)}>Delete</button>
-                </div>
-                <div className="med-meta">
-                  <span>{item.time || ''}</span>
-                  {item.notes && <span className="med-note">{item.notes}</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
+          </button>
+          {!collapsedDays.has(g.day) && (
+            <ul className="med-list">
+              {g.items.map(item => (
+                <li key={item.id} className="med-item" style={{ borderLeft: `3px solid ${entryColors[item.id] || 'transparent'}` }}>
+                  <div className="med-main">
+                    <span className="med-name">{item.medication_name}</span>
+                    {item.dosage && <span className="med-dose">{item.dosage}</span>}
+                  </div>
+                  <div className="med-actions">
+                    <label className="med-color-entry-btn" title="Color-code this entry" style={{ backgroundColor: entryColors[item.id] || 'rgba(255,255,255,0.08)' }}>
+                      🖌️
+                      <input
+                        type="color"
+                        value={entryColors[item.id] || '#4a90e2'}
+                        onChange={e => handleEntryColorChange(item.id, e.target.value)}
+                        style={{ position: 'absolute', width: 0, height: 0, opacity: 0, border: 'none', padding: 0 }}
+                      />
+                    </label>
+                    <button className="med-del" onClick={() => handleDelete(item.id)}>Delete</button>
+                  </div>
+                  <div className="med-meta">
+                    <span>{item.time || ''}</span>
+                    {item.notes && <span className="med-note">{item.notes}</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ))}
     </div>

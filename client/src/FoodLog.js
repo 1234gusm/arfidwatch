@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './FoodLog.css';
 import API_BASE from './apiBase';
 
@@ -51,6 +51,7 @@ function FoodLog({ token }) {
   const [range, setRange]     = useState('30');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
+  const [collapsedDays, setCollapsedDays] = useState(new Set());
 
   const buildDates = useCallback(() => {
     if (range === 'all') return {};
@@ -82,29 +83,50 @@ function FoodLog({ token }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const { byDay, days } = useMemo(() => {
+    const nextByDay = {};
+    rows.forEach(r => {
+      const day = r.date;
+      if (!day) return;
+      const entry = {};
+      if (r.dietary_energy_kcal != null) entry.dietary_energy_kcal = parseFloat(r.dietary_energy_kcal);
+      if (r.protein_g != null)           entry.protein_g           = parseFloat(r.protein_g);
+      if (r.carbohydrates_g != null)     entry.carbohydrates_g     = parseFloat(r.carbohydrates_g);
+      if (r.total_fat_g != null)         entry.total_fat_g         = parseFloat(r.total_fat_g);
+      if (Object.keys(entry).length > 0) nextByDay[day] = entry;
+    });
+
+    return {
+      byDay: nextByDay,
+      days: Object.keys(nextByDay).sort((a, b) => (a < b ? 1 : -1)),
+    };
+  }, [rows]);
+
+  useEffect(() => {
+    const validDays = new Set(days);
+    setCollapsedDays(prev => {
+      const next = new Set([...prev].filter(day => validDays.has(day)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [days]);
+
+  const toggleDay = (day) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  };
+
   if (!token) return <div className="fl-page"><p className="fl-empty">Please log in.</p></div>;
-
-  // ── Build per-day nutrition map from aggregated food-log entries ───────────
-  const byDay = {};
-  rows.forEach(r => {
-    const day = r.date;
-    if (!day) return;
-    const entry = {};
-    if (r.dietary_energy_kcal != null) entry.dietary_energy_kcal = parseFloat(r.dietary_energy_kcal);
-    if (r.protein_g != null)           entry.protein_g           = parseFloat(r.protein_g);
-    if (r.carbohydrates_g != null)     entry.carbohydrates_g     = parseFloat(r.carbohydrates_g);
-    if (r.total_fat_g != null)         entry.total_fat_g         = parseFloat(r.total_fat_g);
-    if (Object.keys(entry).length > 0) byDay[day] = entry;
-  });
-
-  const days = Object.keys(byDay).sort((a, b) => (a < b ? 1 : -1)); // newest first
 
   return (
     <div className="fl-page">
       <div className="fl-header">
         <div>
           <h2 className="fl-title">🥗 Macros</h2>
-          <p className="fl-subtitle">Daily macro summary — split by day</p>
+          <p className="fl-subtitle">Daily macro summary from Food Log entries only</p>
         </div>
         <div className="fl-range-row">
           {RANGE_OPTIONS.map(o => (
@@ -125,7 +147,7 @@ function FoodLog({ token }) {
         <div className="fl-empty-state">
           <div className="fl-empty-icon">🍽️</div>
           <p>No nutrition data in this range.</p>
-          <p className="fl-hint">Import your MacroFactor or Apple Health CSV from the Health page.</p>
+          <p className="fl-hint">Import a food log file from the Health page.</p>
         </div>
       )}
 
@@ -138,55 +160,66 @@ function FoodLog({ token }) {
 
         return (
           <div key={day} className={`fl-day${isToday(day) ? ' fl-day--today' : ''}`}>
-            <div className="fl-day-header">
+            <button
+              type="button"
+              className="fl-day-header fl-day-header-btn"
+              onClick={() => toggleDay(day)}
+              aria-expanded={!collapsedDays.has(day)}
+            >
               <span className="fl-day-date">
+                <span className="fl-day-chevron">{collapsedDays.has(day) ? '▸' : '▾'}</span>
                 {isToday(day) && <span className="fl-today-badge">TODAY</span>}
                 {localDateStr(day + 'T12:00:00')}
               </span>
               {cals !== undefined && (
                 <span className="fl-day-cals">{Math.round(cals).toLocaleString()} kcal</span>
               )}
-            </div>
+            </button>
 
-            {/* Primary macro row */}
-            <div className="fl-macros">
-              {['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'].map(ct => {
-                const meta = NUTRITION_META[ct];
-                const v    = d[ct];
-                return (
-                  <div key={ct} className={`fl-macro${v === undefined ? ' fl-macro--missing' : ''}`}>
-                    <strong>{v !== undefined ? fmtVal(v, meta) : '—'}</strong>
-                    <span>{meta.label}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {collapsedDays.has(day) ? null : (
+              <>
 
-            {/* Macro split bar */}
-            {bar && (
-              <div className="fl-bar-wrap">
-                <div className="fl-bar">
-                  <div className="fl-bar-p" style={{ width: bar.p + '%' }} title={`Protein ${bar.p}%`} />
-                  <div className="fl-bar-c" style={{ width: bar.c + '%' }} title={`Carbs ${bar.c}%`} />
-                  <div className="fl-bar-f" style={{ width: bar.f + '%' }} title={`Fat ${bar.f}%`} />
+                {/* Primary macro row */}
+                <div className="fl-macros">
+                  {['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'].map(ct => {
+                    const meta = NUTRITION_META[ct];
+                    const v    = d[ct];
+                    return (
+                      <div key={ct} className={`fl-macro${v === undefined ? ' fl-macro--missing' : ''}`}>
+                        <strong>{v !== undefined ? fmtVal(v, meta) : '—'}</strong>
+                        <span>{meta.label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <span className="fl-bar-legend">
-                  <em style={{ color: '#4ac8a0' }}>P {bar.p}%</em>
-                  <em style={{ color: '#4a88e0' }}>C {bar.c}%</em>
-                  <em style={{ color: '#e08040' }}>F {bar.f}%</em>
-                </span>
-              </div>
-            )}
 
-            {/* Secondary nutrition items */}
-            {secondary.length > 0 && (
-              <div className="fl-secondary">
-                {secondary.map(([ct, meta]) => (
-                  <span key={ct} className="fl-sec-item">
-                    {meta.label}: <strong>{fmtVal(d[ct], meta)}</strong>
-                  </span>
-                ))}
-              </div>
+                {/* Macro split bar */}
+                {bar && (
+                  <div className="fl-bar-wrap">
+                    <div className="fl-bar">
+                      <div className="fl-bar-p" style={{ width: bar.p + '%' }} title={`Protein ${bar.p}%`} />
+                      <div className="fl-bar-c" style={{ width: bar.c + '%' }} title={`Carbs ${bar.c}%`} />
+                      <div className="fl-bar-f" style={{ width: bar.f + '%' }} title={`Fat ${bar.f}%`} />
+                    </div>
+                    <span className="fl-bar-legend">
+                      <em style={{ color: '#4ac8a0' }}>P {bar.p}%</em>
+                      <em style={{ color: '#4a88e0' }}>C {bar.c}%</em>
+                      <em style={{ color: '#e08040' }}>F {bar.f}%</em>
+                    </span>
+                  </div>
+                )}
+
+                {/* Secondary nutrition items */}
+                {secondary.length > 0 && (
+                  <div className="fl-secondary">
+                    {secondary.map(([ct, meta]) => (
+                      <span key={ct} className="fl-sec-item">
+                        {meta.label}: <strong>{fmtVal(d[ct], meta)}</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         );

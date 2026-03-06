@@ -177,6 +177,21 @@ async function setup() {
   await db.schema.hasColumn('user_profiles', 'health_auto_export_url').then(exists => {
     if (!exists) return db.schema.table('user_profiles', t => t.text('health_auto_export_url').nullable());
   });
+  await db.schema.hasColumn('user_profiles', 'nav_tab_order').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.text('nav_tab_order').nullable());
+  });
+  await db.schema.hasColumn('user_profiles', 'nav_hidden_tabs').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.text('nav_hidden_tabs').nullable());
+  });
+  await db.schema.hasColumn('user_profiles', 'hidden_health_types').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.text('hidden_health_types').nullable());
+  });
+  await db.schema.hasColumn('user_profiles', 'health_stat_order').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.text('health_stat_order').nullable());
+  });
+  await db.schema.hasColumn('user_profiles', 'med_entry_colors').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.text('med_entry_colors').nullable());
+  });
 
   await db.schema.hasTable('medication_entries').then(exists => {
     if (!exists) {
@@ -218,6 +233,7 @@ async function setup() {
   await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_date ON medication_entries(user_id, date)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_taken_at ON medication_entries(user_id, taken_at)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_med_quick_buttons_user_order ON medication_quick_buttons(user_id, sort_order)');
+  await db.raw('CREATE UNIQUE INDEX IF NOT EXISTS uq_med_quick_buttons_user_name_dose ON medication_quick_buttons(user_id, medication_name, IFNULL(dosage, ""))');
 }
 
 setup();

@@ -1,11 +1,19 @@
 .sleep-page {
   max-width: 1100px;
   margin: 0 auto;
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 31, 77, 0.12);
   padding: 20px;
   color: #0a1f3b;
+}
+
+.sleep-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .sleep-page h2 {
@@ -23,7 +31,11 @@
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #dbe8f5;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
 }
 
 .sleep-range-buttons {
@@ -40,19 +52,44 @@
   background: #0f3f9b;
 }
 
+.sleep-note {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: #527091;
+}
+
 .sleep-toggles {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  margin: 8px 0 8px;
+  gap: 10px;
+  margin: 10px 0 8px;
   color: #334e68;
   font-size: 0.9rem;
 }
 
-.sleep-toggles label {
+.sleep-toggle-item {
   display: inline-flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
+  background: #fff;
+  border: 1px solid #d6e4f3;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 600;
+}
+
+.sleep-toggle-item input[type="checkbox"] {
+  width: auto;
+  min-width: auto;
+  margin: 0;
+  accent-color: #0f3f9b;
+}
+
+.sleep-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
 .sleep-error {
@@ -65,7 +102,7 @@
 
 .sleep-cards {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin: 14px 0 18px;
 }
@@ -135,6 +172,15 @@
   margin-top: 16px;
 }
 
+.sleep-table-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #486380;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
 .sleep-table-wrap {
   overflow-x: auto;
 }
@@ -168,6 +214,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sleep-toggle-item {
+    font-size: 0.86rem;
+  }
+
   .sleep-table {
     font-size: 0.86rem;
   }
@@ -179,7 +229,31 @@
 }
 
 @media (max-width: 640px) {
+  .sleep-page {
+    padding: 14px;
+  }
+
+  .sleep-range-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sleep-range-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
   .sleep-cards {
     grid-template-columns: 1fr;
+  }
+
+  .sleep-toggles {
+    gap: 8px;
+  }
+
+  .sleep-toggle-item {
+    width: calc(50% - 4px);
+    box-sizing: border-box;
+    justify-content: flex-start;
   }
 }

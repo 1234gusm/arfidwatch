@@ -114,6 +114,15 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+.fl-day-header-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
 .fl-day-date {
   font-size: 0.9rem;
   font-weight: 600;
@@ -121,6 +130,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.fl-day-chevron {
+  color: #83b9e5;
+  width: 12px;
 }
 .fl-today-badge {
   font-size: 0.62rem;

@@ -262,6 +262,14 @@ router.post('/quick-buttons', authenticate, async (req, res) => {
     const color = isHexColor(req.body.color) ? String(req.body.color) : '#0a66c2';
     if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });
 
+    const existing = await db('medication_quick_buttons')
+      .where({ user_id: req.user.id, medication_name: medicationName })
+      .whereRaw('IFNULL(dosage, "") = ?', [dosage])
+      .first();
+    if (existing) {
+      return res.json({ ok: true, button: existing, existing: true });
+    }
+
     const maxRow = await db('medication_quick_buttons')
       .where({ user_id: req.user.id })
       .max('sort_order as max_sort')

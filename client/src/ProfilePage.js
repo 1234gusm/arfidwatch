@@ -44,8 +44,6 @@ function ProfilePage({ token }) {
   const [ingestKey,       setIngestKey]       = useState('');
   const [ingestCopied,    setIngestCopied]    = useState(false);
   const [ingestLastUsed,  setIngestLastUsed]  = useState(null);
-  const [autoPullStatus,  setAutoPullStatus]  = useState(null);
-  const [autoPullBusy,    setAutoPullBusy]    = useState(false);
 
   const appBasePath = window.location.pathname.replace(/\/$/, '');
   const shareUrl = shareToken
@@ -90,12 +88,6 @@ function ProfilePage({ token }) {
       .then(d => setMedStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
       .catch(() => {});
 
-    fetch(`${API_BASE}/api/health/auto-pull/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => setAutoPullStatus(d))
-      .catch(() => {});
   }, [token]);
 
   const handleSaveEmail = async () => {
@@ -370,33 +362,11 @@ function ProfilePage({ token }) {
     });
   };
 
-  const refreshAutoPullStatus = async () => {
-    try {
-      const r = await fetch(`${API_BASE}/api/health/auto-pull/status`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await r.json();
-      if (r.ok) setAutoPullStatus(d);
-    } catch (_) {}
-  };
-
-  const handleManualAutoPull = async () => {
-    setAutoPullBusy(true);
-    try {
-      const r = await fetch(`${API_BASE}/api/health/auto-pull/pull`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Pull failed');
-      showFlash('Manual pull complete');
-      await refreshAutoPullStatus();
-    } catch (e) {
-      setError(e.message || 'Failed to pull now');
-    } finally {
-      setAutoPullBusy(false);
-    }
-  };
+  const ingestConnection = !hasIngestKey
+    ? { label: 'Not connected', hint: 'Generate a key, then add it to your Health Auto Export automation.' }
+    : (ingestLastUsed
+      ? { label: 'Connected', hint: `Last data received ${new Date(ingestLastUsed).toLocaleString()}.` }
+      : { label: 'Waiting', hint: 'Key is ready. Send your first export to complete connection.' });
 
   if (loading) return <div className="profile-page"><p>Loading…</p></div>;
 
@@ -684,10 +654,18 @@ function ProfilePage({ token }) {
       <div className="profile-card">
         <div className="profile-section-title">Health Auto Export API</div>
         <p className="profile-hint">
-          Use a dedicated API key for push-based automatic REST imports. Endpoint:
+          Endpoint:
           <br />
           <code className="profile-code">POST https://arfidwatch.onrender.com/api/health/import</code>
         </p>
+
+        <div className="profile-row" style={{ marginBottom: 8 }}>
+          <span className="profile-field-label">Connection</span>
+          <span className={`profile-badge${ingestConnection.label === 'Connected' ? ' profile-badge--green' : ''}`}>
+            {ingestConnection.label}
+          </span>
+        </div>
+        <p className="profile-hint" style={{ marginBottom: 10 }}>{ingestConnection.hint}</p>
 
         {ingestKey ? (
           <div className="share-link-row">
@@ -707,37 +685,7 @@ function ProfilePage({ token }) {
           {hasIngestKey && (
             <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
           )}
-          {autoPullStatus?.configured && (
-            <button
-              className="profile-btn-secondary"
-              onClick={handleManualAutoPull}
-              disabled={autoPullBusy || autoPullStatus?.running}
-            >
-              {autoPullBusy ? 'Pulling...' : (autoPullStatus?.running ? 'Pull in progress...' : 'Pull now')}
-            </button>
-          )}
         </div>
-
-        {ingestLastUsed && (
-          <p className="profile-hint">Last used: {new Date(ingestLastUsed).toLocaleString()}</p>
-        )}
-        {autoPullStatus && (
-          <>
-            <p className="profile-hint">
-              Auto pull worker: {autoPullStatus.enabled ? 'Enabled' : 'Disabled'}
-              {autoPullStatus.interval_minutes ? ` · every ${autoPullStatus.interval_minutes} min` : ''}
-            </p>
-            {!autoPullStatus.configured && (
-              <p className="profile-hint">Push mode is active. Configure server source URL only if you want pull mode.</p>
-            )}
-            {autoPullStatus.last_success_at && (
-              <p className="profile-hint">Last success: {new Date(autoPullStatus.last_success_at).toLocaleString()}</p>
-            )}
-            {autoPullStatus.last_error && (
-              <p className="profile-error">Auto pull error: {String(autoPullStatus.last_error).slice(0, 180)}</p>
-            )}
-          </>
-        )}
       </div>
 
       <div className="profile-card">

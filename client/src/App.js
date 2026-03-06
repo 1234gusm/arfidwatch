@@ -22,8 +22,6 @@ import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import API_BASE from './apiBase';
 
-const NAV_PREFS_KEY = 'navTabPrefs_v1';
-
 const TAB_DEFS = [
   { id: 'health', label: 'Health', to: '/' },
   { id: 'sleep', label: 'Sleep', to: '/sleep' },
@@ -50,31 +48,38 @@ const sanitizeTabPrefs = (raw) => {
   return { order, hidden };
 };
 
-const loadTabPrefs = () => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(NAV_PREFS_KEY) || '{}');
-    return sanitizeTabPrefs(parsed);
-  } catch (_) {
-    return { order: TAB_IDS, hidden: [] };
-  }
-};
-
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [autoPullStatus, setAutoPullStatus] = useState(null);
-  const [healthApiUrl, setHealthApiUrl] = useState(() => localStorage.getItem('apiUrl') || '');
-  const [tabPrefs, setTabPrefs] = useState(() => loadTabPrefs());
+  const [healthApiUrl, setHealthApiUrl] = useState('');
+  const [tabPrefs, setTabPrefs] = useState({ order: TAB_IDS, hidden: [] });
   const [draggedTabId, setDraggedTabId] = useState(null);
   const [dragOverTabId, setDragOverTabId] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileNav, setIsMobileNav] = useState(() => window.innerWidth <= 900);
   const navigate = useNavigate();
   const location = useLocation();
   const isExport = location.pathname === '/export';
 
 
-  const saveTabPrefs = (next) => {
+  const saveTabPrefs = async (next) => {
     const safe = sanitizeTabPrefs(next);
     setTabPrefs(safe);
-    localStorage.setItem(NAV_PREFS_KEY, JSON.stringify(safe));
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE}/api/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nav_tab_order: safe.order,
+          nav_hidden_tabs: safe.hidden,
+        }),
+      });
+    } catch (_) {
+      // Keep local state even if persistence request fails transiently.
+    }
   };
 
   const orderedTabs = useMemo(() => {
@@ -83,39 +88,25 @@ function App() {
   }, [tabPrefs.order]);
 
   useEffect(() => {
-    if (!token) {
-      setAutoPullStatus(null);
-      setHealthApiUrl('');
-      return undefined;
-    }
-
-    let active = true;
-
-    const loadStatus = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/api/health/auto-pull/status`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        if (!active) return;
-        setAutoPullStatus(data || null);
-      } catch (_) {
-        if (active) setAutoPullStatus(null);
-      }
-    };
-
-    loadStatus();
-    const timer = setInterval(loadStatus, 60000);
-
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [token]);
+    const onResize = () => setIsMobileNav(window.innerWidth <= 900);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
-    if (!token) return;
+    setMobileMenuOpen(false);
+  }, [location.pathname, token]);
+
+  useEffect(() => {
+    if (!isMobileNav) setMobileMenuOpen(false);
+  }, [isMobileNav]);
+
+  useEffect(() => {
+    if (!token) {
+      setHealthApiUrl('');
+      setTabPrefs({ order: TAB_IDS, hidden: [] });
+      return;
+    }
     let active = true;
 
     const loadProfileApiUrl = async () => {
@@ -127,8 +118,15 @@ function App() {
         const data = await response.json();
         if (!active) return;
         setHealthApiUrl(data?.health_auto_export_url || '');
+        setTabPrefs(sanitizeTabPrefs({
+          order: data?.nav_tab_order,
+          hidden: data?.nav_hidden_tabs,
+        }));
       } catch (_) {
-        if (active) setHealthApiUrl('');
+        if (active) {
+          setHealthApiUrl('');
+          setTabPrefs({ order: TAB_IDS, hidden: [] });
+        }
       }
     };
 
@@ -136,25 +134,10 @@ function App() {
     return () => { active = false; };
   }, [token]);
 
-  const showAutoPullBadge = Boolean(token && autoPullStatus && autoPullStatus.configured);
-  const isAutoPullHealthy = Boolean(
-    autoPullStatus &&
-    autoPullStatus.enabled &&
-    autoPullStatus.configured &&
-    !autoPullStatus.last_error
-  );
-  const autoPullBadgeClass = isAutoPullHealthy
-    ? 'auto-pull-badge auto-pull-badge--ok'
-    : 'auto-pull-badge auto-pull-badge--warn';
-  const autoPullBadgeText = isAutoPullHealthy
-    ? 'Sync On'
-    : autoPullStatus && !autoPullStatus.enabled
-      ? 'Sync Off'
-      : 'Sync Issue';
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     setToken(null);
+    setMobileMenuOpen(false);
     navigate('/login');
   };
 
@@ -235,21 +218,18 @@ function App() {
       <nav>
         <div className="nav-left-group">
           <span className="nav-brand">📊 ArfidWatch</span>
+          <button
+            type="button"
+            className="nav-burger"
+            onClick={() => setMobileMenuOpen(v => !v)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            ☰
+          </button>
         </div>
         {token ? (
-          <div className="nav-links">
-            {showAutoPullBadge ? (
-              <span
-                className={autoPullBadgeClass}
-                title={
-                  autoPullStatus.last_error
-                    ? `Auto pull error: ${autoPullStatus.last_error}`
-                    : 'Auto pull status'
-                }
-              >
-                {autoPullBadgeText}
-              </span>
-            ) : null}
+          <div className={`nav-links${mobileMenuOpen ? ' nav-links--open' : ''}`}>
             {orderedTabs.map((tab, idx) => {
               const isDragging = draggedTabId === tab.id;
               const isDropTarget = dragOverTabId === tab.id && draggedTabId !== tab.id;
@@ -258,14 +238,16 @@ function App() {
                   <Link
                     to={tab.to}
                     className={`nav-tab-link${isDragging ? ' nav-tab-link--dragging' : ''}${isDropTarget ? ' nav-tab-link--drop-target' : ''}`}
-                    draggable
+                    draggable={!isMobileNav}
                     onDragStart={() => onTabDragStart(tab.id)}
                     onDragEnd={onTabDragEnd}
                     onDragOver={(e) => {
+                      if (isMobileNav) return;
                       e.preventDefault();
                       if (dragOverTabId !== tab.id) setDragOverTabId(tab.id);
                     }}
                     onDrop={() => onTabDrop(tab.id)}
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     {tab.label}
                   </Link>
@@ -277,23 +259,17 @@ function App() {
             <button onClick={handleLogout}>Log out</button>
           </div>
         ) : (
-          <div className="nav-links">
-            <Link to="/login">Login</Link>
+          <div className={`nav-links${mobileMenuOpen ? ' nav-links--open' : ''}`}>
+            <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Login</Link>
             <span className="nav-divider">|</span>
-            <Link to="/register">Create Account</Link>
+            <Link to="/register" onClick={() => setMobileMenuOpen(false)}>Create Account</Link>
           </div>
         )}
       </nav>
       <Routes>
         <Route
           path="/"
-          element={token ? (
-            <HealthPage
-              token={token}
-              accountApiUrl={healthApiUrl}
-              onAccountApiUrlSaved={setHealthApiUrl}
-            />
-          ) : <LoginPage setToken={setToken} />}
+          element={token ? <HealthPage token={token} /> : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/macros"

@@ -114,6 +114,21 @@
   gap: 6px;
 }
 
+.med-quick-drag-handle {
+  border: 1px solid #b7c8df;
+  background: #eef5ff;
+  color: #345a8a;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: grab;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.med-quick-drag-handle:active {
+  cursor: grabbing;
+}
+
 .med-quick-del {
   border: 1px solid #f0b5b5;
   background: #fff5f5;
@@ -234,6 +249,28 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.med-day-title-btn {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.med-day-title-btn:hover {
+  background: rgba(255,255,255,0.11);
+}
+
+.med-day-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.med-day-chevron {
+  width: 14px;
+  color: #9dc4ee;
 }
 
 .med-day-count {

@@ -75,6 +75,27 @@
   margin-bottom: 8px;
 }
 .health-page-header h2 { margin: 0; color: #dff3ff; }
+.health-page-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.health-upload-input {
+  display: none;
+}
+.health-upload-btn {
+  border: 1px solid rgba(110,231,255,0.35);
+  background: rgba(110,231,255,0.12);
+  color: #dff3ff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.health-upload-btn:hover {
+  background: rgba(110,231,255,0.2);
+}
 .reset-order-btn {
   background: none;
   border: 1px solid rgba(110,231,255,0.25);
@@ -99,36 +120,6 @@
   padding: 4px 8px;
 }
 .add-metrics-btn:hover { color: #fff; }
-
-/* Import controls row */
-.import-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 20px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-  padding: 14px 16px;
-}
-.import-block {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  min-width: 220px;
-}
-.import-label { font-size: 0.78rem; color: #7ecfff; letter-spacing: 0.05em; text-transform: uppercase; }
-.import-block input[type="file"] { color: #dff3ff; font-size: 0.85rem; }
-.api-url-input {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #dff3ff;
-  padding: 5px 8px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  width: 100%;
-}
 
 .dashboard-analytics { margin-top: 4px; }
 

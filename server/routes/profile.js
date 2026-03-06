@@ -24,6 +24,42 @@ function authenticate(req, res, next) {
 
 const VALID_PERIODS = ['today', 'week', 'month', 'custom'];
 
+function parseJsonText(value, fallback) {
+  if (value === null || value === undefined || value === '') return fallback;
+  try {
+    return JSON.parse(value);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function sanitizeStringArray(value, fieldName, maxItems = 200, maxLen = 120) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${fieldName} must be an array`);
+  }
+  return value
+    .map(v => String(v || '').trim())
+    .filter(v => v.length > 0 && v.length <= maxLen)
+    .slice(0, maxItems);
+}
+
+function sanitizeColorMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('med_entry_colors must be an object');
+  }
+  const out = {};
+  const entries = Object.entries(value).slice(0, 2000);
+  for (const [k, v] of entries) {
+    const key = String(k || '').trim();
+    const color = String(v || '').trim();
+    if (!key) continue;
+    if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+      out[key] = color;
+    }
+  }
+  return out;
+}
+
 // GET /api/profile
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -45,6 +81,11 @@ router.get('/', authenticate, async (req, res) => {
       has_ingest_key: !!profile.ingest_key_hash,
       ingest_key_last_used_at: profile.ingest_key_last_used_at || null,
       health_auto_export_url: profile.health_auto_export_url || null,
+      nav_tab_order: parseJsonText(profile.nav_tab_order, null),
+      nav_hidden_tabs: parseJsonText(profile.nav_hidden_tabs, null),
+      hidden_health_types: parseJsonText(profile.hidden_health_types, null),
+      health_stat_order: parseJsonText(profile.health_stat_order, null),
+      med_entry_colors: parseJsonText(profile.med_entry_colors, null),
     });
   } catch (err) {
     console.error('profile GET error:', err);
@@ -70,6 +111,11 @@ router.put('/', authenticate, async (req, res) => {
       regenerate_ingest_key,
       clear_ingest_key,
       health_auto_export_url,
+      nav_tab_order,
+      nav_hidden_tabs,
+      hidden_health_types,
+      health_stat_order,
+      med_entry_colors,
     } = req.body;
     const updates = {};
     const userUpdates = {};
@@ -170,6 +216,36 @@ router.put('/', authenticate, async (req, res) => {
       updates.health_auto_export_url = normalizedUrl;
     }
 
+    try {
+      if (nav_tab_order !== undefined) {
+        updates.nav_tab_order = nav_tab_order === null
+          ? null
+          : JSON.stringify(sanitizeStringArray(nav_tab_order, 'nav_tab_order'));
+      }
+      if (nav_hidden_tabs !== undefined) {
+        updates.nav_hidden_tabs = nav_hidden_tabs === null
+          ? null
+          : JSON.stringify(sanitizeStringArray(nav_hidden_tabs, 'nav_hidden_tabs'));
+      }
+      if (hidden_health_types !== undefined) {
+        updates.hidden_health_types = hidden_health_types === null
+          ? null
+          : JSON.stringify(sanitizeStringArray(hidden_health_types, 'hidden_health_types'));
+      }
+      if (health_stat_order !== undefined) {
+        updates.health_stat_order = health_stat_order === null
+          ? null
+          : JSON.stringify(sanitizeStringArray(health_stat_order, 'health_stat_order'));
+      }
+      if (med_entry_colors !== undefined) {
+        updates.med_entry_colors = med_entry_colors === null
+          ? null
+          : JSON.stringify(sanitizeColorMap(med_entry_colors));
+      }
+    } catch (validationErr) {
+      return res.status(400).json({ error: validationErr.message });
+    }
+
     if (Object.keys(userUpdates).length > 0) {
       await db('users').where({ id: userId }).update(userUpdates);
     }
@@ -202,6 +278,11 @@ router.put('/', authenticate, async (req, res) => {
       has_ingest_key: !!(profile?.ingest_key_hash),
       ingest_key_last_used_at: profile?.ingest_key_last_used_at || null,
       health_auto_export_url: profile?.health_auto_export_url || null,
+      nav_tab_order: parseJsonText(profile?.nav_tab_order, null),
+      nav_hidden_tabs: parseJsonText(profile?.nav_hidden_tabs, null),
+      hidden_health_types: parseJsonText(profile?.hidden_health_types, null),
+      health_stat_order: parseJsonText(profile?.health_stat_order, null),
+      med_entry_colors: parseJsonText(profile?.med_entry_colors, null),
       ingest_key: plainIngestKey,
     });
   } catch (err) {
