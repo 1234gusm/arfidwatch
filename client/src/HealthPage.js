@@ -434,16 +434,6 @@ function HealthPage({ token }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // auto-sync when API url provided
-  useEffect(() => {
-    if (!apiUrl || !token) return;
-    const interval = setInterval(() => {
-      handleFetchFromApi();
-    }, 1000 * 60 * 60); // hourly
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiUrl, token]);
-
   // Early return for unauthenticated users (after all hooks)
   if (!token) {
     return <div style={{padding: '20px', textAlign:'center'}}>Please log in</div>;

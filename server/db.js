@@ -2,7 +2,11 @@ const knex = require('knex');
 const fs = require('fs');
 const path = require('path');
 
-const defaultDbPath = path.resolve(__dirname, 'data', 'health.db');
+const isProduction = process.env.NODE_ENV === 'production';
+
+const defaultDbPath = isProduction
+  ? '/var/data/health.db'
+  : path.resolve(__dirname, 'data', 'health.db');
 const configuredDbPath = process.env.SQLITE_PATH
   ? path.resolve(process.env.SQLITE_PATH)
   : defaultDbPath;
@@ -18,6 +22,11 @@ function ensureWritableDbPath(dbPath) {
 try {
   ensureWritableDbPath(activeDbPath);
 } catch (err) {
+  if (isProduction && process.env.SQLITE_ALLOW_EPHEMERAL !== 'true') {
+    throw new Error(
+      `SQLite path is not writable at ${activeDbPath}. In production attach a persistent disk at /var/data or set SQLITE_PATH to a writable persistent location.`
+    );
+  }
   console.warn(`SQLite path not writable at ${activeDbPath}. Falling back to ${defaultDbPath}.`);
   activeDbPath = defaultDbPath;
   ensureWritableDbPath(activeDbPath);

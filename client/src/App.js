@@ -62,6 +62,7 @@ const loadTabPrefs = () => {
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [autoPullStatus, setAutoPullStatus] = useState(null);
+  const [healthApiUrl, setHealthApiUrl] = useState(() => localStorage.getItem('apiUrl') || '');
   const [tabPrefs, setTabPrefs] = useState(() => loadTabPrefs());
   const [draggedTabId, setDraggedTabId] = useState(null);
   const [dragOverTabId, setDragOverTabId] = useState(null);
@@ -112,7 +113,7 @@ function App() {
     };
   }, [token]);
 
-  const showAutoPullBadge = Boolean(token && autoPullStatus);
+  const showAutoPullBadge = Boolean(token && autoPullStatus && autoPullStatus.configured);
   const isAutoPullHealthy = Boolean(
     autoPullStatus &&
     autoPullStatus.enabled &&
@@ -133,6 +134,57 @@ function App() {
     setToken(null);
     navigate('/login');
   };
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'apiUrl') setHealthApiUrl(e.newValue || '');
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    if (!token || !healthApiUrl) return undefined;
+
+    let active = true;
+
+    const syncHealthAutoExport = async () => {
+      try {
+        const resp = await fetch(healthApiUrl);
+        const text = await resp.text();
+        if (!active) return;
+
+        let payload = null;
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) payload = { samples: parsed };
+          else if (parsed && Array.isArray(parsed.samples)) payload = { samples: parsed.samples };
+          else payload = { csv: text };
+        } catch (_) {
+          payload = { csv: text };
+        }
+
+        await fetch(`${API_BASE}/api/health/import`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (_) {
+        // Silent background sync to avoid noisy UX if source is intermittently unavailable.
+      }
+    };
+
+    syncHealthAutoExport();
+    const timer = setInterval(syncHealthAutoExport, 5 * 60 * 1000);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [token, healthApiUrl]);
 
 
   const reorderTabs = (sourceId, targetId) => {
