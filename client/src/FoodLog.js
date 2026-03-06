@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './FoodLog.css';
 import API_BASE from './apiBase';
+import { formatDay, isToday } from './utils/dateUtils';
 
 const NUTRITION_META = {
   dietary_energy_kcal: { label: 'Calories',  unit: 'kcal',  dp: 0, primary: true  },
@@ -16,17 +17,6 @@ const NUTRITION_META = {
 const fmtVal = (v, meta) => {
   const s = meta.dp === 0 ? Math.round(v).toLocaleString() : v.toFixed(meta.dp);
   return `${s} ${meta.unit}`;
-};
-
-const localDateStr = d => {
-  const dt = new Date(d);
-  return dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-};
-
-const isToday = dateKey => {
-  const t = new Date();
-  const key = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-  return dateKey === key;
 };
 
 const RANGE_OPTIONS = [
@@ -169,7 +159,7 @@ function FoodLog({ token }) {
               <span className="fl-day-date">
                 <span className="fl-day-chevron">{collapsedDays.has(day) ? '▸' : '▾'}</span>
                 {isToday(day) && <span className="fl-today-badge">TODAY</span>}
-                {localDateStr(day + 'T12:00:00')}
+                {formatDay(day)}
               </span>
               {cals !== undefined && (
                 <span className="fl-day-cals">{Math.round(cals).toLocaleString()} kcal</span>

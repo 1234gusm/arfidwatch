@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './FoodItemsPage.css';
 import API_BASE from './apiBase';
+import { toDateKey, formatDay } from './utils/dateUtils';
 
 const RANGE_OPTIONS = [
   { id: '7',   label: 'Last 7 days' },
@@ -9,13 +10,6 @@ const RANGE_OPTIONS = [
   { id: '90',  label: 'Last 90 days' },
   { id: 'all', label: 'All time' },
 ];
-
-const pad = n => String(n).padStart(2, '0');
-const toLocalDateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const fmtDay = iso => {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-};
 
 function FoodItemsPage({ token }) {
   const [rows, setRows] = useState([]);
@@ -29,8 +23,8 @@ function FoodItemsPage({ token }) {
     const start = new Date();
     start.setDate(start.getDate() - parseInt(range, 10));
     return {
-      start: `${toLocalDateKey(start)}T00:00:00`,
-      end: `${toLocalDateKey(end)}T23:59:59`,
+      start: `${toDateKey(start)}T00:00:00`,
+      end: `${toDateKey(end)}T23:59:59`,
     };
   }, [range]);
 
@@ -66,7 +60,7 @@ function FoodItemsPage({ token }) {
         timestamp: `${dateKey}T12:00:00`,
         time: r.meal ? String(r.meal) : 'Meal',
         dayKey: dateKey,
-        dayLabel: fmtDay(`${dateKey}T12:00:00`),
+        dayLabel: formatDay(dateKey),
         name: String(r.food_name || ''),
         qty: r.quantity ?? null,
         calories: valNum(r.calories),

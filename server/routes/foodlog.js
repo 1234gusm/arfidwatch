@@ -1,20 +1,8 @@
 const express = require('express');
 const db = require('../db');
+const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
-
-function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'missing token' });
-  const token = auth.split(' ')[1];
-  try {
-    const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
-    req.user = payload;
-    next();
-  } catch (e) {
-    res.status(401).json({ error: 'invalid token' });
-  }
-}
 
 // GET /api/food-log/daily  — aggregate nutrition per day from food_log_entries
 router.get('/daily', authenticate, async (req, res) => {

@@ -4,24 +4,11 @@ const multer = require('multer');
 const exceljs = require('exceljs');
 const { triggerAutoHealthPullNow, getAutoHealthPullStatus } = require('../utils/autoHealthPull');
 const path = require('path');
+const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 const crypto = require('crypto');
 const rawTextParser = express.text({ type: ['text/*', 'application/csv', 'application/octet-stream'], limit: '10mb' });
-
-// middleware to authenticate token
-function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'missing token' });
-  const token = auth.split(' ')[1];
-  try {
-    const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
-    req.user = payload;
-    next();
-  } catch (e) {
-    res.status(401).json({ error: 'invalid token' });
-  }
-}
 
 const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
 
@@ -38,14 +25,10 @@ const resolveImportFilename = (fallback, ...candidates) => {
 async function authenticateOrIngestKey(req, res, next) {
   const auth = req.headers.authorization;
   if (auth) {
-    const token = auth.split(' ')[1];
-    try {
-      const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
-      req.user = payload;
+    return authenticate(req, res, async (err) => {
+      if (err) return;
       return next();
-    } catch (e) {
-      return res.status(401).json({ error: 'invalid token' });
-    }
+    });
   }
 
   const ingestKey = req.headers['x-ingest-key'];

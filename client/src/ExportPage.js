@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import './ExportPage.css';
 import API_BASE from './apiBase';
+import { localToday, localOffset, localMonthAgo } from './utils/dateUtils';
+import { avgOf, latestOf, totalOf, minOf, maxOf, daysOf, fmt } from './utils/metricUtils';
 
 // ── Type system (mirrors pdf.js) ───────────────────────────────────────────────
 const TYPE_ALIASES = {
@@ -117,10 +119,6 @@ const MOOD_LABEL = { 1: 'Very Bad', 2: 'Bad', 3: 'Okay', 4: 'Good', 5: 'Great' }
 const MOOD_EMOJI = { 1: '😢', 2: '😞', 3: '😐', 4: '😊', 5: '😁' };
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-const pad = n => String(n).padStart(2, '0');
-const localToday    = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-const localOffset   = days => { const d = new Date(); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-const localMonthAgo = () => { const d = new Date(); d.setMonth(d.getMonth()-1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 
 const PERIODS = [
   { id: 'today',  label: 'Today',        start: localToday,            end: localToday    },
@@ -143,20 +141,6 @@ function buildMaps(rows) {
   });
   return maps;
 }
-function avgOf(m)    { if (!m) return null; const v = Object.values(m); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
-function latestOf(m) { if (!m) return null; const d = Object.keys(m).sort(); return d.length ? m[d[d.length-1]] : null; }
-function totalOf(m)  { if (!m) return null; const v = Object.values(m); return v.length ? v.reduce((a,b)=>a+b,0) : null; }
-function minOf(m)    { if (!m) return null; const v = Object.values(m); return v.length ? Math.min(...v) : null; }
-function maxOf(m)    { if (!m) return null; const v = Object.values(m); return v.length ? Math.max(...v) : null; }
-function daysOf(m)   { return m ? Object.keys(m).length : 0; }
-
-function fmt(v, meta, includeUnit = true) {
-  if (v === null || v === undefined || !Number.isFinite(v)) return null;
-  const dp = meta?.dp ?? 1;
-  const s  = dp === 0 ? Math.round(v).toLocaleString() : v.toFixed(dp);
-  return (includeUnit && meta?.unit) ? `${s}\u00a0${meta.unit}` : s;
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 function ExportPage({ token }) {
   const [period,         setPeriod]         = useState('week');

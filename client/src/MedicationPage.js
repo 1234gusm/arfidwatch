@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './MedicationPage.css';
 import API_BASE from './apiBase';
+import { pad, toDateKey, formatDay } from './utils/dateUtils';
 
 const RANGE_OPTIONS = [
   { id: '7', label: 'Last 7 days' },
@@ -10,18 +11,9 @@ const RANGE_OPTIONS = [
   { id: 'all', label: 'All time' },
 ];
 
-const pad = n => String(n).padStart(2, '0');
-const toDateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const toLocalDateTimeInput = (d = new Date()) => (
   `${toDateKey(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 );
-
-const formatDay = key => {
-  const [y, m, d] = String(key).split('-').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-  });
-};
 
 const readableTextColor = (hex) => {
   const m = String(hex || '').match(/^#([0-9a-fA-F]{6})$/);

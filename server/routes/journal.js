@@ -4,28 +4,7 @@ const { generatePDF } = require('../utils/pdf');
 
 const router = express.Router();
 
-function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth) {
-    console.log('No auth header');
-    return res.status(401).json({ error: 'missing token' });
-  }
-  const token = auth.split(' ')[1];
-  try {
-    const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
-    req.user = payload;
-    next();
-  } catch (e) {
-    console.log('Auth failed:', e.message);
-    res.status(401).json({ error: 'invalid token' });
-  }
-}
-
-// Debug all requests
-router.use((req, res, next) => {
-  console.log(`Journal route: ${req.method} ${req.path}`);
-  next();
-});
+const { authenticate } = require('../middleware/auth');
 
 // export MUST come before /:id to avoid route conflicts
 router.get('/export', authenticate, async (req, res) => {

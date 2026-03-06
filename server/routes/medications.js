@@ -142,18 +142,7 @@ const canonicalMedicationName = (name) => {
   return medicationAliasMap.get(key) || toTitleLike(name);
 };
 
-function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'missing token' });
-  const token = auth.split(' ')[1];
-  try {
-    const payload = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'supersecret');
-    req.user = payload;
-    next();
-  } catch (e) {
-    res.status(401).json({ error: 'invalid token' });
-  }
-}
+const { authenticate } = require('../middleware/auth');
 
 const pad = n => String(n).padStart(2, '0');
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

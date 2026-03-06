@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import API_BASE from './apiBase';
+import { toDateKey } from './utils/dateUtils';
 
 const MOODS = [
   { val: 1, emoji: '😢', label: 'Very Bad' },
@@ -15,14 +16,6 @@ function CalendarPage({ token }) {
   const nowTime = () => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  };
-
-  // Returns "YYYY-MM-DD" in local time (not UTC) to avoid day-shift issues.
-  const localDateStr = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
   };
 
   const [entries, setEntries] = useState([]);
@@ -55,7 +48,7 @@ function CalendarPage({ token }) {
 
   const onClickDay = date => {
     setSelectedDate(date);
-    const iso = localDateStr(date);
+    const iso = toDateKey(date);
     const filtered = entries.filter(e => e.date.slice(0, 10) === iso);
     setDayEntries(filtered.sort((a, b) => new Date(a.date) - new Date(b.date)));
     // clear form
@@ -74,7 +67,7 @@ function CalendarPage({ token }) {
     const [h, m] = time.split(':');
     base.setHours(parseInt(h), parseInt(m), 0, 0);
     // Build ISO string manually using local date parts to avoid UTC day shift.
-    const iso = `${localDateStr(base)}T${String(base.getHours()).padStart(2,'0')}:${String(base.getMinutes()).padStart(2,'0')}:00`;
+    const iso = `${toDateKey(base)}T${String(base.getHours()).padStart(2,'0')}:${String(base.getMinutes()).padStart(2,'0')}:00`;
     const res = await fetch(`${API_BASE}/api/journal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -97,7 +90,6 @@ function CalendarPage({ token }) {
   };
 
   const handleDelete = async (entryId) => {
-    console.log('Delete entry ID:', entryId, typeof entryId);
     if (!window.confirm('Delete this entry?')) return;
     try {
       if (!entryId) {
@@ -106,17 +98,12 @@ function CalendarPage({ token }) {
       }
       
       const url = `${API_BASE}/api/journal/${entryId}`;
-      console.log('Delete URL:', url);
-      
       const response = await fetch(url, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      console.log('Response status:', response.status);
       const responseText = await response.text();
-      console.log('Response text:', responseText);
-      
       if (!response.ok) {
         showToast('Failed to delete: ' + responseText, 'error');
         return;
@@ -150,7 +137,7 @@ function CalendarPage({ token }) {
 
   const tileContent = ({ date, view }) => {
     if (view !== 'month') return null;
-    const iso = localDateStr(date);
+    const iso = toDateKey(date);
     const dayCount = entries.filter(e => e.date.slice(0, 10) === iso).length;
     if (dayCount === 0) return null;
     const hasText = entries.some(e => e.date.slice(0, 10) === iso && e.text);
@@ -192,7 +179,7 @@ function CalendarPage({ token }) {
                     style={{ 
                       cursor: 'pointer',
                       padding: '8px',
-                      backgroundColor: dateStr === localDateStr(selectedDate) ? '#e0eeff' : 'transparent',
+                      backgroundColor: dateStr === toDateKey(selectedDate) ? '#e0eeff' : 'transparent',
                       borderRadius: '4px'
                     }}
                   >

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import './SharePage.css';
 import API_BASE from './apiBase';
+import { avgOf, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 const canonical = t => {
@@ -54,12 +55,6 @@ function buildMaps(rows) {
   });
   return maps;
 }
-
-const avgOf    = m => { if (!m) return null; const v = Object.values(m); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
-const latestOf = m => { if (!m) return null; const k = Object.keys(m).sort(); return k.length ? m[k[k.length-1]] : null; };
-const minOf    = m => { if (!m) return null; const v = Object.values(m); return v.length ? Math.min(...v) : null; };
-const maxOf    = m => { if (!m) return null; const v = Object.values(m); return v.length ? Math.max(...v) : null; };
-const countOf  = m => (m ? Object.keys(m).length : 0);
 
 function pick(maps, ...keys) {
   for (const k of keys) { if (maps[k]) return maps[k]; }

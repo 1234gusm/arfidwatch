@@ -4,23 +4,10 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const db = require('../db');
 const { sendPasswordResetCode } = require('../utils/mailer');
+const { authenticate, SECRET } = require('../middleware/auth');
 
 const router = express.Router();
-const SECRET = process.env.JWT_SECRET || 'supersecret';
 const RESET_CODE_TTL_MINUTES = parseInt(process.env.RESET_CODE_TTL_MINUTES, 10) || 15;
-
-function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'missing token' });
-  const token = auth.split(' ')[1];
-  try {
-    const payload = jwt.verify(token, SECRET);
-    req.user = payload;
-    next();
-  } catch (e) {
-    res.status(401).json({ error: 'invalid token' });
-  }
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
