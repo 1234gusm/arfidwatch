@@ -192,6 +192,84 @@ const SECTIONS = [
       { keys: ['sleeping_wrist_temperature_degf'], label: 'Wrist Temp',      unit: '\u00b0F', dp: 1, mode: 'avg' },
     ],
   },
+  {
+    id: 'supplements',
+    title: 'Supplements \u0026 Amino Acids',
+    defaultOpen: true,
+    metrics: [
+      // ── Amino Acids ───────────────────────────────────────────────────────
+      { keys: ['creatine_g'],             label: 'Creatine',          unit: 'g',    dp: 1, mode: 'avg' },
+      { keys: ['l_glutamine_mg'],         label: 'L-Glutamine',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_arginine_mg'],          label: 'L-Arginine',        unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_lysine_mg'],            label: 'L-Lysine',          unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_leucine_mg'],           label: 'L-Leucine',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_isoleucine_mg'],        label: 'L-Isoleucine',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_valine_mg'],            label: 'L-Valine',          unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['bcaa_mg'],                label: 'BCAAs',             unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_tryptophan_mg'],        label: 'L-Tryptophan',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_tyrosine_mg'],          label: 'L-Tyrosine',        unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_phenylalanine_mg'],     label: 'L-Phenylalanine',   unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_methionine_mg'],        label: 'L-Methionine',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_threonine_mg'],         label: 'L-Threonine',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_histidine_mg'],         label: 'L-Histidine',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['nac_mg'],                 label: 'NAC',               unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_cysteine_mg'],          label: 'L-Cysteine',        unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_carnitine_mg'],         label: 'L-Carnitine',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_citrulline_mg'],        label: 'L-Citrulline',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['l_theanine_mg'],          label: 'L-Theanine',        unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['beta_alanine_mg'],        label: 'Beta-Alanine',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['taurine_mg'],             label: 'Taurine',           unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['glycine_mg'],             label: 'Glycine',           unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['gaba_mg'],                label: 'GABA',              unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['five_htp_mg'],            label: '5-HTP',             unit: 'mg',   dp: 0, mode: 'avg' },
+      // ── Performance / Longevity ───────────────────────────────────────────
+      { keys: ['coq10_mg'],               label: 'CoQ10',             unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['omega_3_mg'],             label: 'Omega-3',           unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['epa_mg'],                 label: 'EPA',               unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['dha_mg'],                 label: 'DHA',               unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['alpha_lipoic_acid_mg'],   label: 'Alpha Lipoic Acid', unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['ashwagandha_mg'],         label: 'Ashwagandha',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['curcumin_mg'],            label: 'Curcumin',          unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['resveratrol_mg'],         label: 'Resveratrol',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['quercetin_mg'],           label: 'Quercetin',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['berberine_mg'],           label: 'Berberine',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['inositol_mg'],            label: 'Inositol',          unit: 'mg',   dp: 0, mode: 'avg' },
+      // ── Sleep / Mood ─────────────────────────────────────────────────────
+      { keys: ['melatonin_mg'],           label: 'Melatonin',         unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['valerian_mg'],            label: 'Valerian',          unit: 'mg',   dp: 0, mode: 'avg' },
+      // ── Joint / Structural ───────────────────────────────────────────────
+      { keys: ['collagen_g'],             label: 'Collagen',          unit: 'g',    dp: 1, mode: 'avg' },
+      { keys: ['glucosamine_mg'],         label: 'Glucosamine',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['chondroitin_mg'],         label: 'Chondroitin',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['hyaluronic_acid_mg'],     label: 'Hyaluronic Acid',   unit: 'mg',   dp: 0, mode: 'avg' },
+      // ── Botanicals / Herbs ───────────────────────────────────────────────
+      { keys: ['silymarin_mg'],           label: 'Milk Thistle',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['elderberry_mg'],          label: 'Elderberry',        unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['ginseng_mg'],             label: 'Ginseng',           unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['maca_mg'],                label: 'Maca',              unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['echinacea_mg'],           label: 'Echinacea',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['st_johns_wort_mg'],       label: "St. John's Wort",   unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['saw_palmetto_mg'],        label: 'Saw Palmetto',      unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['dhea_mg'],                label: 'DHEA',              unit: 'mg',   dp: 0, mode: 'avg' },
+      // ── Algae / Antioxidants ─────────────────────────────────────────────
+      { keys: ['spirulina_mg'],           label: 'Spirulina',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['chlorella_mg'],           label: 'Chlorella',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['green_tea_extract_mg'],   label: 'Green Tea Extract', unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['pycnogenol_mg'],          label: 'Pycnogenol',        unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['lycopene_mg'],            label: 'Lycopene',          unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['lutein_mg'],              label: 'Lutein',            unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['astaxanthin_mg'],         label: 'Astaxanthin',       unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['phosphatidylserine_mg'],  label: 'Phosphatidylserine',unit: 'mg',   dp: 0, mode: 'avg' },
+      // ── Mushrooms ────────────────────────────────────────────────────────
+      { keys: ['lions_mane_mg'],          label: "Lion's Mane",       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['reishi_mg'],              label: 'Reishi',            unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['cordyceps_mg'],           label: 'Cordyceps',         unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['chaga_mg'],               label: 'Chaga',             unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['turkey_tail_mg'],         label: 'Turkey Tail',       unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['shilajit_mg'],            label: 'Shilajit',          unit: 'mg',   dp: 0, mode: 'avg' },
+      { keys: ['probiotics_bcfu'],        label: 'Probiotics',        unit: 'B CFU',dp: 1, mode: 'avg' },
+    ],
+  },
 ];
 
 const MOOD_LABEL = { 1: 'Very Bad', 2: 'Bad', 3: 'Okay', 4: 'Good', 5: 'Great' };
@@ -531,10 +609,14 @@ function SharePage() {
             className={`share-tab${activeTab === 'log' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('log')}
           >Food Log</button>
+          <button
+            className={`share-tab${activeTab === 'supplements' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('supplements')}
+          >Supplements</button>
         </div>
 
         {activeTab === 'overview' && <>
-        {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
+        {SECTIONS.filter(s => s.id !== 'sleep' && s.id !== 'supplements').map(s => renderMetricSection(s))}
         </>}
 
         {activeTab === 'log' && (() => {
@@ -710,6 +792,10 @@ function SharePage() {
         )}
 
         {/* ── Sleep tab ── */}
+        {activeTab === 'supplements' && <>
+          {renderMetricSection(SECTIONS.find(s => s.id === 'supplements'))}
+        </>}
+
         {activeTab === 'sleep' && (
           <div className="share-daily-tab">
             {sleepDays.length === 0 ? (
