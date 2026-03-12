@@ -73,10 +73,10 @@ export default function RemindersCard() {
     () => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
   );
   const [adding, setAdding]     = useState(false);
-  const [newType, setNewType]   = useState('log_medications');
   const [newLabel, setNewLabel] = useState('');
   const [newTime, setNewTime]   = useState('08:00');
   const [newDays, setNewDays]   = useState([1, 2, 3, 4, 5]);
+  const [testStatus, setTestStatus] = useState('');
 
   const persist = useCallback((next) => {
     setReminders(next);
@@ -103,21 +103,41 @@ export default function RemindersCard() {
 
   const addReminder = () => {
     if (!newDays.length) return;
-    const typeInfo = REMINDER_TYPES.find(t => t.id === newType);
-    const resolvedLabel = newLabel.trim() || typeInfo?.label || newType;
+    const resolvedLabel = newLabel.trim() || 'Reminder';
     persist([...reminders, {
       id:      `r_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      type:    newType,
+      type:    'reminder',
       label:   resolvedLabel,
       time:    newTime,
       days:    [...newDays].sort((a, b) => a - b),
       enabled: true,
     }]);
     setAdding(false);
-    setNewType('log_medications');
     setNewLabel('');
     setNewTime('08:00');
     setNewDays([1, 2, 3, 4, 5]);
+  };
+
+  const testPush = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setTestStatus('sending…');
+    try {
+      await registerPushSubscription();
+      const resp = await fetch(`${API_BASE}/api/push/test`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        setTestStatus(data.error || 'failed — check if server has redeployed');
+      } else {
+        setTestStatus(`sent to ${data.sent} device(s)`);
+        setTimeout(() => setTestStatus(''), 4000);
+      }
+    } catch (e) {
+      setTestStatus('error: ' + e.message);
+    }
   };
 
   const toggleDay = (d) => setNewDays(prev =>
@@ -177,21 +197,6 @@ export default function RemindersCard() {
 
       {adding ? (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Type selector */}
-          <div className="profile-row" style={{ flexWrap: 'wrap', gap: 8 }}>
-            {REMINDER_TYPES.map(t => (
-              <button
-                key={t.id}
-                className={newType === t.id ? 'profile-save-btn' : 'profile-btn-secondary'}
-                style={{ padding: '6px 14px', fontSize: '0.85rem' }}
-                onClick={() => {
-                  setNewType(t.id);
-                  setNewLabel(t.label);
-                }}
-              >{t.icon} {t.label}</button>
-            ))}
-          </div>
-
           {/* Custom name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="profile-hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>Name</span>
@@ -199,7 +204,7 @@ export default function RemindersCard() {
               type="text"
               className="profile-passcode-input"
               style={{ flex: 1 }}
-              placeholder={REMINDER_TYPES.find(t => t.id === newType)?.label || 'Reminder name'}
+              placeholder="Reminder name"
               value={newLabel}
               onChange={e => setNewLabel(e.target.value)}
               maxLength={60}
@@ -246,14 +251,25 @@ export default function RemindersCard() {
           </div>
         </div>
       ) : (
-        <button
-          className="profile-btn-secondary"
-          style={{ marginTop: 10 }}
-          onClick={() => {
-            if (permission === 'default') requestPermission();
-            setAdding(true);
-          }}
-        >+ Add reminder</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+          <button
+            className="profile-btn-secondary"
+            onClick={() => {
+              if (permission === 'default') requestPermission();
+              setAdding(true);
+            }}
+          >+ Add reminder</button>
+          {permission === 'granted' && (
+            <button
+              className="profile-btn-secondary"
+              style={{ fontSize: '0.8rem' }}
+              onClick={testPush}
+            >Test notification</button>
+          )}
+          {testStatus && (
+            <span className="profile-hint" style={{ margin: 0, fontSize: '0.8rem' }}>{testStatus}</span>
+          )}
+        </div>
       )}
     </div>
   );

@@ -81,4 +81,36 @@ router.post('/reminders', authenticate, async (req, res) => {
   }
 });
 
+// POST /api/push/test — immediately send a test push to all subscriptions for the logged-in user
+router.post('/test', authenticate, async (req, res) => {
+  try {
+    const subs = await db('push_subscriptions').where({ user_id: req.user.id }).select('*');
+    if (!subs.length) {
+      return res.status(404).json({ error: 'No push subscription found. Open the Reminders section to register.' });
+    }
+    const payload = JSON.stringify({
+      title: '🔔 ArfidWatch Test',
+      body:  'Push notifications are working!',
+      tag:   'test',
+    });
+    let sent = 0;
+    for (const sub of subs) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload
+        );
+        sent++;
+      } catch (err) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          db('push_subscriptions').where({ id: sub.id }).delete().catch(() => {});
+        }
+      }
+    }
+    res.json({ ok: true, sent });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
