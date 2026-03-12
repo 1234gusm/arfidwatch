@@ -721,16 +721,52 @@
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
-  .export-page { padding: 16px; }
+  .export-page { padding: 14px 12px; }
+
+  /* Header — stack title above actions */
   .ep-header { gap: 10px; }
+  .ep-header-actions { width: 100%; }
+  .ep-preview-btn,
+  .ep-download-btn { flex: 1; padding: 10px 12px; font-size: 0.84rem; }
+
+  /* Period row — allow wrapping */
+  .ep-period-row { flex-wrap: wrap; gap: 5px; }
+  .ep-period-btn { padding: 6px 10px; font-size: 0.78rem; }
+  .ep-range-bar { padding: 10px 12px; gap: 10px; }
+  .ep-range-badge { font-size: 0.74rem; }
+  .ep-toggle-btn { padding: 5px 10px; font-size: 0.76rem; }
+
+  /* Preview panel */
+  .ep-preview { padding: 16px 14px; }
+
+  /* Tabs — fill width equally */
+  .ep-tabs { gap: 2px; }
+  .ep-tab { flex: 1; padding: 9px 8px; font-size: 0.8rem; text-align: center; }
+
+  /* Hero row */
   .ep-hero-row { gap: 6px; }
   .ep-hero-stat { min-width: 80px; padding: 10px 6px; }
   .ep-hero-stat strong { font-size: 1rem; }
+
+  /* Metric chips */
   .ep-pv-metrics { gap: 6px; }
   .ep-pv-metric { min-width: 70px; padding: 8px 10px; }
+
+  /* Macro legend */
   .ep-macro-legend { gap: 8px; }
-  .ep-fl-item { gap: 6px; }
+
+  /* Daily macro cards */
+  .ep-md-day { padding: 10px 10px; }
   .ep-md-chips { gap: 5px; }
   .ep-md-chip { min-width: 60px; padding: 6px 8px; }
   .ep-md-chip strong { font-size: 0.8rem; }
+  /* Stack bar + legend on mobile */
+  .ep-md-bar-wrap { flex-direction: column; gap: 5px; }
+  .ep-md-bar-legend { justify-content: center; }
+
+  /* Food log */
+  .ep-fl-item { gap: 6px; }
+
+  /* Other table — horizontal scroll */
+  .ep-other-table { display: block; overflow-x: auto; }
 }
