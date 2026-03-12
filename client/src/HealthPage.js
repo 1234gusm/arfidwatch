@@ -668,7 +668,7 @@ function HealthPage({ token }) {
   // groupOrder always wins at the group level; within a group, saved drag positions are preserved.
   const orderedVisible = (() => {
     const groupOf = t => {
-      const g = typeMeta[t]?.group || 'Other';
+      const g = typeMeta[t]?.group || 'Extra Nutritional Info';
       const idx = groupOrder.indexOf(g);
       return idx === -1 ? groupOrder.length : idx;
     };
@@ -692,7 +692,7 @@ function HealthPage({ token }) {
     const src = dragSrc.current;
     if (!src || src === targetType) { setDragOver(null); return; }
     // Only allow reordering within the same group
-    if ((typeMeta[src]?.group || 'Other') !== (typeMeta[targetType]?.group || 'Other')) {
+    if ((typeMeta[src]?.group || 'Extra Nutritional Info') !== (typeMeta[targetType]?.group || 'Extra Nutritional Info')) {
       dragSrc.current = null; setDragOver(null); return;
     }
     const from = orderedVisible.indexOf(src);
@@ -779,7 +779,7 @@ function HealthPage({ token }) {
             let lastGroup = null;
             return orderedVisible.flatMap(t => {
               const meta = typeMeta[t];
-              const group = meta?.group || 'Other';
+              const group = meta?.group || 'Extra Nutritional Info';
               const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               const unit = meta?.unit || '';
               const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
