@@ -506,6 +506,9 @@ function HealthPage({ token }) {
     // HealthAutoExport CSV with middle-dot in units produces these keys; alias to clean versions
     vo2_max_mlkg_min:            'vo2_max_mlkgmin',
     physical_effort_kcalhr_kg:   'physical_effort_kcalhrkg',
+    // MacroFactor trend weight aliases to the same weight_lb card
+    trend_weight_lbs:            'weight_lb',
+    trend_weight_lb:             'weight_lb',
   };
 
   // Resolve a raw type key to its canonical key (or itself if no alias).
@@ -521,9 +524,30 @@ function HealthPage({ token }) {
   // Auto-discover all unique canonical types from the actual imported data
   const allTypes = [...new Set(data.map(d => canonical(d.type)))].filter(Boolean);
 
+  // Types permanently removed from the dashboard for all users — niche, redundant, or sleep-only metrics
+  const PERMANENTLY_HIDDEN = new Set([
+    'swimming_stroke_count_count',
+    'wheelchair_distance_mi',
+    'target_calories_kcal',
+    'target_protein_g',
+    'target_fat_g',
+    'target_carbs_g',
+    'sleep_analysis_quality_hr',
+    'fell_asleep_in_hr',
+    'sleep_efficiency_percent',
+    'sleep_sessions_count',
+    'sleep_heart_rate_bpm',
+    'waking_heart_rate_bpm',
+    'sleep_hrv_ms',
+    'resp_rate_min_countmin',
+    'resp_rate_max_countmin',
+    'day_heart_rate_bpm',
+  ]);
+
   // Types to show: those that have at least one numeric value across all aliased sources.
-  // Sleep metrics are excluded — they have their own dedicated Sleep tab.
+  // Sleep metrics and permanently-hidden types are excluded.
   const typesOfInterest = allTypes.filter(t => {
+    if (PERMANENTLY_HIDDEN.has(t)) return false;
     if (typeMeta[t]?.group === 'Sleep') return false;
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
