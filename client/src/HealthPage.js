@@ -521,8 +521,10 @@ function HealthPage({ token }) {
   // Auto-discover all unique canonical types from the actual imported data
   const allTypes = [...new Set(data.map(d => canonical(d.type)))].filter(Boolean);
 
-  // Types to show: those that have at least one numeric value across all aliased sources
+  // Types to show: those that have at least one numeric value across all aliased sources.
+  // Sleep metrics are excluded — they have their own dedicated Sleep tab.
   const typesOfInterest = allTypes.filter(t => {
+    if (typeMeta[t]?.group === 'Sleep') return false;
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
 
