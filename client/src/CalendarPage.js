@@ -36,6 +36,7 @@ function CalendarPage({ token }) {
   const [showCal, setShowCal] = useState(true);
   const [loading, setLoading] = useState(false);
   const [expandedHistDays, setExpandedHistDays] = useState(new Set());
+  const [modalEntry, setModalEntry] = useState(null);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -303,7 +304,7 @@ function CalendarPage({ token }) {
                         const preview = e.title || (e.text ? e.text.slice(0, 48) + (e.text.length > 48 ? '…' : '') : 'Entry');
                         const t = new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         return (
-                          <li key={e.id} className="jnl-hist-entry">
+                          <li key={e.id} className="jnl-hist-entry" onClick={() => setModalEntry({ ...e, em, dayLabel: g.label })} role="button" tabIndex={0} onKeyDown={ev => ev.key === 'Enter' && setModalEntry({ ...e, em, dayLabel: g.label })}>
                             <span className="jnl-hist-entry-mood">{em.emoji}</span>
                             <span className="jnl-hist-entry-text">{preview}</span>
                             <span className="jnl-hist-entry-time">{t}</span>
@@ -318,6 +319,33 @@ function CalendarPage({ token }) {
           </div>
         </aside>
       </div>
+
+      {/* ── Entry detail modal ── */}
+      {modalEntry && (() => {
+        const dateStr = new Date(modalEntry.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const timeStr = new Date(modalEntry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return (
+          <div className="jnl-modal-overlay" onClick={() => setModalEntry(null)}>
+            <div className="jnl-modal" onClick={e => e.stopPropagation()}>
+              <button className="jnl-modal-close" onClick={() => setModalEntry(null)} aria-label="Close">✕</button>
+              <div className="jnl-modal-mood">{modalEntry.em.emoji}</div>
+              <div className="jnl-modal-meta">
+                <span className="jnl-modal-date">{dateStr}</span>
+                <span className="jnl-modal-time">{timeStr}</span>
+                <span className="jnl-modal-mood-label">{modalEntry.em.label}</span>
+              </div>
+              {modalEntry.title && <h3 className="jnl-modal-title">{modalEntry.title}</h3>}
+              {modalEntry.text
+                ? <p className="jnl-modal-body">{modalEntry.text}</p>
+                : <p className="jnl-modal-body jnl-modal-body--empty">No note written for this entry.</p>
+              }
+              <div className="jnl-modal-actions">
+                <button className="jnl-modal-delete" onClick={() => { handleDelete(modalEntry.id); setModalEntry(null); }}>Delete entry</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
