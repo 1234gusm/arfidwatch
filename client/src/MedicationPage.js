@@ -48,6 +48,7 @@ function MedicationPage({ token }) {
   const [notes, setNotes] = useState('');
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
   const [collapsedDays, setCollapsedDays] = useState(new Set());
+  const [pressedQuickId, setPressedQuickId] = useState(null);
   const longPressTimerRef = useRef(null);
   const didLongPressRef = useRef(false);
   const [entryColors, setEntryColors] = useState({});
@@ -461,7 +462,7 @@ function MedicationPage({ token }) {
                 ) : (
                   <>
                     <button
-                      className="med-quick-log-btn"
+                      className={`med-quick-log-btn${pressedQuickId === btn.id ? ' med-quick-log-btn--pressed' : ''}`}
                       style={{
                         backgroundColor: btn.color || '#0a66c2',
                         color: readableTextColor(btn.color || '#0a66c2'),
@@ -477,6 +478,8 @@ function MedicationPage({ token }) {
                           didLongPressRef.current = false;
                           return;
                         }
+                        setPressedQuickId(btn.id);
+                        setTimeout(() => setPressedQuickId(null), 380);
                         handleQuickLog(btn);
                       }}
                       title={`Quick log ${btn.medication_name} (long-press to edit)`}

@@ -87,6 +87,14 @@
   background: #f8fbff;
 }
 
+@keyframes med-quick-press {
+  0%   { transform: scale(1);    filter: brightness(1); }
+  18%  { transform: scale(0.91); filter: brightness(0.82); }
+  55%  { transform: scale(1.07); filter: brightness(1.22); }
+  80%  { transform: scale(0.98); filter: brightness(1.06); }
+  100% { transform: scale(1);    filter: brightness(1); }
+}
+
 .med-quick-log-btn {
   width: 100%;
   border: none;
@@ -98,6 +106,17 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  transform-origin: center;
+  transition: filter 0.1s;
+  will-change: transform;
+}
+.med-quick-log-btn:active {
+  transform: scale(0.93);
+  filter: brightness(0.82);
+  transition: transform 0.06s ease, filter 0.06s ease;
+}
+.med-quick-log-btn--pressed {
+  animation: med-quick-press 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .med-quick-name {
