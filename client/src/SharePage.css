@@ -1,15 +1,23 @@
 .share-page {
   min-height: 100vh;
-  background: #f0f4f8;
+  background: #001428;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: #1a2540;
+  color: #c8dcff;
+}
+
+.share-page--centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 16px);
 }
 
 /* ── Header ── */
 .share-header {
-  background: linear-gradient(135deg, #001f4d 0%, #0a3672 100%);
-  padding: 16px 24px;
-  box-shadow: 0 2px 8px rgba(0, 31, 77, 0.15);
+  background: linear-gradient(180deg, #001f4d 0%, #001428 100%);
+  padding: 14px 20px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid rgba(30, 100, 200, 0.2);
 }
 
 .share-header-inner {
@@ -17,328 +25,394 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .share-logo {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.03em;
+  color: #e8f0ff;
+  letter-spacing: 0.04em;
 }
 
 .share-tagline {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.6);
+  font-size: 0.75rem;
+  color: rgba(200, 220, 255, 0.45);
 }
 
 /* ── Body ── */
 .share-body {
   max-width: 720px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 20px 16px calc(60px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 16px));
+  padding-right: max(16px, env(safe-area-inset-right, 16px));
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* ── Patient card ── */
 .share-patient-card {
-  background: #fff;
-  border: 1px solid #dde3ee;
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.25);
+  border-top: 2px solid #3b7dd8;
   border-radius: 12px;
-  padding: 20px 24px;
-  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
-  border-top: 3px solid #0a3672;
+  padding: 18px 20px;
 }
 
 .share-patient-top {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  margin-bottom: 4px;
 }
 
 .share-patient-name {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  color: #001f4d;
-  margin-bottom: 4px;
+  color: #e8f0ff;
   letter-spacing: -0.01em;
 }
 
 .share-patient-weight {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
+  background: #1a7340;
+  padding: 3px 11px;
+  border-radius: 20px;
   letter-spacing: -0.01em;
-  background: #228b22;
-  padding: 3px 10px;
-  border-radius: 6px;
 }
 
 .share-period {
-  font-size: 0.82rem;
-  color: #5a6a8a;
+  font-size: 0.78rem;
+  color: rgba(180, 210, 255, 0.5);
   font-weight: 500;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .share-patient-macros {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .share-pm-chip {
-  font-size: 0.82rem;
-  color: #5a6a8a;
-  background: #f4f7fb;
-  border: 1px solid #e1e8f0;
+  font-size: 0.8rem;
+  color: rgba(180, 210, 255, 0.65);
+  background: rgba(0, 100, 200, 0.12);
+  border: 1px solid rgba(30, 100, 200, 0.2);
   border-radius: 8px;
   padding: 5px 12px;
 }
 .share-pm-chip strong {
   font-weight: 700;
-  color: #0a3672;
+  color: #c8dcff;
 }
 .share-pm--p { border-bottom: 2px solid #16a085; }
-.share-pm--c { border-bottom: 2px solid #2980b9; }
+.share-pm--c { border-bottom: 2px solid #3b7dd8; }
 .share-pm--f { border-bottom: 2px solid #d35400; }
+
+/* ── Tabs ── */
+.share-tabs-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.share-tabs-scroll::-webkit-scrollbar { display: none; }
+
+.share-tabs {
+  display: flex;
+  gap: 4px;
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.25);
+  border-radius: 12px;
+  padding: 4px;
+  min-width: max-content;
+}
+
+.share-tab {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: rgba(180, 210, 255, 0.5);
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+  min-height: 44px;
+}
+.share-tab:hover {
+  color: #c8dcff;
+  background: rgba(59, 125, 216, 0.12);
+}
+.share-tab--active {
+  color: #fff;
+  background: #2462b8;
+  box-shadow: 0 1px 6px rgba(36, 98, 184, 0.4);
+}
 
 /* ── Metric groups ── */
 .share-group {
-  background: #fff;
-  border: 1px solid #dde3ee;
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.2);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
 }
 
 .share-group-header {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 12px 20px;
-  background: #f8fafc;
+  padding: 13px 18px;
+  background: #071f38;
   border: none;
-  border-bottom: 1px solid #eef0f5;
-  border-left: 3px solid #0a3672;
+  border-bottom: 1px solid rgba(30, 100, 200, 0.15);
+  border-left: 3px solid #2462b8;
   cursor: pointer;
   text-align: left;
   transition: background 0.15s;
+  min-height: 48px;
 }
-.share-group-header:hover { background: #edf1f7; }
+.share-group-header:hover { background: #0a2844; }
+.share-group-header:active { background: #0d2f50; }
 
 .share-group-title {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #3a5080;
+  color: rgba(180, 210, 255, 0.75);
   flex: 1;
 }
 
 .share-group-badge {
-  font-size: 0.68rem;
-  background: #d8e4f0;
-  color: #3a5080;
+  font-size: 0.67rem;
+  background: rgba(36, 98, 184, 0.35);
+  color: rgba(180, 210, 255, 0.7);
   border-radius: 10px;
-  padding: 2px 9px;
+  padding: 2px 8px;
   margin-right: 10px;
   font-weight: 700;
 }
 
 .share-group-arrow {
-  font-size: 0.8rem;
-  color: #7a8aaa;
+  font-size: 0.78rem;
+  color: rgba(150, 190, 255, 0.4);
   transition: transform 0.15s;
 }
 
 .share-group-body {
-  animation: fadeIn 0.12s ease;
+  animation: sp-fade-in 0.12s ease;
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes sp-fade-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 
-.share-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.share-table tr:not(:last-child) td {
-  border-bottom: 1px solid #f0f3f8;
+/* ── Metric rows (div-based, no tables) ── */
+.share-metrics {
+  display: flex;
+  flex-direction: column;
 }
 
-.share-table tr:hover td {
-  background: #f8fafc;
+.share-metric-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(30, 100, 200, 0.08);
+  gap: 12px;
+  transition: background 0.12s;
 }
-
-.share-table td {
-  padding: 11px 20px;
-  font-size: 0.88rem;
-  vertical-align: middle;
-  transition: background 0.1s;
-}
+.share-metric-row:last-child { border-bottom: none; }
+.share-metric-row:hover { background: rgba(59, 125, 216, 0.06); }
 
 .share-metric-name {
-  color: #2a3550;
-  min-width: 160px;
-  font-weight: 500;
+  flex: 1;
+  font-size: 0.86rem;
+  color: rgba(180, 210, 255, 0.7);
+  min-width: 0;
+}
+
+.share-metric-right {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .share-metric-value {
+  font-size: 0.95rem;
   font-weight: 700;
-  font-size: 1rem;
-  color: #0a3672;
+  color: #d8eaff;
   white-space: nowrap;
 }
 
 .share-metric-unit {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 400;
-  color: #778;
+  color: rgba(150, 190, 255, 0.45);
 }
 
 .share-metric-range {
-  font-size: 0.74rem;
-  color: #9aabbb;
-  text-align: right;
+  font-size: 0.68rem;
+  color: rgba(130, 170, 255, 0.35);
   white-space: nowrap;
 }
 
-.share-row-empty td {
-  opacity: 0.45;
-}
-
-.share-metric-dash {
-  color: #bbc;
-  font-weight: 400;
-}
-
-.share-metric-nodata {
-  font-size: 0.72rem;
-  color: #c0c8d8;
-  font-style: italic;
-}
-
 /* ── Unlock / passcode card ── */
+.share-unlock-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 0 12px rgba(59, 125, 216, 0.4));
+}
+
 .share-unlock-card {
+  width: 100%;
   max-width: 380px;
-  margin: 80px auto;
-  background: #fff;
-  border: 1px solid #dde3ee;
-  border-radius: 14px;
-  padding: 40px 36px;
+  margin: 0 auto;
+  background: #061e36;
+  border: 1px solid rgba(59, 125, 216, 0.3);
+  border-radius: 16px;
+  padding: 40px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 31, 77, 0.08);
-}
-
-.share-unlock-card .share-logo {
-  color: #001f4d;
-  font-size: 1.2rem;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 125, 216, 0.1);
 }
 
 /* ── Logo mark (lock + error screens) ── */
 .share-logo-mark {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 800;
-  color: #001f4d;
-  letter-spacing: 0.03em;
-  margin-bottom: 4px;
+  color: #d8eaff;
+  letter-spacing: 0.04em;
 }
 
 .share-unlock-card h2 {
   font-size: 1.2rem;
-  color: #001f4d;
+  color: #e8f0ff;
   margin: 0;
+  font-weight: 700;
 }
 
 .share-unlock-sub {
-  font-size: 0.86rem;
-  color: #5a6a8a;
+  font-size: 0.85rem;
+  color: rgba(180, 210, 255, 0.6);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
+.share-unlock-sub strong { color: #c8dcff; }
 
 .share-passcode-input {
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #ccd3e0;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 13px 16px;
+  border: 1px solid rgba(59, 125, 216, 0.3);
+  border-radius: 10px;
+  font-size: 1.05rem;
   text-align: center;
-  letter-spacing: 0.15em;
-  background: #f8fafc;
-  color: #1a1a2e;
+  letter-spacing: 0.2em;
+  background: #040f1f;
+  color: #e8f0ff;
+  box-sizing: border-box;
 }
-
 .share-passcode-input:focus {
   outline: none;
-  border-color: #001f4d;
+  border-color: #3b7dd8;
+  box-shadow: 0 0 0 3px rgba(59, 125, 216, 0.2);
+}
+.share-passcode-input::placeholder {
+  color: rgba(150, 190, 255, 0.3);
+  letter-spacing: 0.02em;
 }
 
 .share-unlock-btn {
   width: 100%;
-  padding: 11px;
-  background: #001f4d;
+  padding: 14px;
+  background: #2462b8;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  font-size: 0.92rem;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
+  min-height: 48px;
 }
-
-.share-unlock-btn:hover:not(:disabled) { background: #1a4080; }
-.share-unlock-btn:disabled { opacity: 0.6; cursor: default; }
+.share-unlock-btn:hover:not(:disabled) { background: #2d6ec8; }
+.share-unlock-btn:active:not(:disabled) { transform: scale(0.98); }
+.share-unlock-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Not found / error ── */
 .share-not-found {
-  max-width: 360px;
-  margin: 100px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   text-align: center;
-  color: #5a6a8a;
+  max-width: 340px;
+  margin: 0 auto;
+  color: rgba(180, 210, 255, 0.6);
+  padding: 40px 24px;
 }
-
-.share-not-found .share-logo {
-  color: #001f4d;
-  margin-bottom: 16px;
-  display: block;
+.share-not-found p {
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.55;
 }
 
 /* ── Loading ── */
 .share-spinner {
-  text-align: center;
-  margin-top: 80px;
-  color: #5a6a8a;
-  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: rgba(180, 210, 255, 0.5);
+  font-size: 0.88rem;
 }
+
+.share-spinner-ring {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(59, 125, 216, 0.15);
+  border-top-color: #3b7dd8;
+  border-radius: 50%;
+  animation: sp-spin 0.8s linear infinite;
+}
+@keyframes sp-spin { to { transform: rotate(360deg); } }
 
 /* ── Error inline ── */
 .share-error {
-  color: #b00020;
+  color: #ff6b6b;
   font-size: 0.82rem;
   margin: 0;
+  background: rgba(255, 50, 50, 0.08);
+  border-radius: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 50, 50, 0.2);
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 /* ── Empty state ── */
 .share-empty {
-  padding: 18px 20px;
+  padding: 18px;
   font-size: 0.86rem;
-  color: #9aabbb;
+  color: rgba(130, 170, 255, 0.35);
   margin: 0;
+  text-align: center;
 }
 
 /* ── Disclaimer ── */
 .share-disclaimer {
-  font-size: 0.74rem;
-  color: #9aabbb;
+  font-size: 0.73rem;
+  color: rgba(130, 170, 255, 0.3);
   font-style: italic;
-  margin: -8px 0 0 4px;
 }
 
 /* ── Journal entries ── */
@@ -349,8 +423,8 @@
 }
 
 .share-journal-entry {
-  padding: 14px 20px;
-  border-bottom: 1px solid #f0f3f8;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(30, 100, 200, 0.08);
 }
 .share-journal-entry:last-child { border-bottom: none; }
 
@@ -358,13 +432,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .share-journal-date {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #3a5080;
+  color: rgba(180, 210, 255, 0.55);
 }
 
 .share-journal-mood {
@@ -376,42 +450,93 @@
 .share-journal-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #1a2540;
+  color: #c8dcff;
   margin-bottom: 4px;
 }
 
 .share-journal-text {
   font-size: 0.86rem;
-  color: #445;
+  color: rgba(180, 210, 255, 0.55);
   line-height: 1.55;
   white-space: pre-wrap;
 }
 
 /* ── Footer ── */
 .share-footer {
-  font-size: 0.74rem;
-  color: #9aabbb;
+  font-size: 0.73rem;
+  color: rgba(130, 170, 255, 0.25);
   text-align: center;
-  margin-top: 16px;
+  margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid #e1e8f0;
+  border-top: 1px solid rgba(30, 100, 200, 0.12);
 }
 
 /* ── Food Log ── */
 .share-foodlog-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 4px 0;
+  gap: 16px;
 }
 
 .share-foodlog-day {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* Combined log tab */
+/* Food item rows (div-based, no tables) */
+.share-food-items {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+.share-food-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(30, 100, 200, 0.07);
+}
+.share-food-row:last-child { border-bottom: none; }
+
+.share-food-name {
+  flex: 1;
+  font-size: 0.87rem;
+  color: #bdd5ff;
+  min-width: 0;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.share-food-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  max-width: 52%;
+}
+
+.share-food-qty {
+  font-size: 0.76rem;
+  color: rgba(160, 190, 255, 0.45);
+}
+
+.share-food-cals {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #c8dcff;
+  white-space: nowrap;
+}
+
+.share-food-macros {
+  font-size: 0.7rem;
+  color: rgba(160, 190, 255, 0.4);
+  white-space: nowrap;
+}
+
 /* Combined log tab controls */
 .share-log-controls {
   display: flex;
@@ -423,10 +548,10 @@
 .share-toggle {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--secondary, #5a6a8a);
+  color: rgba(180, 210, 255, 0.55);
   cursor: pointer;
   user-select: none;
 }
@@ -434,29 +559,29 @@
 .share-toggle-track {
   position: relative;
   display: inline-block;
-  width: 36px;
-  height: 20px;
-  background: #d0d5e0;
-  border-radius: 10px;
+  width: 38px;
+  height: 22px;
+  background: rgba(30, 100, 200, 0.2);
+  border-radius: 11px;
   transition: background 0.2s;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .share-toggle-track--on {
-  background: var(--accent, #3b7dd8);
+  background: #2462b8;
 }
 
 .share-toggle-thumb {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: #fff;
   border-radius: 50%;
   transition: left 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .share-toggle-track--on .share-toggle-thumb {
@@ -466,232 +591,82 @@
 .share-combined-log {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 4px 0;
+  gap: 12px;
 }
 
 .share-combined-day {
-  background: #fff;
-  border: 1px solid #e8ecf4;
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.2);
   border-radius: 10px;
   overflow: hidden;
 }
 
 .share-combined-day-header {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--secondary, #5a6a8a);
-  background: #f4f6fb;
+  color: rgba(180, 210, 255, 0.5);
+  background: rgba(0, 30, 60, 0.5);
   padding: 7px 14px;
-  border-bottom: 1px solid #e8ecf4;
+  border-bottom: 1px solid rgba(30, 100, 200, 0.15);
 }
 
 .share-combined-section {
   padding: 10px 14px;
-  border-bottom: 1px solid #f0f2f8;
+  border-bottom: 1px solid rgba(30, 100, 200, 0.08);
 }
-
-.share-combined-section:last-child {
-  border-bottom: none;
-}
+.share-combined-section:last-child { border-bottom: none; }
 
 .share-combined-section-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #a0abc0;
+  color: rgba(130, 170, 255, 0.35);
   margin-bottom: 6px;
 }
 
 .share-foodlog-date {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--secondary, #5a6a8a);
-  border-bottom: 1px solid #eef0f5;
+  color: rgba(180, 210, 255, 0.5);
+  border-bottom: 1px solid rgba(30, 100, 200, 0.12);
   padding-bottom: 4px;
 }
 
 .share-foodlog-meal {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .share-foodlog-meal-name {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #7a8aaa;
+  color: rgba(160, 190, 255, 0.4);
   text-transform: capitalize;
-  padding: 0 2px;
+  padding: 4px 0 2px;
 }
 
-.share-foodlog-table td {
-  padding: 5px 8px;
-  vertical-align: middle;
-}
-
-.share-foodlog-food {
-  font-size: 0.87rem;
-  color: var(--text-dark, #1a1a2e);
-  max-width: 220px;
-}
-
-.share-foodlog-qty {
-  font-size: 0.8rem;
-  color: #7a8aaa;
-  white-space: nowrap;
-}
-
-.share-foodlog-cals {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--text-dark, #1a1a2e);
-  white-space: nowrap;
-  text-align: right;
-}
-
-.share-foodlog-macros {
-  font-size: 0.75rem;
-  color: #7a8aaa;
-  white-space: nowrap;
-  text-align: right;
-}
-
-/* ── Tabs ── */
-.share-tabs {
-  display: flex;
-  gap: 4px;
-  background: #fff;
-  border: 1px solid #dde3ee;
-  border-radius: 12px;
-  padding: 5px;
-  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
-}
-.share-tab {
-  flex: 1;
-  padding: 10px 16px;
-  font-size: 0.86rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  color: #7a8aaa;
-  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.share-tab:hover {
-  color: #001f4d;
-  background: #f0f3f8;
-}
-.share-tab--active {
-  color: #fff;
-  background: #0a3672;
-  box-shadow: 0 1px 4px rgba(10, 54, 114, 0.25);
-}
-
-/* ── Macro Summary Card ── */
-.share-macro-summary {
-  background: #fff;
-  border: 1px solid #dde3ee;
-  border-radius: 12px;
-  padding: 18px 22px;
-  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
-}
-.share-macro-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #3a5080;
-  margin-bottom: 14px;
-}
-.share-macro-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.share-macro-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 16px 8px;
-  background: #f4f7fb;
-  border: 1px solid #e1e8f0;
-  border-radius: 10px;
-  min-width: 80px;
-  flex: 1;
-}
-.share-macro-chip strong {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #001f4d;
-  line-height: 1.2;
-}
-.share-macro-chip span {
-  font-size: 0.68rem;
-  color: #7a8aaa;
-  margin-top: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-}
-.share-macro-chip--cal { border-bottom: 2px solid #16a085; }
-.share-macro-chip--p { border-bottom: 2px solid #16a085; }
-.share-macro-chip--c { border-bottom: 2px solid #2980b9; }
-.share-macro-chip--f { border-bottom: 2px solid #d35400; }
-.share-macro-bar-wrap {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.share-macro-bar {
-  display: flex;
-  flex: 1;
-  height: 12px;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #eef0f5;
-}
-.share-macro-bar-seg {
-  transition: width 0.3s ease;
-}
-.share-macro-bar-p { background: linear-gradient(90deg, #16a085, #1abc9c); }
-.share-macro-bar-c { background: linear-gradient(90deg, #2980b9, #3498db); }
-.share-macro-bar-f { background: linear-gradient(90deg, #d35400, #e67e22); }
-.share-macro-bar-legend {
-  display: flex;
-  gap: 12px;
-  flex-shrink: 0;
-}
-.share-macro-bar-legend em {
-  font-style: normal;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-/* ── Daily Nutrient Data ── */
+/* ── Daily Nutrient Data tab ── */
 .share-daily-tab {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .share-daily-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .share-daily-card {
-  background: #fff;
-  border: 1px solid #dde3ee;
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.2);
   border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
+  padding: 14px 16px;
 }
 .share-daily-header {
   display: flex;
@@ -702,48 +677,46 @@
 .share-daily-date {
   font-size: 0.84rem;
   font-weight: 700;
-  color: #001f4d;
+  color: #d8eaff;
 }
 .share-daily-cals {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #16a085;
+  color: #3fd6b0;
 }
 .share-daily-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
   margin-bottom: 10px;
 }
 .share-daily-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 14px 6px;
-  background: #f4f7fb;
-  border: 1px solid #e1e8f0;
+  padding: 8px 12px 6px;
+  background: rgba(0, 30, 60, 0.5);
+  border: 1px solid rgba(30, 100, 200, 0.2);
   border-radius: 8px;
-  min-width: 72px;
+  min-width: 68px;
+  flex: 1;
 }
 .share-daily-chip strong {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: #001f4d;
+  color: #d8eaff;
   line-height: 1.2;
 }
 .share-daily-chip span {
-  font-size: 0.66rem;
-  color: #7a8aaa;
+  font-size: 0.63rem;
+  color: rgba(160, 190, 255, 0.45);
   margin-top: 2px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  font-weight: 600;
 }
-.share-daily-chip--empty {
-  opacity: 0.4;
-}
-.share-daily-chip--empty strong {
-  color: #9aabbb;
-}
+.share-daily-chip--empty { opacity: 0.3; }
+
 .share-daily-bar-wrap {
   display: flex;
   align-items: center;
@@ -752,14 +725,14 @@
 .share-daily-bar {
   display: flex;
   flex: 1;
-  height: 10px;
-  border-radius: 5px;
+  height: 8px;
+  border-radius: 4px;
   overflow: hidden;
-  background: #eef0f5;
+  background: rgba(0, 20, 50, 0.6);
 }
 .share-daily-bar-p { background: linear-gradient(90deg, #16a085, #1abc9c); }
-.share-daily-bar-c { background: linear-gradient(90deg, #2980b9, #3498db); }
-.share-daily-bar-f { background: linear-gradient(90deg, #d35400, #e67e22); }
+.share-daily-bar-c { background: linear-gradient(90deg, #2462b8, #3b7dd8); }
+.share-daily-bar-f { background: linear-gradient(90deg, #c0420a, #e05a18); }
 .share-daily-bar-legend {
   display: flex;
   gap: 10px;
@@ -767,104 +740,65 @@
 }
 .share-daily-bar-legend em {
   font-style: normal;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 
-/* ── Sleep tab styles ── */
+/* ── Sleep tab ── */
 .share-sleep-card {
-  border-left: 3px solid #5b8fd9;
+  border-left: 2px solid #5b8fd9;
 }
 .share-sleep-total {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #5b8fd9;
 }
-.share-sleep-chip {
-  min-width: 64px;
-}
-.share-sleep-bar-core { background: linear-gradient(90deg, #5b8fd9, #78a5e0); }
-.share-sleep-bar-rem  { background: linear-gradient(90deg, #7c4dff, #9d7aff); }
-.share-sleep-bar-deep { background: linear-gradient(90deg, #1a237e, #303fa0); }
-.share-sleep-bar-awake { background: linear-gradient(90deg, #ff8a65, #ffab91); }
+.share-sleep-chip { min-width: 60px; }
+.share-sleep-bar-core  { background: linear-gradient(90deg, #4a7fc1, #6a9fd8); }
+.share-sleep-bar-rem   { background: linear-gradient(90deg, #7c4dff, #9d7aff); }
+.share-sleep-bar-deep  { background: linear-gradient(90deg, #2c387e, #3d5afe); }
+.share-sleep-bar-awake { background: linear-gradient(90deg, #c84b2f, #e57150); }
 .share-sleep-extras {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #eef0f5;
+  border-top: 1px solid rgba(30, 100, 200, 0.1);
 }
 .share-sleep-extra {
-  font-size: 0.78rem;
-  color: #5a6a8a;
+  font-size: 0.76rem;
+  color: rgba(160, 190, 255, 0.55);
 }
 .share-sleep-extra strong {
-  color: #0a3672;
+  color: #b0ccf0;
   font-weight: 700;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 600px) {
   .share-header {
     padding: 12px 14px;
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
   }
-
-  .share-header-inner {
-    gap: 10px;
-  }
-
   .share-body {
-    padding: 16px 10px 40px;
+    padding: 14px 12px calc(50px + env(safe-area-inset-bottom, 0px));
     gap: 12px;
   }
-
-  .share-group-header,
-  .share-table td,
-  .share-journal-entry {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .share-group-body,
-  .share-foodlog-meal {
-    overflow-x: auto;
-  }
-
-  .share-table,
-  .share-foodlog-table {
-    min-width: 560px;
-  }
-
-  .share-foodlog-food {
-    max-width: 180px;
-  }
-
-  /* Tabs */
-  .share-tabs { padding: 3px; gap: 3px; }
-  .share-tab { padding: 9px 8px; font-size: 0.78rem; }
-
-  /* Daily nutrient cards */
-  .share-daily-card { padding: 12px 14px; }
-  .share-daily-chips { gap: 6px; }
-  .share-daily-chip { min-width: 60px; padding: 6px 8px; }
-  .share-daily-chip strong { font-size: 0.8rem; }
-  .share-daily-bar-wrap { flex-direction: column; gap: 5px; }
-  .share-daily-bar-legend { justify-content: center; }
-
-  /* Patient card */
-  .share-patient-card { padding: 14px 16px; }
   .share-patient-name { font-size: 1.1rem; }
-
-  /* Macro summary */
-  .share-macro-summary { padding: 14px 16px; }
-  .share-macro-chips { gap: 6px; }
-  .share-macro-chip { min-width: 60px; padding: 8px 10px; }
-  .share-macro-chip strong { font-size: 0.85rem; }
-  .share-macro-bar-wrap { flex-direction: column; gap: 5px; }
-  .share-macro-bar-legend { justify-content: center; }
-
-  /* Sleep cards */
+  .share-patient-card { padding: 14px 14px; }
+  .share-daily-chips  { gap: 5px; }
+  .share-daily-chip   { min-width: 60px; padding: 7px 8px; }
+  .share-daily-chip strong { font-size: 0.82rem; }
+  .share-daily-bar-wrap { flex-direction: column; gap: 5px; align-items: stretch; }
+  .share-daily-bar   { height: 7px; }
+  .share-daily-bar-legend { justify-content: center; }
+  .share-daily-bar-legend em { font-size: 0.64rem; }
   .share-sleep-extras { gap: 8px; }
   .share-sleep-chip { min-width: 52px; }
-  .share-daily-bar-legend em { font-size: 0.66rem; }
+  .share-food-right { max-width: 55%; }
+  .share-metric-range { display: none; }
+  .share-unlock-card { padding: 32px 22px; }
+  .share-group-header { padding: 12px 14px; min-height: 44px; }
+  .share-metric-row { padding: 9px 14px; }
+  .share-combined-section { padding: 8px 12px; }
 }

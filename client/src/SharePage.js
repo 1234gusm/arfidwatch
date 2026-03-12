@@ -383,11 +383,16 @@ function SharePage() {
     }
   };
 
-  if (phase === 'loading') return <div className="share-page"><div className="share-spinner">Loading\u2026</div></div>;
+  if (phase === 'loading') return (
+    <div className="share-page share-page--centered">
+      <div className="share-spinner"><div className="share-spinner-ring" /><span>Loading\u2026</span></div>
+    </div>
+  );
 
   if (phase === 'error') return (
-    <div className="share-page">
+    <div className="share-page share-page--centered">
       <div className="share-not-found">
+        <div className="share-unlock-icon">🔗</div>
         <div className="share-logo-mark">ArfidWatch</div>
         <p>{errMsg || 'This share link is invalid or has been removed.'}</p>
       </div>
@@ -395,13 +400,14 @@ function SharePage() {
   );
 
   if (phase === 'passcode') return (
-    <div className="share-page">
+    <div className="share-page share-page--centered">
       <div className="share-unlock-card">
+        <div className="share-unlock-icon">🔒</div>
         <div className="share-logo-mark">ArfidWatch</div>
-        <h2>Health Summary</h2>
+        <h2>Private Health Summary</h2>
         <p className="share-unlock-sub">
           <strong>{meta?.username}</strong> has shared their health data with you.
-          Enter the passcode to view.
+          Enter the passcode to continue.
         </p>
         {errMsg && <p className="share-error">{errMsg}</p>}
         <input
@@ -414,7 +420,7 @@ function SharePage() {
           autoFocus
         />
         <button className="share-unlock-btn" onClick={() => doUnlock(passcode)} disabled={unlocking}>
-          {unlocking ? 'Verifying\u2026' : 'View Health Summary'}
+          {unlocking ? 'Verifying\u2026' : 'Unlock'}
         </button>
       </div>
     </div>
@@ -525,25 +531,23 @@ function SharePage() {
 
     return (
       <Section key={section.id} title={section.title} badge={rows.length} defaultOpen={section.defaultOpen}>
-        <table className="share-table">
-          <tbody>
-            {rows.map(row => (
-              <tr key={row.label + row.unit}>
-                <td className="share-metric-name">{row.label}</td>
-                <td className="share-metric-value">
-                  <>{fmt(row.v, row.dp)}{row.unit && <span className="share-metric-unit"> {row.unit}</span>}</>
-                </td>
-                <td className="share-metric-range">
+        <div className="share-metrics">
+          {rows.map(row => (
+            <div key={row.label + row.unit} className="share-metric-row">
+              <span className="share-metric-name">{row.label}</span>
+              <span className="share-metric-right">
+                <span className="share-metric-value">{fmt(row.v, row.dp)}{row.unit && <span className="share-metric-unit"> {row.unit}</span>}</span>
+                <span className="share-metric-range">
                   {row.mode === 'avg'
                     ? (row.days > 1 && row.lo !== null && row.hi !== null
                         ? `${fmt(row.lo, row.dp)}\u2013${fmt(row.hi, row.dp)} ${row.unit} \u00b7 ${row.days}d`
                         : `avg \u00b7 ${row.days}d`)
                     : 'latest'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
       </Section>
     );
   };
@@ -592,6 +596,7 @@ function SharePage() {
         </div>
 
         {/* Tabs */}
+        <div className="share-tabs-scroll">
         <div className="share-tabs">
           <button
             className={`share-tab${activeTab === 'overview' ? ' share-tab--active' : ''}`}
@@ -609,6 +614,7 @@ function SharePage() {
             className={`share-tab${activeTab === 'log' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('log')}
           >Food Log</button>
+        </div>
         </div>
 
         {activeTab === 'overview' && <>
@@ -685,26 +691,24 @@ function SharePage() {
                         {meals.map(({ meal, items }) => (
                           <div key={meal} className="share-foodlog-meal">
                             <div className="share-foodlog-meal-name">{meal}</div>
-                            <table className="share-table share-foodlog-table">
-                              <tbody>
-                                {items.map((item, i) => (
-                                  <tr key={i}>
-                                    <td className="share-foodlog-food">{item.food_name}</td>
-                                    <td className="share-foodlog-qty">{item.quantity}</td>
-                                    <td className="share-foodlog-cals">
-                                      {item.calories != null ? `${Math.round(item.calories)} kcal` : ''}
-                                    </td>
-                                    <td className="share-foodlog-macros">
+                            <div className="share-food-items">
+                              {items.map((item, i) => (
+                                <div key={i} className="share-food-row">
+                                  <span className="share-food-name">{item.food_name}</span>
+                                  <span className="share-food-right">
+                                    {item.quantity && <span className="share-food-qty">{item.quantity}</span>}
+                                    {item.calories != null && <span className="share-food-cals">{Math.round(item.calories)} kcal</span>}
+                                    <span className="share-food-macros">
                                       {[
                                         item.protein_g != null ? `P ${Math.round(item.protein_g)}g` : null,
                                         item.carbs_g   != null ? `C ${Math.round(item.carbs_g)}g`   : null,
                                         item.fat_g     != null ? `F ${Math.round(item.fat_g)}g`     : null,
                                       ].filter(Boolean).join(' \u00b7 ')}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                    </span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -713,18 +717,18 @@ function SharePage() {
                     {meds && (
                       <div className="share-combined-section">
                         <div className="share-combined-section-label">Medications</div>
-                        <table className="share-table share-foodlog-table">
-                          <tbody>
-                            {meds.map((item, i) => (
-                              <tr key={i}>
-                                <td className="share-foodlog-food">{item.medication_name}</td>
-                                <td className="share-foodlog-qty">{item.dosage || ''}</td>
-                                <td className="share-foodlog-cals">{item.time || ''}</td>
-                                <td className="share-foodlog-macros">{item.notes || ''}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <div className="share-food-items">
+                          {meds.map((item, i) => (
+                            <div key={i} className="share-food-row">
+                              <span className="share-food-name">{item.medication_name}</span>
+                              <span className="share-food-right">
+                                {item.dosage && <span className="share-food-qty">{item.dosage}</span>}
+                                {item.time && <span className="share-food-cals">{item.time}</span>}
+                                {item.notes && <span className="share-food-macros">{item.notes}</span>}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
