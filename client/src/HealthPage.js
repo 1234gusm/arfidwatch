@@ -337,6 +337,10 @@ function HealthPage({ token }) {
     riboflavin_mg:           { label: 'Riboflavin',         unit: 'mg',          group: 'Nutrition' },
     thiamin_mg:              { label: 'Thiamin',            unit: 'mg',          group: 'Nutrition' },
     // Minerals
+    calcium_mg:              { label: 'Calcium',            unit: 'mg',          group: 'Nutrition' },
+    folate_mcg:              { label: 'Folate',             unit: 'mcg',         group: 'Nutrition' },
+    magnesium_mg:            { label: 'Magnesium',          unit: 'mg',          group: 'Nutrition' },
+    zinc_mg:                 { label: 'Zinc',               unit: 'mg',          group: 'Nutrition' },
     chromium_mcg:            { label: 'Chromium',           unit: 'mcg',         group: 'Nutrition' },
     copper_mg:               { label: 'Copper',             unit: 'mg',          group: 'Nutrition' },
     iodine_mcg:              { label: 'Iodine',             unit: 'mcg',         group: 'Nutrition' },

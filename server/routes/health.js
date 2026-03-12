@@ -1082,6 +1082,28 @@ router.get('/', authenticate, async (req, res) => {
   if (start) query = query.where('timestamp', '>=', start);
   if (end) query = query.where('timestamp', '<=', end);
   const rows = await query.orderBy('timestamp', 'asc');
+
+  // Merge supplement/vitamin entries from the medication log as synthetic rows.
+  try {
+    const { medicationEntryToHealthRow } = require('../utils/supplementNutrients');
+    let medQuery = db('medication_entries')
+      .where({ user_id: req.user.id })
+      .select('id', 'date', 'time', 'medication_name', 'dosage', 'taken_at');
+    if (start) medQuery = medQuery.where('date', '>=', start.slice(0, 10));
+    if (end)   medQuery = medQuery.where('date', '<=', end.slice(0, 10));
+    const medEntries = await medQuery;
+    const suppRows = medEntries
+      .map(e => medicationEntryToHealthRow(e))
+      .filter(Boolean);
+    if (suppRows.length) {
+      const allRows = [...rows, ...suppRows];
+      allRows.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
+      return res.json({ data: allRows });
+    }
+  } catch (e) {
+    console.warn('supplement nutrient merge failed:', e.message);
+  }
+
   res.json({ data: rows });
 });
 
