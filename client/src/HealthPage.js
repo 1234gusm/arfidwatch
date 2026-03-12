@@ -374,6 +374,33 @@ function HealthPage({ token }) {
     // Other
     handwashing_s:           { label: 'Handwashing',        unit: 's',           group: 'Vitals' },
     toothbrushing_s:         { label: 'Toothbrushing',      unit: 's',           group: 'Vitals' },
+    // Dietary fatty acids & omegas (grams, from food tracking)
+    omega_3_g:               { label: 'Omega-3',            unit: 'g',           group: 'Nutrition' },
+    omega_6_g:               { label: 'Omega-6',            unit: 'g',           group: 'Nutrition' },
+    omega_3_ala_g:           { label: 'ALA (Omega-3)',       unit: 'g',           group: 'Nutrition' },
+    omega_3_dha_g:           { label: 'DHA',                unit: 'g',           group: 'Nutrition' },
+    omega_3_epa_g:           { label: 'EPA',                unit: 'g',           group: 'Nutrition' },
+    // Added sugar
+    sugars_added_g:          { label: 'Added Sugar',         unit: 'g',           group: 'Nutrition' },
+    // Dietary amino acids (grams, from food tracking — distinct from supplement mg entries)
+    lysine_g:                { label: 'Lysine',              unit: 'g',           group: 'Nutrition' },
+    methionine_g:            { label: 'Methionine',          unit: 'g',           group: 'Nutrition' },
+    phenylalanine_g:         { label: 'Phenylalanine',       unit: 'g',           group: 'Nutrition' },
+    threonine_g:             { label: 'Threonine',           unit: 'g',           group: 'Nutrition' },
+    tryptophan_g:            { label: 'Tryptophan',          unit: 'g',           group: 'Nutrition' },
+    tyrosine_g:              { label: 'Tyrosine',            unit: 'g',           group: 'Nutrition' },
+    valine_g:                { label: 'Valine',              unit: 'g',           group: 'Nutrition' },
+    leucine_g:               { label: 'Leucine',             unit: 'g',           group: 'Nutrition' },
+    isoleucine_g:            { label: 'Isoleucine',          unit: 'g',           group: 'Nutrition' },
+    histidine_g:             { label: 'Histidine',           unit: 'g',           group: 'Nutrition' },
+    arginine_g:              { label: 'Arginine',            unit: 'g',           group: 'Nutrition' },
+    cystine_g:               { label: 'Cystine',             unit: 'g',           group: 'Nutrition' },
+    glutamic_acid_g:         { label: 'Glutamic Acid',       unit: 'g',           group: 'Nutrition' },
+    aspartic_acid_g:         { label: 'Aspartic Acid',       unit: 'g',           group: 'Nutrition' },
+    glycine_g:               { label: 'Glycine',             unit: 'g',           group: 'Nutrition' },
+    proline_g:               { label: 'Proline',             unit: 'g',           group: 'Nutrition' },
+    serine_g:                { label: 'Serine',              unit: 'g',           group: 'Nutrition' },
+    alanine_g:               { label: 'Alanine',             unit: 'g',           group: 'Nutrition' },
     // Supplements / Amino Acids
     creatine_g:              { label: 'Creatine',            unit: 'g',           group: 'Extra Nutritional Info' },
     l_glutamine_mg:          { label: 'L-Glutamine',         unit: 'mg',          group: 'Extra Nutritional Info' },
