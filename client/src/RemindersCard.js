@@ -3,7 +3,6 @@ import React, { useState, useCallback } from 'react';
 const REMINDER_TYPES = [
   { id: 'upload_files',    label: 'Upload health files',  icon: '📁' },
   { id: 'log_medications', label: 'Log medications',      icon: '💊' },
-  { id: 'send_report',     label: 'Send report to doctor',icon: '📤' },
 ];
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -30,10 +29,11 @@ export default function RemindersCard() {
   const [permission, setPermission] = useState(
     () => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
   );
-  const [adding, setAdding]   = useState(false);
-  const [newType, setNewType] = useState('log_medications');
-  const [newTime, setNewTime] = useState('08:00');
-  const [newDays, setNewDays] = useState([1, 2, 3, 4, 5]);
+  const [adding, setAdding]     = useState(false);
+  const [newType, setNewType]   = useState('log_medications');
+  const [newLabel, setNewLabel] = useState('');
+  const [newTime, setNewTime]   = useState('08:00');
+  const [newDays, setNewDays]   = useState([1, 2, 3, 4, 5]);
 
   const persist = useCallback((next) => {
     setReminders(next);
@@ -49,15 +49,19 @@ export default function RemindersCard() {
 
   const addReminder = () => {
     if (!newDays.length) return;
+    const typeInfo = REMINDER_TYPES.find(t => t.id === newType);
+    const resolvedLabel = newLabel.trim() || typeInfo?.label || newType;
     persist([...reminders, {
       id:      `r_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       type:    newType,
+      label:   resolvedLabel,
       time:    newTime,
       days:    [...newDays].sort((a, b) => a - b),
       enabled: true,
     }]);
     setAdding(false);
     setNewType('log_medications');
+    setNewLabel('');
     setNewTime('08:00');
     setNewDays([1, 2, 3, 4, 5]);
   };
@@ -91,10 +95,11 @@ export default function RemindersCard() {
 
       {reminders.map(r => {
         const info = REMINDER_TYPES.find(t => t.id === r.type) || { icon: '🔔', label: r.type };
+        const displayLabel = r.label || info.label;
         return (
           <div key={r.id} className="profile-toggle-row" style={{ alignItems: 'flex-start' }}>
             <div className="profile-toggle-info" style={{ flex: 1 }}>
-              <span className="profile-toggle-label">{info.icon} {info.label}</span>
+              <span className="profile-toggle-label">{info.icon} {displayLabel}</span>
               <span className="profile-toggle-sub">
                 {r.time} &middot; {r.days.map(d => DAY_LABELS[d]).join(', ')}
               </span>
@@ -125,9 +130,26 @@ export default function RemindersCard() {
                 key={t.id}
                 className={newType === t.id ? 'profile-save-btn' : 'profile-btn-secondary'}
                 style={{ padding: '6px 14px', fontSize: '0.85rem' }}
-                onClick={() => setNewType(t.id)}
+                onClick={() => {
+                  setNewType(t.id);
+                  setNewLabel(t.label);
+                }}
               >{t.icon} {t.label}</button>
             ))}
+          </div>
+
+          {/* Custom name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="profile-hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>Name</span>
+            <input
+              type="text"
+              className="profile-passcode-input"
+              style={{ flex: 1 }}
+              placeholder={REMINDER_TYPES.find(t => t.id === newType)?.label || 'Reminder name'}
+              value={newLabel}
+              onChange={e => setNewLabel(e.target.value)}
+              maxLength={60}
+            />
           </div>
 
           {/* Time picker */}
