@@ -814,7 +814,7 @@ function ProfilePage({ token }) {
       <div className="profile-card">
         <div className="profile-section-title">Medication Log</div>
         <p className="profile-hint">
-          Log medications from the Medications tab.
+          Share medications log to your doctor.
         </p>
 
         {medStatus.count > 0 ? (
