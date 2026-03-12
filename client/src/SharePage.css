@@ -52,6 +52,12 @@
   border-top: 3px solid #0a3672;
 }
 
+.share-patient-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
 .share-patient-name {
   font-size: 1.35rem;
   font-weight: 800;
@@ -60,11 +66,41 @@
   letter-spacing: -0.01em;
 }
 
+.share-patient-weight {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #001f4d;
+  letter-spacing: -0.01em;
+}
+
 .share-period {
   font-size: 0.82rem;
   color: #5a6a8a;
   font-weight: 500;
+  margin-bottom: 12px;
 }
+
+.share-patient-macros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.share-pm-chip {
+  font-size: 0.82rem;
+  color: #5a6a8a;
+  background: #f4f7fb;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  padding: 5px 12px;
+}
+.share-pm-chip strong {
+  font-weight: 700;
+  color: #0a3672;
+}
+.share-pm--p { border-bottom: 2px solid #16a085; }
+.share-pm--c { border-bottom: 2px solid #2980b9; }
+.share-pm--f { border-bottom: 2px solid #d35400; }
 
 /* ── Metric groups ── */
 .share-group {

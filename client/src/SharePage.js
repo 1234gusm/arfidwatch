@@ -409,18 +409,35 @@ function SharePage() {
       <div className="share-body">
         {/* Patient card */}
         <div className="share-patient-card">
-          <div className="share-patient-name">{healthInfo.username}</div>
-          <div className="share-period">
-            {periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}
+          <div className="share-patient-top">
+            <div className="share-patient-name">{healthInfo.username}</div>
             {(() => {
               const wMap = pick(maps, 'weight_lb', 'weight_kg');
               if (!wMap) return null;
               const w = latestOf(wMap);
               if (w == null || !Number.isFinite(w)) return null;
               const isKg = !maps['weight_lb'] && maps['weight_kg'];
-              return <>&nbsp;&middot;&nbsp;{w.toFixed(1)} {isKg ? 'kg' : 'lb'}</>;
+              return <div className="share-patient-weight">{w.toFixed(1)} {isKg ? 'kg' : 'lb'}</div>;
             })()}
           </div>
+          <div className="share-period">
+            {periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}
+          </div>
+          {(() => {
+            const avgCals    = maps['dietary_energy_kcal'] ? avgOf(maps['dietary_energy_kcal']) : null;
+            const avgProtein = maps['protein_g'] ? avgOf(maps['protein_g']) : null;
+            const avgCarbs   = maps['carbohydrates_g'] ? avgOf(maps['carbohydrates_g']) : null;
+            const avgFat     = maps['total_fat_g'] ? avgOf(maps['total_fat_g']) : null;
+            if (avgCals == null && avgProtein == null && avgCarbs == null && avgFat == null) return null;
+            return (
+              <div className="share-patient-macros">
+                {avgCals != null && <span className="share-pm-chip"><strong>{Math.round(avgCals).toLocaleString()}</strong> kcal</span>}
+                {avgProtein != null && <span className="share-pm-chip share-pm--p"><strong>{avgProtein.toFixed(1)}g</strong> P</span>}
+                {avgCarbs != null && <span className="share-pm-chip share-pm--c"><strong>{avgCarbs.toFixed(1)}g</strong> C</span>}
+                {avgFat != null && <span className="share-pm-chip share-pm--f"><strong>{avgFat.toFixed(1)}g</strong> F</span>}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Tabs */}
