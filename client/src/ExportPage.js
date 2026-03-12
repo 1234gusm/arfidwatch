@@ -33,7 +33,12 @@ const TYPE_ALIASES = {
   macrofactor_expenditure:        'active_energy_kcal',
   macrofactor_energy_expenditure: 'active_energy_kcal',
 };
-const canonical = t => TYPE_ALIASES[t] || t;
+const canonical = t => {
+  if (!t) return t;
+  if (TYPE_ALIASES[t]) return TYPE_ALIASES[t];
+  if (String(t).startsWith('macrofactor_')) return String(t).slice('macrofactor_'.length);
+  return t;
+};
 
 const TYPE_META = {
   dietary_energy_kcal:           { label: 'Calories',      unit: 'kcal',     dp: 0 },
