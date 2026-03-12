@@ -66,6 +66,7 @@ router.get('/', authenticate, async (req, res) => {
       has_passcode: !!profile.share_passcode_hash,
       share_food_log: !!profile.share_food_log,
       share_medications: !!profile.share_medications,
+      share_journal: !!profile.share_journal,
       has_ingest_key: !!profile.ingest_key_hash,
       ingest_key_last_used_at: profile.ingest_key_last_used_at || null,
       health_auto_export_url: profile.health_auto_export_url || null,
@@ -96,6 +97,7 @@ router.put('/', authenticate, async (req, res) => {
       clear_share,
       share_food_log,
       share_medications,
+      share_journal,
       regenerate_ingest_key,
       clear_ingest_key,
       health_auto_export_url,
@@ -185,6 +187,10 @@ router.put('/', authenticate, async (req, res) => {
       updates.share_medications = !!share_medications;
     }
 
+    if (share_journal !== undefined) {
+      updates.share_journal = !!share_journal;
+    }
+
     if (regenerate_ingest_key) {
       plainIngestKey = `awk_${crypto.randomBytes(24).toString('hex')}`;
       updates.ingest_key_hash = hashIngestKey(plainIngestKey);
@@ -263,6 +269,7 @@ router.put('/', authenticate, async (req, res) => {
       has_passcode: !!(profile?.share_passcode_hash),
       share_food_log: !!(profile?.share_food_log),
       share_medications: !!(profile?.share_medications),
+      share_journal: !!(profile?.share_journal),
       has_ingest_key: !!(profile?.ingest_key_hash),
       ingest_key_last_used_at: profile?.ingest_key_last_used_at || null,
       health_auto_export_url: profile?.health_auto_export_url || null,

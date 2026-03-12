@@ -174,6 +174,9 @@ async function setup() {
   await db.schema.hasColumn('user_profiles', 'share_medications').then(exists => {
     if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_medications').defaultTo(false));
   });
+  await db.schema.hasColumn('user_profiles', 'share_journal').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_journal').defaultTo(false));
+  });
   await db.schema.hasColumn('user_profiles', 'health_auto_export_url').then(exists => {
     if (!exists) return db.schema.table('user_profiles', t => t.text('health_auto_export_url').nullable());
   });

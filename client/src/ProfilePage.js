@@ -41,6 +41,7 @@ function ProfilePage({ token }) {
   const [medStatus,       setMedStatus]       = useState({ count: 0, earliest: null, latest: null });
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
   const [shareMeds,       setShareMeds]       = useState(false);
+  const [shareJournal,    setShareJournal]    = useState(false);
   const [hasIngestKey,    setHasIngestKey]    = useState(false);
   const [ingestKey,       setIngestKey]       = useState('');
   const [ingestCopied,    setIngestCopied]    = useState(false);
@@ -68,6 +69,7 @@ function ProfilePage({ token }) {
     if (d.has_passcode !== undefined) setHasPasscode(!!d.has_passcode);
     if (d.share_food_log !== undefined) setShareFoodLog(!!d.share_food_log);
     if (d.share_medications !== undefined) setShareMeds(!!d.share_medications);
+    if (d.share_journal !== undefined) setShareJournal(!!d.share_journal);
     if (d.has_ingest_key !== undefined) setHasIngestKey(!!d.has_ingest_key);
     if (d.ingest_key_last_used_at !== undefined) setIngestLastUsed(d.ingest_key_last_used_at || null);
   };
@@ -334,6 +336,13 @@ function ProfilePage({ token }) {
       setShareMeds(val);
       await callPut({ share_medications: val });
     } catch { setError('Failed to update'); setShareMeds(!val); }
+  };
+
+  const handleToggleJournalShare = async (val) => {
+    try {
+      setShareJournal(val);
+      await callPut({ share_journal: val });
+    } catch { setError('Failed to update'); setShareJournal(!val); }
   };
 
   const handleGenerateIngestKey = async () => {
@@ -776,6 +785,29 @@ function ProfilePage({ token }) {
           {hasIngestKey && (
             <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
           )}
+        </div>
+      </div>
+
+      <div className="profile-card">
+        <div className="profile-section-title">Doctor Share — Journal</div>
+        <p className="profile-hint">
+          When enabled, your journal entries for the share period will be visible to your doctor on the share page.
+        </p>
+        <div className="profile-toggle-row">
+          <div className="profile-toggle-info">
+            <span className="profile-toggle-label">Share journal with doctor</span>
+            <span className="profile-toggle-sub">
+              {shareJournal ? 'Journal visible on share page' : 'Journal hidden from share page'}
+            </span>
+          </div>
+          <button
+            className={`profile-toggle-switch${shareJournal ? ' profile-toggle-switch--on' : ''}`}
+            onClick={() => handleToggleJournalShare(!shareJournal)}
+            role="switch"
+            aria-checked={shareJournal}
+          >
+            <span className="profile-toggle-knob" />
+          </button>
         </div>
       </div>
 

@@ -525,12 +525,14 @@ function SharePage() {
           return (
             <>
             <div className="share-log-controls">
-              <label className="share-toggle">
-                <span>Journal</span>
-                <span className={`share-toggle-track${showJournal ? ' share-toggle-track--on' : ''}`} onClick={() => setShowJournal(v => !v)}>
-                  <span className="share-toggle-thumb" />
-                </span>
-              </label>
+              {journal.length > 0 && (
+                <label className="share-toggle">
+                  <span>Journal</span>
+                  <span className={`share-toggle-track${showJournal ? ' share-toggle-track--on' : ''}`} onClick={() => setShowJournal(v => !v)}>
+                    <span className="share-toggle-thumb" />
+                  </span>
+                </label>
+              )}
               <label className="share-toggle">
                 <span>Medications</span>
                 <span className={`share-toggle-track${showMeds ? ' share-toggle-track--on' : ''}`} onClick={() => setShowMeds(v => !v)}>

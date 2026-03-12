@@ -99,12 +99,14 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
       .where('timestamp', '<=', end.toISOString())
       .select('type', 'value', 'timestamp');
 
-    const journalEntries = await db('journal_entries')
-      .where({ user_id: userId })
-      .where('date', '>=', start.toISOString())
-      .where('date', '<=', end.toISOString())
-      .select('date', 'title', 'text', 'mood')
-      .orderBy('date', 'asc');
+    const journalEntries = profile?.share_journal
+      ? await db('journal_entries')
+          .where({ user_id: userId })
+          .where('date', '>=', start.toISOString())
+          .where('date', '<=', end.toISOString())
+          .select('date', 'title', 'text', 'mood')
+          .orderBy('date', 'asc')
+      : [];
 
     const startDate = start.toISOString().slice(0, 10);
     const endDate   = end.toISOString().slice(0, 10);
