@@ -617,41 +617,41 @@ function HealthPage({ token }) {
   })();
   const todayHasAnyFood = Object.values(todayNutrition).some(v => v !== null);
 
-  // Build the current display order of all visible types, respecting saved statOrder.
+  // Build the current display order of all visible types.
+  // groupOrder always wins at the group level; within a group, saved drag positions are preserved.
   const orderedVisible = (() => {
-    const seen = new Set();
-    const result = [];
-    // First, place types that are in statOrder (preserving saved positions).
-    statOrder.forEach(t => {
-      if (!hiddenTypes.has(t) && typesOfInterest.includes(t)) {
-        result.push(t);
-        seen.add(t);
-      }
-    });
-    // Then append any new types (not yet in statOrder) sorted by group/priority.
-    typesOfInterest
-      .filter(t => !hiddenTypes.has(t) && !seen.has(t))
+    const groupOf = t => {
+      const g = typeMeta[t]?.group || 'Other';
+      const idx = groupOrder.indexOf(g);
+      return idx === -1 ? groupOrder.length : idx;
+    };
+    const savedPos = {};
+    statOrder.forEach((t, i) => { savedPos[t] = i; });
+
+    return typesOfInterest
+      .filter(t => !hiddenTypes.has(t))
       .sort((a, b) => {
-        const ga = groupOrder.indexOf(typeMeta[a]?.group || 'Other');
-        const gb = groupOrder.indexOf(typeMeta[b]?.group || 'Other');
+        const ga = groupOf(a), gb = groupOf(b);
         if (ga !== gb) return ga - gb;
+        // Within the same group: respect saved drag order, then typePriority for new types
+        const sa = savedPos[a] ?? Infinity;
+        const sb = savedPos[b] ?? Infinity;
+        if (sa !== sb) return sa - sb;
         return (typePriority[a] ?? 99) - (typePriority[b] ?? 99);
-      })
-      .forEach(t => result.push(t));
-    return result;
+      });
   })();
 
   const handleDrop = (targetType) => {
     const src = dragSrc.current;
     if (!src || src === targetType) { setDragOver(null); return; }
-    const current = [
-      ...statOrder.filter(t => !hiddenTypes.has(t) && typesOfInterest.includes(t)),
-      ...typesOfInterest.filter(t => !hiddenTypes.has(t) && !statOrder.includes(t)),
-    ];
-    const from = current.indexOf(src);
-    const to = current.indexOf(targetType);
+    // Only allow reordering within the same group
+    if ((typeMeta[src]?.group || 'Other') !== (typeMeta[targetType]?.group || 'Other')) {
+      dragSrc.current = null; setDragOver(null); return;
+    }
+    const from = orderedVisible.indexOf(src);
+    const to = orderedVisible.indexOf(targetType);
     if (from !== -1 && to !== -1) {
-      const next = [...current];
+      const next = [...orderedVisible];
       next.splice(from, 1);
       next.splice(to, 0, src);
       setStatOrder(next);
