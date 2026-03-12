@@ -82,6 +82,10 @@ const SUPPLEMENT_MAP = [
 
   { patterns: [/\bselenium\b/, /\bselenomet\w+\b/],
     typeKey: 'selenium_mcg', canonicalUnit: 'mcg' },
+
+  // ── Caffeine ─────────────────────────────────────────────────────────────
+  { patterns: [/\bcaffeine\b/, /\bcaffein\b/],
+    typeKey: 'caffeine_mg', canonicalUnit: 'mg' },
 ];
 
 /**
