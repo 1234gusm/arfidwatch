@@ -567,7 +567,10 @@ function HealthPage({ token }) {
   const canonical = t => {
     if (!t) return t;
     if (typeAliases[t]) return typeAliases[t];
-    if (t.startsWith('macrofactor_')) return t.slice('macrofactor_'.length);
+    if (t.startsWith('macrofactor_')) {
+      const stripped = t.slice('macrofactor_'.length);
+      return typeAliases[stripped] || stripped;
+    }
     return t;
   };
 
