@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import API_BASE from './apiBase';
 
 const REMINDER_TYPES = [
   { id: 'upload_files',    label: 'Upload health files',  icon: '📁' },
@@ -7,6 +8,48 @@ const REMINDER_TYPES = [
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const LS_KEY = 'arfidwatch_reminders';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function registerPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  try {
+    const keyResp = await fetch(`${API_BASE}/api/push/vapid-key`);
+    if (!keyResp.ok) return;
+    const { publicKey } = await keyResp.json();
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+    const subJson = sub.toJSON();
+    await fetch(`${API_BASE}/api/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+    });
+  } catch { /* non-fatal — falls back to client-side interval */ }
+}
+
+async function syncRemindersToServer(list) {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    await fetch(`${API_BASE}/api/push/reminders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ reminders: list, timezone }),
+    });
+  } catch { /* non-fatal */ }
+}
 
 function loadReminders() {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
@@ -39,12 +82,23 @@ export default function RemindersCard() {
     setReminders(next);
     localStorage.setItem(LS_KEY, JSON.stringify(next));
     syncRemindersToSW(next);
+    syncRemindersToServer(next);
   }, []);
+
+  // Register for server-side push on mount (if permission already granted)
+  // or after user grants permission
+  useEffect(() => {
+    if (permission === 'granted') registerPushSubscription();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const requestPermission = async () => {
     if (typeof Notification === 'undefined') return;
     const result = await Notification.requestPermission();
     setPermission(result);
+    if (result === 'granted') {
+      registerPushSubscription();
+      syncRemindersToServer(reminders);
+    }
   };
 
   const addReminder = () => {
@@ -74,7 +128,7 @@ export default function RemindersCard() {
     <div className="profile-card">
       <div className="profile-section-title">Reminders</div>
       <p className="profile-hint">
-        Get notified to upload files, log medications, or send your report. Works when ArfidWatch is open or saved to your home screen.
+        Set reminders for uploading files or logging medications. Notifications are delivered by the server — they arrive even when the app is fully closed.
       </p>
 
       {permission === 'default' && (

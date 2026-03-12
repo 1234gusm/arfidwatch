@@ -8,7 +8,10 @@ const profileRoutes = require('./routes/profile');
 const shareRoutes = require('./routes/share');
 const foodLogRoutes = require('./routes/foodlog');
 const medicationsRoutes = require('./routes/medications');
+const pushRoutes = require('./routes/push');
 const { startAutoHealthPull } = require('./utils/autoHealthPull');
+const { initVapid } = require('./utils/vapid');
+const { startPushScheduler } = require('./utils/pushScheduler');
 
 const app = express();
 app.use(cors());
@@ -29,6 +32,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/food-log', foodLogRoutes);
 app.use('/api/medications', medicationsRoutes);
+app.use('/api/push', pushRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -36,7 +40,9 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  try { await initVapid(); } catch (e) { console.error('VAPID init error:', e.message); }
+  startPushScheduler();
   startAutoHealthPull({ port: PORT });
 });

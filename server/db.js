@@ -237,6 +237,41 @@ async function setup() {
   await db.raw('CREATE INDEX IF NOT EXISTS idx_medication_entries_user_taken_at ON medication_entries(user_id, taken_at)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_med_quick_buttons_user_order ON medication_quick_buttons(user_id, sort_order)');
   await db.raw('CREATE UNIQUE INDEX IF NOT EXISTS uq_med_quick_buttons_user_name_dose ON medication_quick_buttons(user_id, medication_name, IFNULL(dosage, ""))');
+
+  // Web Push tables
+  await db.schema.hasTable('server_config').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('server_config', table => {
+        table.string('key').primary();
+        table.text('value');
+      });
+    }
+  });
+
+  await db.schema.hasTable('push_subscriptions').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('push_subscriptions', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users').notNullable();
+        table.text('endpoint').notNullable().unique();
+        table.text('p256dh').notNullable();
+        table.text('auth').notNullable();
+        table.datetime('created_at');
+      });
+    }
+  });
+
+  await db.schema.hasTable('user_reminders').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('user_reminders', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users').notNullable().unique();
+        table.text('reminders_json').notNullable().defaultTo('[]');
+        table.string('timezone').notNullable().defaultTo('UTC');
+        table.datetime('updated_at');
+      });
+    }
+  });
 }
 
 setup();
