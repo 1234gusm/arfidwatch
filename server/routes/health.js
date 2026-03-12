@@ -201,43 +201,52 @@ const autosleepTimestamp = (row) => {
 };
 
 const buildAutoSleepRecords = (rows, userId) => {
-  const metrics = [
-    {
-      type: 'sleep_analysis_total_sleep_hr',
-      match: h => h.includes('time asleep') || h.includes('total sleep') || h === 'asleep' || h === 'sleep',
-    },
-    {
-      type: 'sleep_analysis_in_bed_hr',
-      match: h => h === 'inbed' || h.includes('in bed') || h.includes('time in bed'),
-    },
-    {
-      type: 'sleep_analysis_deep_hr',
-      match: h => h.includes('deep sleep') || h === 'deep',
-    },
-    {
-      type: 'sleep_analysis_rem_hr',
-      match: h => h.includes('rem sleep') || h === 'rem',
-    },
-    {
-      type: 'sleep_analysis_awake_hr',
-      match: h => h.includes('awake') || h.includes('time awake') || h === 'wake',
-    },
+  // Duration-based fields (HH:MM:SS → decimal hours)
+  const durationMetrics = [
+    { type: 'sleep_analysis_total_sleep_hr', match: h => h === 'asleep' || h.includes('total sleep') || h.includes('time asleep') },
+    { type: 'sleep_analysis_in_bed_hr',      match: h => h === 'inbed' || h.includes('in bed') || h.includes('time in bed') },
+    { type: 'sleep_analysis_deep_hr',        match: h => h === 'deep' || h.includes('deep sleep') },
+    { type: 'sleep_analysis_rem_hr',         match: h => h === 'rem' || h.includes('rem sleep') },
+    { type: 'sleep_analysis_awake_hr',       match: h => h === 'awake' || h.includes('time awake') || h === 'wake' },
+    { type: 'sleep_analysis_quality_hr',     match: h => h === 'quality' },
+    { type: 'fell_asleep_in_hr',             match: h => h === 'fellasleepin' || h.includes('fell asleep in') },
+  ];
+
+  // Numeric fields (stored as-is, no unit conversion)
+  const numericMetrics = [
+    { type: 'sleep_efficiency_percent',      match: h => h === 'efficiency' },
+    { type: 'sleep_sessions_count',          match: h => h === 'sessions' },
+    { type: 'sleep_heart_rate_bpm',          match: h => h === 'sleepbpm' || h === 'sleep bpm' },
+    { type: 'waking_heart_rate_bpm',         match: h => h === 'wakingbpm' || h === 'waking bpm' },
+    { type: 'day_heart_rate_bpm',            match: h => h === 'daybpm' || h === 'day bpm' },
+    { type: 'heart_rate_variability_ms',     match: h => h === 'hrv' },
+    { type: 'sleep_hrv_ms',                  match: h => h === 'sleephrv' || h === 'sleep hrv' },
+    { type: 'blood_oxygen_saturation__',     match: h => h === 'spo2avg' },
+    { type: 'blood_oxygen_min__',            match: h => h === 'spo2min' },
+    { type: 'blood_oxygen_max__',            match: h => h === 'spo2max' },
+    { type: 'respiratory_rate_countmin',     match: h => h === 'respavg' || h === 'resp avg' },
+    { type: 'resp_rate_min_countmin',        match: h => h === 'respmin' || h === 'resp min' },
+    { type: 'resp_rate_max_countmin',        match: h => h === 'respmax' || h === 'resp max' },
+    { type: 'breathing_disturbances_count',  match: h => h === 'apnea' },
   ];
 
   const out = [];
   rows.forEach((row, idx) => {
     const ts = autosleepTimestamp(row);
-    metrics.forEach((m) => {
+
+    durationMetrics.forEach((m) => {
       const rawVal = pickRowValue(row, m.match);
       const value = parseDurationHours(rawVal);
       if (value == null) return;
-      out.push({
-        user_id: userId,
-        type: m.type,
-        value,
-        timestamp: ts,
-        raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }),
-      });
+      out.push({ user_id: userId, type: m.type, value, timestamp: ts, raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }) });
+    });
+
+    numericMetrics.forEach((m) => {
+      const rawVal = pickRowValue(row, m.match);
+      if (rawVal == null || String(rawVal).trim() === '') return;
+      const value = parseFloat(String(rawVal).replace(/[^0-9eE+\-.]/g, ''));
+      if (!Number.isFinite(value)) return;
+      out.push({ user_id: userId, type: m.type, value, timestamp: ts, raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }) });
     });
   });
 
@@ -252,6 +261,7 @@ const SLEEP_BASE_TYPES = new Set([
   'sleep_analysis_rem_hr',
   'sleep_analysis_deep_hr',
   'sleep_analysis_awake_hr',
+  'sleep_analysis_quality_hr',
 ]);
 
 const canonicalSleepType = (rawType) => {
@@ -526,19 +536,21 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
             normalized.push(normalizedRec);
           }
 
-          const nightsToReplace = new Map();
+          // Delete all existing records for each type+night in this upload so
+          // re-imports always win with the latest values from AutoSleep.
+          const nightTypeMap = new Map(); // day → Set<type>
           for (const rec of normalized) {
-            const sleepType = canonicalSleepType(rec.type);
-            if (!sleepType) continue;
             const day = String(rec.timestamp).slice(0, 10);
-            const k = `${sleepType}|${day}`;
-            nightsToReplace.set(k, { sleepType, day });
+            if (!nightTypeMap.has(day)) nightTypeMap.set(day, new Set());
+            nightTypeMap.get(day).add(rec.type);
+            const sleepAlias = canonicalSleepType(rec.type);
+            if (sleepAlias && sleepAlias !== rec.type) nightTypeMap.get(day).add(`macrofactor_${sleepAlias}`);
           }
 
-          for (const { sleepType, day } of nightsToReplace.values()) {
+          for (const [day, types] of nightTypeMap) {
             await db('health_data')
               .where({ user_id: req.user.id })
-              .whereIn('type', [sleepType, `macrofactor_${sleepType}`])
+              .whereIn('type', [...types])
               .andWhereRaw('substr(timestamp, 1, 10) = ?', [day])
               .delete();
           }
@@ -1083,6 +1095,16 @@ router.get('/sleep/daily', authenticate, async (req, res) => {
   startDate.setUTCDate(startDate.getUTCDate() - days);
   const startIso = startDate.toISOString();
 
+  const AUTOSLEEP_EXTRA_TYPES = [
+    'sleep_efficiency_percent', 'sleep_sessions_count',
+    'sleep_heart_rate_bpm', 'waking_heart_rate_bpm', 'day_heart_rate_bpm',
+    'sleep_hrv_ms', 'heart_rate_variability_ms',
+    'blood_oxygen_saturation__', 'blood_oxygen_min__', 'blood_oxygen_max__',
+    'respiratory_rate_countmin', 'resp_rate_min_countmin', 'resp_rate_max_countmin',
+    'breathing_disturbances_count', 'sleeping_wrist_temperature_degf',
+    'fell_asleep_in_hr',
+  ];
+
   const rows = await db('health_data')
     .select('type', 'value', 'timestamp')
     .where({ user_id: req.user.id })
@@ -1090,34 +1112,46 @@ router.get('/sleep/daily', authenticate, async (req, res) => {
     .andWhere('timestamp', '<=', endIso)
     .andWhere(function andSleep() {
       this.where('type', 'like', 'sleep_analysis_%')
-        .orWhere('type', 'like', 'macrofactor_sleep_analysis_%');
+        .orWhere('type', 'like', 'macrofactor_sleep_analysis_%')
+        .orWhereIn('type', AUTOSLEEP_EXTRA_TYPES);
     })
     .orderBy('timestamp', 'asc');
 
   const byDay = new Map();
+  const byDayExtra = new Map();
 
   for (const row of rows) {
-    const type = canonicalSleepType(row.type);
-    if (!type) continue;
     const day = dayKeyWithOffset(row.timestamp, tzOffsetMinutes);
     if (!day) continue;
-    const value = sleepHours(type, row.value);
-    if (value == null) continue;
 
-    let bucket = byDay.get(day);
-    if (!bucket) {
-      bucket = { day, _raw: Object.create(null) };
-      byDay.set(day, bucket);
-    }
-
-    const prev = bucket._raw[type];
-    if (!prev || String(row.timestamp) > String(prev.timestamp)) {
-      bucket._raw[type] = { timestamp: row.timestamp, value };
+    const type = canonicalSleepType(row.type);
+    if (type) {
+      const value = sleepHours(type, row.value);
+      if (value == null) continue;
+      let bucket = byDay.get(day);
+      if (!bucket) { bucket = { day, _raw: Object.create(null) }; byDay.set(day, bucket); }
+      const prev = bucket._raw[type];
+      if (!prev || String(row.timestamp) > String(prev.timestamp)) {
+        bucket._raw[type] = { timestamp: row.timestamp, value };
+      }
+    } else if (AUTOSLEEP_EXTRA_TYPES.includes(row.type)) {
+      const value = Number(row.value);
+      if (!Number.isFinite(value)) continue;
+      if (!byDayExtra.has(day)) byDayExtra.set(day, {});
+      const extra = byDayExtra.get(day);
+      const prevTs = extra[`${row.type}__ts`];
+      if (!prevTs || String(row.timestamp) > prevTs) {
+        extra[row.type] = value;
+        extra[`${row.type}__ts`] = String(row.timestamp);
+      }
     }
   }
 
-  const daily = [...byDay.values()]
-    .map((d) => {
+  const allSleepDays = new Set([...byDay.keys(), ...byDayExtra.keys()]);
+  const daily = [...allSleepDays]
+    .map((day) => {
+      const d = byDay.get(day) || { day, _raw: Object.create(null) };
+      const extra = byDayExtra.get(day) || {};
       const total = d._raw.sleep_analysis_total_sleep_hr?.value;
       const asleep = d._raw.sleep_analysis_asleep_hr?.value;
       const inBed = d._raw.sleep_analysis_in_bed_hr?.value;
@@ -1125,6 +1159,7 @@ router.get('/sleep/daily', authenticate, async (req, res) => {
       const rem = d._raw.sleep_analysis_rem_hr?.value || 0;
       const deep = d._raw.sleep_analysis_deep_hr?.value || 0;
       const awake = d._raw.sleep_analysis_awake_hr?.value;
+      const quality = d._raw.sleep_analysis_quality_hr?.value;
 
       let interpretedTotal = total;
       if (!Number.isFinite(interpretedTotal)) {
@@ -1133,7 +1168,7 @@ router.get('/sleep/daily', authenticate, async (req, res) => {
       }
 
       return {
-        day: d.day,
+        day,
         total_sleep_hr: Number.isFinite(interpretedTotal) ? interpretedTotal : null,
         asleep_hr: Number.isFinite(asleep) ? asleep : null,
         in_bed_hr: Number.isFinite(inBed) ? inBed : null,
@@ -1141,6 +1176,18 @@ router.get('/sleep/daily', authenticate, async (req, res) => {
         rem_hr: rem || null,
         deep_hr: deep || null,
         awake_hr: Number.isFinite(awake) ? awake : null,
+        quality_hr: Number.isFinite(quality) ? quality : null,
+        efficiency: extra.sleep_efficiency_percent ?? null,
+        sessions: extra.sleep_sessions_count ?? null,
+        sleep_bpm: extra.sleep_heart_rate_bpm ?? null,
+        waking_bpm: extra.waking_heart_rate_bpm ?? null,
+        hrv: extra.heart_rate_variability_ms ?? null,
+        sleep_hrv: extra.sleep_hrv_ms ?? null,
+        spo2: extra.blood_oxygen_saturation__ ?? null,
+        resp_rate: extra.respiratory_rate_countmin ?? null,
+        breath_dist: extra.breathing_disturbances_count ?? null,
+        wrist_temp: extra.sleeping_wrist_temperature_degf ?? null,
+        fell_asleep_in: extra.fell_asleep_in_hr ?? null,
       };
     })
     .sort((a, b) => a.day.localeCompare(b.day));

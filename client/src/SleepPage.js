@@ -41,12 +41,17 @@ const scoreNight = (night) => {
   const durationPenalty = Math.abs(total - 8) * 8;
   const durationScore = clamp(100 - durationPenalty, 0, 100);
 
-  // Efficiency from in-bed time when available.
+  // Efficiency: use AutoSleep-provided value if available, else compute from in-bed time.
   let efficiencyScore = 80;
-  const inBed = Number(night.in_bed_hr);
-  if (Number.isFinite(inBed) && inBed > 0) {
-    const efficiency = clamp(total / inBed, 0, 1);
-    efficiencyScore = clamp(100 * ((efficiency - 0.7) / 0.25), 0, 100);
+  const apiEfficiency = Number(night.efficiency);
+  if (Number.isFinite(apiEfficiency)) {
+    efficiencyScore = clamp(100 * ((apiEfficiency / 100 - 0.7) / 0.25), 0, 100);
+  } else {
+    const inBed = Number(night.in_bed_hr);
+    if (Number.isFinite(inBed) && inBed > 0) {
+      const efficiency = clamp(total / inBed, 0, 1);
+      efficiencyScore = clamp(100 * ((efficiency - 0.7) / 0.25), 0, 100);
+    }
   }
 
   // Stage balance reward (REM + Deep share of total).
@@ -312,6 +317,11 @@ function SleepPage({ token }) {
                 <th>Asleep</th>
                 <th>In Bed</th>
                 <th>Awake</th>
+                <th>Effic.</th>
+                <th>Sleep HR</th>
+                <th>HRV</th>
+                <th>SpO₂</th>
+                <th>Resp</th>
               </tr>
             </thead>
             <tbody>
@@ -325,6 +335,11 @@ function SleepPage({ token }) {
                   <td>{r.asleep_hr != null ? r.asleep_hr.toFixed(2) : '-'}</td>
                   <td>{r.in_bed_hr != null ? r.in_bed_hr.toFixed(2) : '-'}</td>
                   <td>{r.awake_hr != null ? r.awake_hr.toFixed(2) : '-'}</td>
+                  <td>{r.efficiency != null ? `${r.efficiency.toFixed(1)}%` : '-'}</td>
+                  <td>{r.sleep_bpm != null ? Math.round(r.sleep_bpm) : '-'}</td>
+                  <td>{r.hrv != null ? Math.round(r.hrv) : '-'}</td>
+                  <td>{r.spo2 != null ? `${r.spo2.toFixed(1)}%` : '-'}</td>
+                  <td>{r.resp_rate != null ? r.resp_rate.toFixed(1) : '-'}</td>
                 </tr>
               ))}
             </tbody>

@@ -131,16 +131,25 @@ const SECTIONS = [
     title: 'Sleep',
     defaultOpen: true,
     metrics: [
-      { keys: ['sleep_analysis_total_sleep_hr'],                      label: 'Total Sleep',   unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['sleep_analysis_asleep_hr'],                           label: 'Asleep',        unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['sleep_analysis_in_bed_hr'],                           label: 'In Bed',        unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['sleep_analysis_core_hr'],                             label: 'Core Sleep',    unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['sleep_analysis_rem_hr'],                              label: 'REM Sleep',     unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['sleep_analysis_deep_hr'],                             label: 'Deep Sleep',    unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['sleep_analysis_awake_hr'],                            label: 'Awake (sleep)', unit: 'hr',   dp: 1, mode: 'avg' },
-      { keys: ['respiratory_rate_countmin'],                          label: 'Resp. Rate',    unit: '/min', dp: 1, mode: 'avg' },
-      { keys: ['breathing_disturbances_count'],                       label: 'Breathing Dist.',unit: '',    dp: 0, mode: 'avg' },
-      { keys: ['sleeping_wrist_temperature_degf'],                    label: 'Wrist Temp',    unit: '\u00b0F', dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_total_sleep_hr'],   label: 'Total Sleep',     unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_asleep_hr'],        label: 'Asleep',          unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_in_bed_hr'],        label: 'In Bed',          unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_quality_hr'],       label: 'Sleep Quality',   unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_efficiency_percent'],        label: 'Efficiency',      unit: '%',    dp: 1, mode: 'avg' },
+      { keys: ['fell_asleep_in_hr'],               label: 'Fell Asleep In',  unit: 'hr',   dp: 2, mode: 'avg' },
+      { keys: ['sleep_sessions_count'],            label: 'Sessions',        unit: '',     dp: 0, mode: 'avg' },
+      { keys: ['sleep_analysis_core_hr'],          label: 'Core Sleep',      unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_rem_hr'],           label: 'REM Sleep',       unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_deep_hr'],          label: 'Deep Sleep',      unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_analysis_awake_hr'],         label: 'Awake (sleep)',   unit: 'hr',   dp: 1, mode: 'avg' },
+      { keys: ['sleep_heart_rate_bpm'],            label: 'Sleep HR',        unit: 'bpm',  dp: 0, mode: 'avg' },
+      { keys: ['waking_heart_rate_bpm'],           label: 'Waking HR',       unit: 'bpm',  dp: 0, mode: 'avg' },
+      { keys: ['heart_rate_variability_ms'],       label: 'HRV',             unit: 'ms',   dp: 0, mode: 'avg' },
+      { keys: ['sleep_hrv_ms'],                    label: 'Sleep HRV',       unit: 'ms',   dp: 0, mode: 'avg' },
+      { keys: ['blood_oxygen_saturation__'],       label: 'Blood O\u2082',   unit: '%',    dp: 1, mode: 'avg' },
+      { keys: ['respiratory_rate_countmin'],       label: 'Resp. Rate',      unit: '/min', dp: 1, mode: 'avg' },
+      { keys: ['breathing_disturbances_count'],    label: 'Breathing Dist.', unit: '',     dp: 0, mode: 'avg' },
+      { keys: ['sleeping_wrist_temperature_degf'], label: 'Wrist Temp',      unit: '\u00b0F', dp: 1, mode: 'avg' },
     ],
   },
 ];
@@ -329,24 +338,38 @@ function SharePage() {
     'sleep_analysis_total_sleep_hr', 'sleep_analysis_asleep_hr',
     'sleep_analysis_in_bed_hr', 'sleep_analysis_core_hr',
     'sleep_analysis_rem_hr', 'sleep_analysis_deep_hr',
-    'sleep_analysis_awake_hr', 'respiratory_rate_countmin',
-    'breathing_disturbances_count', 'sleeping_wrist_temperature_degf',
+    'sleep_analysis_awake_hr', 'sleep_analysis_quality_hr',
+    'sleep_efficiency_percent', 'fell_asleep_in_hr', 'sleep_sessions_count',
+    'sleep_heart_rate_bpm', 'waking_heart_rate_bpm',
+    'heart_rate_variability_ms', 'sleep_hrv_ms',
+    'blood_oxygen_saturation__', 'blood_oxygen_min__', 'blood_oxygen_max__',
+    'respiratory_rate_countmin', 'breathing_disturbances_count',
+    'sleeping_wrist_temperature_degf',
   ];
   const sleepDays = (() => {
     const allDays = new Set();
     SLEEP_KEYS.forEach(k => { if (maps[k]) Object.keys(maps[k]).forEach(d => allDays.add(d)); });
     return [...allDays].sort().reverse().map(date => ({
       date,
-      total:   maps['sleep_analysis_total_sleep_hr']?.[date],
-      asleep:  maps['sleep_analysis_asleep_hr']?.[date],
-      inBed:   maps['sleep_analysis_in_bed_hr']?.[date],
-      core:    maps['sleep_analysis_core_hr']?.[date],
-      rem:     maps['sleep_analysis_rem_hr']?.[date],
-      deep:    maps['sleep_analysis_deep_hr']?.[date],
-      awake:   maps['sleep_analysis_awake_hr']?.[date],
-      respRate: maps['respiratory_rate_countmin']?.[date],
-      breathDist: maps['breathing_disturbances_count']?.[date],
-      wristTemp: maps['sleeping_wrist_temperature_degf']?.[date],
+      total:        maps['sleep_analysis_total_sleep_hr']?.[date],
+      asleep:       maps['sleep_analysis_asleep_hr']?.[date],
+      inBed:        maps['sleep_analysis_in_bed_hr']?.[date],
+      core:         maps['sleep_analysis_core_hr']?.[date],
+      rem:          maps['sleep_analysis_rem_hr']?.[date],
+      deep:         maps['sleep_analysis_deep_hr']?.[date],
+      awake:        maps['sleep_analysis_awake_hr']?.[date],
+      quality:      maps['sleep_analysis_quality_hr']?.[date],
+      efficiency:   maps['sleep_efficiency_percent']?.[date],
+      fellAsleepIn: maps['fell_asleep_in_hr']?.[date],
+      sessions:     maps['sleep_sessions_count']?.[date],
+      sleepHR:      maps['sleep_heart_rate_bpm']?.[date],
+      wakingHR:     maps['waking_heart_rate_bpm']?.[date],
+      hrv:          maps['heart_rate_variability_ms']?.[date],
+      sleepHRV:     maps['sleep_hrv_ms']?.[date],
+      spo2:         maps['blood_oxygen_saturation__']?.[date],
+      respRate:     maps['respiratory_rate_countmin']?.[date],
+      breathDist:   maps['breathing_disturbances_count']?.[date],
+      wristTemp:    maps['sleeping_wrist_temperature_degf']?.[date],
     }));
   })();
 
@@ -694,8 +717,17 @@ function SharePage() {
                           </span>
                         </div>
                       )}
-                      {(d.respRate != null || d.breathDist != null || d.wristTemp != null) && (
+                      {(d.efficiency != null || d.quality != null || d.fellAsleepIn != null || d.sessions != null || d.sleepHR != null || d.wakingHR != null || d.hrv != null || d.sleepHRV != null || d.spo2 != null || d.respRate != null || d.breathDist != null || d.wristTemp != null) && (
                         <div className="share-sleep-extras">
+                          {d.efficiency != null && <span className="share-sleep-extra">Efficiency: <strong>{d.efficiency.toFixed(1)}%</strong></span>}
+                          {d.quality != null && <span className="share-sleep-extra">Quality: <strong>{d.quality.toFixed(1)} hr</strong></span>}
+                          {d.fellAsleepIn != null && <span className="share-sleep-extra">Fell Asleep In: <strong>{(d.fellAsleepIn * 60).toFixed(0)} min</strong></span>}
+                          {d.sessions != null && <span className="share-sleep-extra">Sessions: <strong>{Math.round(d.sessions)}</strong></span>}
+                          {d.sleepHR != null && <span className="share-sleep-extra">Sleep HR: <strong>{Math.round(d.sleepHR)} bpm</strong></span>}
+                          {d.wakingHR != null && <span className="share-sleep-extra">Waking HR: <strong>{Math.round(d.wakingHR)} bpm</strong></span>}
+                          {d.hrv != null && <span className="share-sleep-extra">HRV: <strong>{Math.round(d.hrv)} ms</strong></span>}
+                          {d.sleepHRV != null && <span className="share-sleep-extra">Sleep HRV: <strong>{Math.round(d.sleepHRV)} ms</strong></span>}
+                          {d.spo2 != null && <span className="share-sleep-extra">SpO\u2082: <strong>{d.spo2.toFixed(1)}%</strong></span>}
                           {d.respRate != null && <span className="share-sleep-extra">Resp. Rate: <strong>{d.respRate.toFixed(1)}/min</strong></span>}
                           {d.breathDist != null && <span className="share-sleep-extra">Breathing Dist: <strong>{Math.round(d.breathDist)}</strong></span>}
                           {d.wristTemp != null && <span className="share-sleep-extra">Wrist Temp: <strong>{d.wristTemp.toFixed(1)}\u00b0F</strong></span>}
