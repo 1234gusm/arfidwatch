@@ -1,13 +1,15 @@
 .share-page {
   min-height: 100vh;
-  background: #f4f7fb;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: #f0f4f8;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #1a2540;
 }
 
 /* ── Header ── */
 .share-header {
-  background: #001f4d;
-  padding: 14px 24px;
+  background: linear-gradient(135deg, #001f4d 0%, #0a3672 100%);
+  padding: 16px 24px;
+  box-shadow: 0 2px 8px rgba(0, 31, 77, 0.15);
 }
 
 .share-header-inner {
@@ -44,66 +46,73 @@
 .share-patient-card {
   background: #fff;
   border: 1px solid #dde3ee;
-  border-radius: 10px;
-  padding: 18px 22px;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
+  border-top: 3px solid #0a3672;
 }
 
 .share-patient-name {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 800;
   color: #001f4d;
   margin-bottom: 4px;
+  letter-spacing: -0.01em;
 }
 
 .share-period {
   font-size: 0.82rem;
   color: #5a6a8a;
+  font-weight: 500;
 }
 
 /* ── Metric groups ── */
 .share-group {
   background: #fff;
   border: 1px solid #dde3ee;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
 }
 
 .share-group-header {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 10px 20px;
+  padding: 12px 20px;
   background: #f8fafc;
   border: none;
   border-bottom: 1px solid #eef0f5;
+  border-left: 3px solid #0a3672;
   cursor: pointer;
   text-align: left;
-  transition: background 0.12s;
+  transition: background 0.15s;
 }
 .share-group-header:hover { background: #edf1f7; }
 
 .share-group-title {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #5a6a8a;
+  color: #3a5080;
   flex: 1;
 }
 
 .share-group-badge {
   font-size: 0.68rem;
-  background: #e1e8f0;
-  color: #5a6a8a;
+  background: #d8e4f0;
+  color: #3a5080;
   border-radius: 10px;
-  padding: 1px 8px;
+  padding: 2px 9px;
   margin-right: 10px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .share-group-arrow {
   font-size: 0.8rem;
-  color: #9aabbb;
+  color: #7a8aaa;
+  transition: transform 0.15s;
 }
 
 .share-group-body {
@@ -120,21 +129,27 @@
   border-bottom: 1px solid #f0f3f8;
 }
 
+.share-table tr:hover td {
+  background: #f8fafc;
+}
+
 .share-table td {
   padding: 11px 20px;
   font-size: 0.88rem;
   vertical-align: middle;
+  transition: background 0.1s;
 }
 
 .share-metric-name {
-  color: #334;
+  color: #2a3550;
   min-width: 160px;
+  font-weight: 500;
 }
 
 .share-metric-value {
   font-weight: 700;
   font-size: 1rem;
-  color: #001f4d;
+  color: #0a3672;
   white-space: nowrap;
 }
 
@@ -172,13 +187,14 @@
   margin: 80px auto;
   background: #fff;
   border: 1px solid #dde3ee;
-  border-radius: 12px;
-  padding: 36px 32px;
+  border-radius: 14px;
+  padding: 40px 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 31, 77, 0.08);
 }
 
 .share-unlock-card .share-logo {
@@ -300,8 +316,8 @@
 
 .share-journal-date {
   font-size: 0.78rem;
-  font-weight: 600;
-  color: #5a6a8a;
+  font-weight: 700;
+  color: #3a5080;
 }
 
 .share-journal-mood {
@@ -326,10 +342,12 @@
 
 /* ── Footer ── */
 .share-footer {
-  font-size: 0.75rem;
-  color: #aab;
+  font-size: 0.74rem;
+  color: #9aabbb;
   text-align: center;
-  margin-top: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e1e8f0;
 }
 
 /* ── Food Log ── */
@@ -402,6 +420,248 @@
   text-align: right;
 }
 
+/* ── Tabs ── */
+.share-tabs {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
+}
+.share-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #7a8aaa;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.share-tab:hover {
+  color: #001f4d;
+  background: #f0f3f8;
+}
+.share-tab--active {
+  color: #fff;
+  background: #0a3672;
+  box-shadow: 0 1px 4px rgba(10, 54, 114, 0.25);
+}
+
+/* ── Macro Summary Card ── */
+.share-macro-summary {
+  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
+}
+.share-macro-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #3a5080;
+  margin-bottom: 14px;
+}
+.share-macro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.share-macro-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 16px 8px;
+  background: #f4f7fb;
+  border: 1px solid #e1e8f0;
+  border-radius: 10px;
+  min-width: 80px;
+  flex: 1;
+}
+.share-macro-chip strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #001f4d;
+  line-height: 1.2;
+}
+.share-macro-chip span {
+  font-size: 0.68rem;
+  color: #7a8aaa;
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.share-macro-chip--cal { border-bottom: 2px solid #16a085; }
+.share-macro-chip--p { border-bottom: 2px solid #16a085; }
+.share-macro-chip--c { border-bottom: 2px solid #2980b9; }
+.share-macro-chip--f { border-bottom: 2px solid #d35400; }
+.share-macro-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.share-macro-bar {
+  display: flex;
+  flex: 1;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #eef0f5;
+}
+.share-macro-bar-seg {
+  transition: width 0.3s ease;
+}
+.share-macro-bar-p { background: linear-gradient(90deg, #16a085, #1abc9c); }
+.share-macro-bar-c { background: linear-gradient(90deg, #2980b9, #3498db); }
+.share-macro-bar-f { background: linear-gradient(90deg, #d35400, #e67e22); }
+.share-macro-bar-legend {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.share-macro-bar-legend em {
+  font-style: normal;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+/* ── Daily Nutrient Data ── */
+.share-daily-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.share-daily-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.share-daily-card {
+  background: #fff;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(0, 31, 77, 0.06);
+}
+.share-daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.share-daily-date {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #001f4d;
+}
+.share-daily-cals {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #16a085;
+}
+.share-daily-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.share-daily-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 14px 6px;
+  background: #f4f7fb;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  min-width: 72px;
+}
+.share-daily-chip strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #001f4d;
+  line-height: 1.2;
+}
+.share-daily-chip span {
+  font-size: 0.66rem;
+  color: #7a8aaa;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.share-daily-chip--empty {
+  opacity: 0.4;
+}
+.share-daily-chip--empty strong {
+  color: #9aabbb;
+}
+.share-daily-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.share-daily-bar {
+  display: flex;
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #eef0f5;
+}
+.share-daily-bar-p { background: linear-gradient(90deg, #16a085, #1abc9c); }
+.share-daily-bar-c { background: linear-gradient(90deg, #2980b9, #3498db); }
+.share-daily-bar-f { background: linear-gradient(90deg, #d35400, #e67e22); }
+.share-daily-bar-legend {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.share-daily-bar-legend em {
+  font-style: normal;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* ── Sleep tab styles ── */
+.share-sleep-card {
+  border-left: 3px solid #5b8fd9;
+}
+.share-sleep-total {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #5b8fd9;
+}
+.share-sleep-chip {
+  min-width: 64px;
+}
+.share-sleep-bar-core { background: linear-gradient(90deg, #5b8fd9, #78a5e0); }
+.share-sleep-bar-rem  { background: linear-gradient(90deg, #7c4dff, #9d7aff); }
+.share-sleep-bar-deep { background: linear-gradient(90deg, #1a237e, #303fa0); }
+.share-sleep-bar-awake { background: linear-gradient(90deg, #ff8a65, #ffab91); }
+.share-sleep-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f5;
+}
+.share-sleep-extra {
+  font-size: 0.78rem;
+  color: #5a6a8a;
+}
+.share-sleep-extra strong {
+  color: #0a3672;
+  font-weight: 700;
+}
+
 @media (max-width: 800px) {
   .share-header {
     padding: 12px 14px;
@@ -436,4 +696,33 @@
   .share-foodlog-food {
     max-width: 180px;
   }
+
+  /* Tabs */
+  .share-tabs { padding: 3px; gap: 3px; }
+  .share-tab { padding: 9px 8px; font-size: 0.78rem; }
+
+  /* Daily nutrient cards */
+  .share-daily-card { padding: 12px 14px; }
+  .share-daily-chips { gap: 6px; }
+  .share-daily-chip { min-width: 60px; padding: 6px 8px; }
+  .share-daily-chip strong { font-size: 0.8rem; }
+  .share-daily-bar-wrap { flex-direction: column; gap: 5px; }
+  .share-daily-bar-legend { justify-content: center; }
+
+  /* Patient card */
+  .share-patient-card { padding: 14px 16px; }
+  .share-patient-name { font-size: 1.1rem; }
+
+  /* Macro summary */
+  .share-macro-summary { padding: 14px 16px; }
+  .share-macro-chips { gap: 6px; }
+  .share-macro-chip { min-width: 60px; padding: 8px 10px; }
+  .share-macro-chip strong { font-size: 0.85rem; }
+  .share-macro-bar-wrap { flex-direction: column; gap: 5px; }
+  .share-macro-bar-legend { justify-content: center; }
+
+  /* Sleep cards */
+  .share-sleep-extras { gap: 8px; }
+  .share-sleep-chip { min-width: 52px; }
+  .share-daily-bar-legend em { font-size: 0.66rem; }
 }

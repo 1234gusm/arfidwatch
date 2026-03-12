@@ -202,6 +202,7 @@ function SharePage() {
   const [healthInfo, setHealthInfo] = useState(null);
   const [errMsg,     setErrMsg]     = useState('');
   const [unlocking,  setUnlocking]  = useState(false);
+  const [activeTab,  setActiveTab]  = useState('overview');
 
   useEffect(() => {
     fetch(`${API_BASE}/api/share/${shareToken}`)
@@ -289,6 +290,128 @@ function SharePage() {
   const medications  = healthInfo?.medications || [];
   const periodLabel  = PERIOD_LABEL[healthInfo?.export_period] || healthInfo?.export_period;
 
+  // Build daily macro data from health maps
+  const macroDays = (() => {
+    const allDays = new Set();
+    ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'].forEach(ct => {
+      if (maps[ct]) Object.keys(maps[ct]).forEach(d => allDays.add(d));
+    });
+    return [...allDays].sort().reverse().map(date => ({
+      date,
+      kcal:    maps['dietary_energy_kcal']?.[date],
+      protein: maps['protein_g']?.[date],
+      carbs:   maps['carbohydrates_g']?.[date],
+      fat:     maps['total_fat_g']?.[date],
+    }));
+  })();
+
+  const dayBar = (d) => {
+    const p = (d.protein || 0) * 4;
+    const c = (d.carbs || 0) * 4;
+    const f = (d.fat || 0) * 9;
+    const tot = p + c + f;
+    if (!tot) return null;
+    return { p: Math.round(p / tot * 100), c: Math.round(c / tot * 100), f: Math.round(f / tot * 100) };
+  };
+
+  // Build daily sleep data from health maps
+  const SLEEP_KEYS = [
+    'sleep_analysis_total_sleep_hr', 'sleep_analysis_asleep_hr',
+    'sleep_analysis_in_bed_hr', 'sleep_analysis_core_hr',
+    'sleep_analysis_rem_hr', 'sleep_analysis_deep_hr',
+    'sleep_analysis_awake_hr', 'respiratory_rate_countmin',
+    'breathing_disturbances_count', 'sleeping_wrist_temperature_degf',
+  ];
+  const sleepDays = (() => {
+    const allDays = new Set();
+    SLEEP_KEYS.forEach(k => { if (maps[k]) Object.keys(maps[k]).forEach(d => allDays.add(d)); });
+    return [...allDays].sort().reverse().map(date => ({
+      date,
+      total:   maps['sleep_analysis_total_sleep_hr']?.[date],
+      asleep:  maps['sleep_analysis_asleep_hr']?.[date],
+      inBed:   maps['sleep_analysis_in_bed_hr']?.[date],
+      core:    maps['sleep_analysis_core_hr']?.[date],
+      rem:     maps['sleep_analysis_rem_hr']?.[date],
+      deep:    maps['sleep_analysis_deep_hr']?.[date],
+      awake:   maps['sleep_analysis_awake_hr']?.[date],
+      respRate: maps['respiratory_rate_countmin']?.[date],
+      breathDist: maps['breathing_disturbances_count']?.[date],
+      wristTemp: maps['sleeping_wrist_temperature_degf']?.[date],
+    }));
+  })();
+
+  const sleepStageBar = (d) => {
+    const c = d.core || 0;
+    const r = d.rem || 0;
+    const dp = d.deep || 0;
+    const a = d.awake || 0;
+    const tot = c + r + dp + a;
+    if (!tot) return null;
+    return {
+      core: Math.round(c / tot * 100),
+      rem:  Math.round(r / tot * 100),
+      deep: Math.round(dp / tot * 100),
+      awake: Math.round(a / tot * 100),
+    };
+  };
+
+  // Average macros for nutrition breakdown
+  const avgProtein = maps['protein_g'] ? avgOf(maps['protein_g']) : null;
+  const avgCarbs   = maps['carbohydrates_g'] ? avgOf(maps['carbohydrates_g']) : null;
+  const avgFat     = maps['total_fat_g'] ? avgOf(maps['total_fat_g']) : null;
+  const avgCals    = maps['dietary_energy_kcal'] ? avgOf(maps['dietary_energy_kcal']) : null;
+
+  const macroBar = (() => {
+    const p = (avgProtein || 0) * 4;
+    const c = (avgCarbs || 0) * 4;
+    const f = (avgFat || 0) * 9;
+    const tot = p + c + f;
+    if (!tot) return null;
+    return { p: Math.round(p / tot * 100), c: Math.round(c / tot * 100), f: Math.round(f / tot * 100) };
+  })();
+
+  // Helper to render a metric section
+  const renderMetricSection = (section) => {
+    const rows = section.metrics
+      .map(m => {
+        const map  = pick(maps, ...m.keys);
+        const v    = map ? (m.mode === 'latest' ? latestOf(map) : avgOf(map)) : null;
+        const days = map ? countOf(map) : 0;
+        const lo   = map ? minOf(map) : null;
+        const hi   = map ? maxOf(map) : null;
+        const hasData = v !== null && Number.isFinite(v);
+        return { ...m, v: hasData ? v : null, days, lo, hi, hasData };
+      })
+      .filter((r, i, arr) => arr.findIndex(x => x.label === r.label) === i)
+      .filter(r => r.hasData);
+
+    if (rows.length === 0) return null;
+
+    return (
+      <Section key={section.id} title={section.title} badge={rows.length} defaultOpen={section.defaultOpen}>
+        <table className="share-table">
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.label + row.unit}>
+                <td className="share-metric-name">{row.label}</td>
+                <td className="share-metric-value">
+                  <>{fmt(row.v, row.dp)}{row.unit && <span className="share-metric-unit"> {row.unit}</span>}</>
+                </td>
+                <td className="share-metric-range">
+                  {row.mode === 'avg'
+                    ? (row.days > 1 && row.lo !== null && row.hi !== null
+                        ? `${fmt(row.lo, row.dp)}\u2013${fmt(row.hi, row.dp)} ${row.unit} \u00b7 ${row.days}d`
+                        : `avg \u00b7 ${row.days}d`)
+                    : 'latest'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+    );
+  };
+
   return (
     <div className="share-page">
       <div className="share-header">
@@ -307,52 +430,94 @@ function SharePage() {
           </div>
         </div>
 
-        {/* Health metric sections */}
-        {SECTIONS.map(section => {
-          const rows = section.metrics
-            .map(m => {
-              const map  = pick(maps, ...m.keys);
-              const v    = map ? (m.mode === 'latest' ? latestOf(map) : avgOf(map)) : null;
-              const days = map ? countOf(map) : 0;
-              const lo   = map ? minOf(map) : null;
-              const hi   = map ? maxOf(map) : null;
-              const hasData = v !== null && Number.isFinite(v);
-              return { ...m, v: hasData ? v : null, days, lo, hi, hasData };
-            })
-            // deduplicate: if both lb and kg weight present, show only the first match
-            .filter((r, i, arr) => arr.findIndex(x => x.label === r.label) === i)
-            // hide rows with no data
-            .filter(r => r.hasData);
+        {/* Tabs */}
+        <div className="share-tabs">
+          <button
+            className={`share-tab${activeTab === 'overview' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >Overview</button>
+          <button
+            className={`share-tab${activeTab === 'daily' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('daily')}
+          >Daily Nutrients{macroDays.length > 0 ? ` (${macroDays.length})` : ''}</button>
+          <button
+            className={`share-tab${activeTab === 'sleep' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('sleep')}
+          >Sleep{sleepDays.length > 0 ? ` (${sleepDays.length})` : ''}</button>
+        </div>
 
-          // hide the whole section if no rows have data
-          if (rows.length === 0) return null;
+        {activeTab === 'overview' && <>
+        {/* Nutrition section */}
+        {renderMetricSection(SECTIONS[0])}
 
-          const withData = rows.length;
+        {/* Average macro breakdown */}
+        {macroBar && (
+          <div className="share-macro-summary">
+            <div className="share-macro-title">Average Macro Breakdown</div>
+            <div className="share-macro-chips">
+              {avgCals != null && <div className="share-macro-chip share-macro-chip--cal"><strong>{Math.round(avgCals).toLocaleString()}</strong><span>avg kcal</span></div>}
+              {avgProtein != null && <div className="share-macro-chip share-macro-chip--p"><strong>{avgProtein.toFixed(1)}g</strong><span>Protein</span></div>}
+              {avgCarbs != null && <div className="share-macro-chip share-macro-chip--c"><strong>{avgCarbs.toFixed(1)}g</strong><span>Carbs</span></div>}
+              {avgFat != null && <div className="share-macro-chip share-macro-chip--f"><strong>{avgFat.toFixed(1)}g</strong><span>Fat</span></div>}
+            </div>
+            <div className="share-macro-bar-wrap">
+              <div className="share-macro-bar">
+                <div className="share-macro-bar-seg share-macro-bar-p" style={{ width: macroBar.p + '%' }} />
+                <div className="share-macro-bar-seg share-macro-bar-c" style={{ width: macroBar.c + '%' }} />
+                <div className="share-macro-bar-seg share-macro-bar-f" style={{ width: macroBar.f + '%' }} />
+              </div>
+              <span className="share-macro-bar-legend">
+                <em style={{ color: '#16a085' }}>P {macroBar.p}%</em>
+                <em style={{ color: '#2980b9' }}>C {macroBar.c}%</em>
+                <em style={{ color: '#d35400' }}>F {macroBar.f}%</em>
+              </span>
+            </div>
+          </div>
+        )}
 
+        {/* Food Log — collapsed, right after nutrition */}
+        {foodLog.length > 0 && (() => {
+          const grouped = groupFoodLog(foodLog);
           return (
-            <Section key={section.id} title={section.title} badge={withData} defaultOpen={section.defaultOpen}>
-              <table className="share-table">
-                <tbody>
-                  {rows.map(row => (
-                    <tr key={row.label + row.unit}>
-                      <td className="share-metric-name">{row.label}</td>
-                      <td className="share-metric-value">
-                        <>{fmt(row.v, row.dp)}{row.unit && <span className="share-metric-unit"> {row.unit}</span>}</>
-                      </td>
-                      <td className="share-metric-range">
-                        {row.mode === 'avg'
-                          ? (row.days > 1 && row.lo !== null && row.hi !== null
-                              ? `${fmt(row.lo, row.dp)}\u2013${fmt(row.hi, row.dp)} ${row.unit} · ${row.days}d`
-                              : `avg · ${row.days}d`)
-                          : 'latest'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <Section title="Food Log" badge={grouped.length + 'd'} defaultOpen={false}>
+              <div className="share-foodlog-list">
+                {grouped.map(({ date, meals }) => (
+                  <div key={date} className="share-foodlog-day">
+                    <div className="share-foodlog-date">{localDateStr(date)}</div>
+                    {meals.map(({ meal, items }) => (
+                      <div key={meal} className="share-foodlog-meal">
+                        <div className="share-foodlog-meal-name">{meal}</div>
+                        <table className="share-table share-foodlog-table">
+                          <tbody>
+                            {items.map((item, i) => (
+                              <tr key={i}>
+                                <td className="share-foodlog-food">{item.food_name}</td>
+                                <td className="share-foodlog-qty">{item.quantity}</td>
+                                <td className="share-foodlog-cals">
+                                  {item.calories != null ? `${Math.round(item.calories)} kcal` : ''}
+                                </td>
+                                <td className="share-foodlog-macros">
+                                  {[
+                                    item.protein_g != null ? `P ${Math.round(item.protein_g)}g` : null,
+                                    item.carbs_g   != null ? `C ${Math.round(item.carbs_g)}g`   : null,
+                                    item.fat_g     != null ? `F ${Math.round(item.fat_g)}g`     : null,
+                                  ].filter(Boolean).join(' \u00b7 ')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </Section>
           );
-        })}
+        })()}
+
+        {/* Remaining health sections: Body & Weight, Activity, Sleep */}
+        {SECTIONS.slice(1).map(section => renderMetricSection(section))}
 
         {/* Journal — collapsed by default */}
         <Section title="Journal" badge={journal.length} defaultOpen={false}>
@@ -379,47 +544,6 @@ function SharePage() {
             </div>
           )}
         </Section>
-
-        {/* Food Log — collapsed by default, only shown if data exists */}
-        {foodLog.length > 0 && (() => {
-          const grouped = groupFoodLog(foodLog);
-          return (
-            <Section title="Food Log" badge={grouped.length + 'd'} defaultOpen={false}>
-              <div className="share-foodlog-list">
-                {grouped.map(({ date, meals }) => (
-                  <div key={date} className="share-foodlog-day">
-                    <div className="share-foodlog-date">{localDateStr(date)}</div>
-                    {meals.map(({ meal, items }) => (
-                      <div key={meal} className="share-foodlog-meal">
-                        <div className="share-foodlog-meal-name">{meal}</div>
-                        <table className="share-table share-foodlog-table">
-                          <tbody>
-                            {items.map((item, i) => (
-                              <tr key={i}>
-                                <td className="share-foodlog-food">{item.food_name}</td>
-                                <td className="share-foodlog-qty">{item.quantity}</td>
-                                <td className="share-foodlog-cals">
-                                  {item.calories != null ? `${Math.round(item.calories)} kcal` : ''}
-                                </td>
-                                <td className="share-foodlog-macros">
-                                  {[
-                                    item.protein_g != null ? `P ${Math.round(item.protein_g)}g` : null,
-                                    item.carbs_g   != null ? `C ${Math.round(item.carbs_g)}g`   : null,
-                                    item.fat_g     != null ? `F ${Math.round(item.fat_g)}g`     : null,
-                                  ].filter(Boolean).join(' · ')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </Section>
-          );
-        })()}
 
         {/* Medications — collapsed by default, only shown if data exists */}
         {medications.length > 0 && (() => {
@@ -448,6 +572,123 @@ function SharePage() {
             </Section>
           );
         })()}
+
+        </>}
+
+        {/* ── Daily Nutrient Data tab ── */}
+        {activeTab === 'daily' && (
+          <div className="share-daily-tab">
+            {macroDays.length === 0 ? (
+              <p className="share-empty">No daily nutrient data for this period.</p>
+            ) : (
+              <div className="share-daily-list">
+                {macroDays.map(d => {
+                  const bar = dayBar(d);
+                  return (
+                    <div key={d.date} className="share-daily-card">
+                      <div className="share-daily-header">
+                        <span className="share-daily-date">{localDateStr(d.date)}</span>
+                        {d.kcal != null && (
+                          <span className="share-daily-cals">{Math.round(d.kcal).toLocaleString()} kcal</span>
+                        )}
+                      </div>
+                      <div className="share-daily-chips">
+                        {[
+                          { val: d.kcal,    label: 'Calories', unit: 'kcal', dp: 0 },
+                          { val: d.protein,  label: 'Protein',  unit: 'g',    dp: 1 },
+                          { val: d.carbs,    label: 'Carbs',    unit: 'g',    dp: 1 },
+                          { val: d.fat,      label: 'Fat',      unit: 'g',    dp: 1 },
+                        ].map(m => (
+                          <div key={m.label} className={`share-daily-chip${m.val == null ? ' share-daily-chip--empty' : ''}`}>
+                            <strong>{m.val != null ? (m.dp === 0 ? Math.round(m.val).toLocaleString() : m.val.toFixed(m.dp)) + ' ' + m.unit : '\u2014'}</strong>
+                            <span>{m.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {bar && (
+                        <div className="share-daily-bar-wrap">
+                          <div className="share-daily-bar">
+                            <div className="share-daily-bar-p" style={{ width: bar.p + '%' }} />
+                            <div className="share-daily-bar-c" style={{ width: bar.c + '%' }} />
+                            <div className="share-daily-bar-f" style={{ width: bar.f + '%' }} />
+                          </div>
+                          <span className="share-daily-bar-legend">
+                            <em style={{ color: '#16a085' }}>P {bar.p}%</em>
+                            <em style={{ color: '#2980b9' }}>C {bar.c}%</em>
+                            <em style={{ color: '#d35400' }}>F {bar.f}%</em>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Sleep tab ── */}
+        {activeTab === 'sleep' && (
+          <div className="share-daily-tab">
+            {sleepDays.length === 0 ? (
+              <p className="share-empty">No sleep data for this period.</p>
+            ) : (
+              <div className="share-daily-list">
+                {sleepDays.map(d => {
+                  const stages = sleepStageBar(d);
+                  return (
+                    <div key={d.date} className="share-daily-card share-sleep-card">
+                      <div className="share-daily-header">
+                        <span className="share-daily-date">{localDateStr(d.date)}</span>
+                        {d.total != null && (
+                          <span className="share-sleep-total">{d.total.toFixed(1)} hr total</span>
+                        )}
+                      </div>
+                      <div className="share-daily-chips">
+                        {[
+                          { val: d.total,  label: 'Total',  unit: 'hr' },
+                          { val: d.inBed,  label: 'In Bed', unit: 'hr' },
+                          { val: d.core,   label: 'Core',   unit: 'hr' },
+                          { val: d.rem,    label: 'REM',    unit: 'hr' },
+                          { val: d.deep,   label: 'Deep',   unit: 'hr' },
+                          { val: d.awake,  label: 'Awake',  unit: 'hr' },
+                        ].map(m => (
+                          <div key={m.label} className={`share-daily-chip share-sleep-chip${m.val == null ? ' share-daily-chip--empty' : ''}`}>
+                            <strong>{m.val != null ? m.val.toFixed(1) + ' ' + m.unit : '\u2014'}</strong>
+                            <span>{m.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {stages && (
+                        <div className="share-daily-bar-wrap">
+                          <div className="share-daily-bar share-sleep-bar">
+                            <div className="share-sleep-bar-core" style={{ width: stages.core + '%' }} />
+                            <div className="share-sleep-bar-rem" style={{ width: stages.rem + '%' }} />
+                            <div className="share-sleep-bar-deep" style={{ width: stages.deep + '%' }} />
+                            <div className="share-sleep-bar-awake" style={{ width: stages.awake + '%' }} />
+                          </div>
+                          <span className="share-daily-bar-legend">
+                            <em style={{ color: '#5b8fd9' }}>Core {stages.core}%</em>
+                            <em style={{ color: '#7c4dff' }}>REM {stages.rem}%</em>
+                            <em style={{ color: '#1a237e' }}>Deep {stages.deep}%</em>
+                            <em style={{ color: '#ff8a65' }}>Awake {stages.awake}%</em>
+                          </span>
+                        </div>
+                      )}
+                      {(d.respRate != null || d.breathDist != null || d.wristTemp != null) && (
+                        <div className="share-sleep-extras">
+                          {d.respRate != null && <span className="share-sleep-extra">Resp. Rate: <strong>{d.respRate.toFixed(1)}/min</strong></span>}
+                          {d.breathDist != null && <span className="share-sleep-extra">Breathing Dist: <strong>{Math.round(d.breathDist)}</strong></span>}
+                          {d.wristTemp != null && <span className="share-sleep-extra">Wrist Temp: <strong>{d.wristTemp.toFixed(1)}\u00b0F</strong></span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         <p className="share-footer">
           ArfidWatch &mdash; read-only view &mdash; {periodLabel.toLowerCase()}
