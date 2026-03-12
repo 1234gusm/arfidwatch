@@ -409,6 +409,57 @@
 }
 
 /* Combined log tab */
+/* Combined log tab controls */
+.share-log-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.share-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--secondary, #5a6a8a);
+  cursor: pointer;
+  user-select: none;
+}
+
+.share-toggle-track {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: #d0d5e0;
+  border-radius: 10px;
+  transition: background 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.share-toggle-track--on {
+  background: var(--accent, #3b7dd8);
+}
+
+.share-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+
+.share-toggle-track--on .share-toggle-thumb {
+  left: 19px;
+}
+
 .share-combined-log {
   display: flex;
   flex-direction: column;

@@ -211,6 +211,8 @@ function SharePage() {
   const [errMsg,     setErrMsg]     = useState('');
   const [unlocking,  setUnlocking]  = useState(false);
   const [activeTab,  setActiveTab]  = useState('overview');
+  const [showJournal, setShowJournal] = useState(false);
+  const [showMeds,    setShowMeds]    = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/share/${shareToken}`)
@@ -465,7 +467,7 @@ function SharePage() {
           <button
             className={`share-tab${activeTab === 'log' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('log')}
-          >Food/Journal/Medications</button>
+          >Food Log</button>
         </div>
 
         {activeTab === 'overview' && <>
@@ -476,12 +478,11 @@ function SharePage() {
 
         {activeTab === 'log' && (() => {
           // Build a unified day-keyed map
-          const allDays = new Set([
+          const logAllDays = new Set([
             ...foodLog.map(e => e.date),
-            ...journal.map(e => e.date),
-            ...medications.map(e => e.date),
+            ...(showJournal ? journal.map(e => e.date) : []),
+            ...(showMeds    ? medications.map(e => e.date) : []),
           ]);
-          const sortedDays = [...allDays].sort().reverse();
 
           const foodByDate = {};
           groupFoodLog(foodLog).forEach(g => { foodByDate[g.date] = g.meals; });
@@ -492,16 +493,33 @@ function SharePage() {
           const medByDate = {};
           groupMedications(medications).forEach(g => { medByDate[g.date] = g.items; });
 
-          if (sortedDays.length === 0) {
+          const sortedLogDays = [...logAllDays].sort().reverse();
+
+          if (sortedLogDays.length === 0) {
             return <p className="share-empty">No entries for this period.</p>;
           }
 
           return (
+            <>
+            <div className="share-log-controls">
+              <label className="share-toggle">
+                <span>Journal</span>
+                <span className={`share-toggle-track${showJournal ? ' share-toggle-track--on' : ''}`} onClick={() => setShowJournal(v => !v)}>
+                  <span className="share-toggle-thumb" />
+                </span>
+              </label>
+              <label className="share-toggle">
+                <span>Medications</span>
+                <span className={`share-toggle-track${showMeds ? ' share-toggle-track--on' : ''}`} onClick={() => setShowMeds(v => !v)}>
+                  <span className="share-toggle-thumb" />
+                </span>
+              </label>
+            </div>
             <div className="share-combined-log">
-              {sortedDays.map(date => {
+              {sortedLogDays.map(date => {
                 const meals   = foodByDate[date];
-                const jEntry  = journalByDate[date];
-                const meds    = medByDate[date];
+                const jEntry  = showJournal ? journalByDate[date] : null;
+                const meds    = showMeds    ? medByDate[date]     : null;
                 return (
                   <div key={date} className="share-combined-day">
                     <div className="share-combined-day-header">{localDateStr(date)}</div>
@@ -572,6 +590,7 @@ function SharePage() {
                 );
               })}
             </div>
+            </>
           );
         })()}
 
