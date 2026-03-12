@@ -469,7 +469,7 @@ function SharePage() {
         </div>
 
         {activeTab === 'overview' && <>
-        {/* Nutrition section */}
+        {/* Nutrition section only */}
         {renderMetricSection(SECTIONS[0])}
         <p className="share-disclaimer">Vitamin info does not include medication stats.</p>
         </>}
