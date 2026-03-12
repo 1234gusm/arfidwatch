@@ -355,21 +355,6 @@ function SharePage() {
     };
   };
 
-  // Average macros for nutrition breakdown
-  const avgProtein = maps['protein_g'] ? avgOf(maps['protein_g']) : null;
-  const avgCarbs   = maps['carbohydrates_g'] ? avgOf(maps['carbohydrates_g']) : null;
-  const avgFat     = maps['total_fat_g'] ? avgOf(maps['total_fat_g']) : null;
-  const avgCals    = maps['dietary_energy_kcal'] ? avgOf(maps['dietary_energy_kcal']) : null;
-
-  const macroBar = (() => {
-    const p = (avgProtein || 0) * 4;
-    const c = (avgCarbs || 0) * 4;
-    const f = (avgFat || 0) * 9;
-    const tot = p + c + f;
-    if (!tot) return null;
-    return { p: Math.round(p / tot * 100), c: Math.round(c / tot * 100), f: Math.round(f / tot * 100) };
-  })();
-
   // Helper to render a metric section
   const renderMetricSection = (section) => {
     const rows = section.metrics
@@ -427,6 +412,14 @@ function SharePage() {
           <div className="share-patient-name">{healthInfo.username}</div>
           <div className="share-period">
             {periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}
+            {(() => {
+              const wMap = pick(maps, 'weight_lb', 'weight_kg');
+              if (!wMap) return null;
+              const w = latestOf(wMap);
+              if (w == null || !Number.isFinite(w)) return null;
+              const isKg = !maps['weight_lb'] && maps['weight_kg'];
+              return <>&nbsp;&middot;&nbsp;{w.toFixed(1)} {isKg ? 'kg' : 'lb'}</>;
+            })()}
           </div>
         </div>
 
@@ -449,31 +442,6 @@ function SharePage() {
         {activeTab === 'overview' && <>
         {/* Nutrition section */}
         {renderMetricSection(SECTIONS[0])}
-
-        {/* Average macro breakdown */}
-        {macroBar && (
-          <div className="share-macro-summary">
-            <div className="share-macro-title">Average Macro Breakdown</div>
-            <div className="share-macro-chips">
-              {avgCals != null && <div className="share-macro-chip share-macro-chip--cal"><strong>{Math.round(avgCals).toLocaleString()}</strong><span>avg kcal</span></div>}
-              {avgProtein != null && <div className="share-macro-chip share-macro-chip--p"><strong>{avgProtein.toFixed(1)}g</strong><span>Protein</span></div>}
-              {avgCarbs != null && <div className="share-macro-chip share-macro-chip--c"><strong>{avgCarbs.toFixed(1)}g</strong><span>Carbs</span></div>}
-              {avgFat != null && <div className="share-macro-chip share-macro-chip--f"><strong>{avgFat.toFixed(1)}g</strong><span>Fat</span></div>}
-            </div>
-            <div className="share-macro-bar-wrap">
-              <div className="share-macro-bar">
-                <div className="share-macro-bar-seg share-macro-bar-p" style={{ width: macroBar.p + '%' }} />
-                <div className="share-macro-bar-seg share-macro-bar-c" style={{ width: macroBar.c + '%' }} />
-                <div className="share-macro-bar-seg share-macro-bar-f" style={{ width: macroBar.f + '%' }} />
-              </div>
-              <span className="share-macro-bar-legend">
-                <em style={{ color: '#16a085' }}>P {macroBar.p}%</em>
-                <em style={{ color: '#2980b9' }}>C {macroBar.c}%</em>
-                <em style={{ color: '#d35400' }}>F {macroBar.f}%</em>
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Food Log — collapsed, right after nutrition */}
         {foodLog.length > 0 && (() => {
@@ -516,8 +484,8 @@ function SharePage() {
           );
         })()}
 
-        {/* Remaining health sections: Body & Weight, Activity, Sleep */}
-        {SECTIONS.slice(1).map(section => renderMetricSection(section))}
+        {/* Sleep section */}
+        {renderMetricSection(SECTIONS[3])}
 
         {/* Journal — collapsed by default */}
         <Section title="Journal" badge={journal.length} defaultOpen={false}>
