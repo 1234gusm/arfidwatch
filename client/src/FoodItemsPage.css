@@ -16,6 +16,26 @@
 .fi-title { margin: 0 0 4px; color: #dff3ff; }
 .fi-subtitle { margin: 0; color: #6f94b0; font-size: 0.84rem; }
 
+.fi-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.fi-toggle-all-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(0,160,255,0.25);
+  color: #7ab8d8;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  min-height: 34px;
+  touch-action: manipulation;
+}
+.fi-toggle-all-btn:hover { background: rgba(0,160,255,0.14); color: #aadeff; }
+
 .fi-range-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .fi-range-btn {
   border: 1px solid rgba(255,255,255,0.12);
@@ -54,13 +74,24 @@
   border-radius: 10px;
   background: rgba(255,255,255,0.02);
 }
-.fi-day-title {
-  margin: 0;
+.fi-day-title-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 12px;
+  border: none;
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  font-size: 0.92rem;
-  color: #9ec7e5;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.12s;
 }
+.fi-day-title-btn:hover { background: rgba(0,140,255,0.07); }
+.fi-day-chevron { color: #5a8fbf; font-size: 0.8rem; width: 12px; flex-shrink: 0; }
+.fi-day-label { font-size: 0.92rem; font-weight: 600; color: #9ec7e5; flex: 1; }
+.fi-day-total-cals { font-size: 0.82rem; color: #6ee7b0; font-weight: 600; margin-left: auto; }
 
 .fi-list {
   list-style: none;

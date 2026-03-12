@@ -16,6 +16,7 @@ function FoodItemsPage({ token }) {
   const [range, setRange] = useState('30');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [collapsedDays, setCollapsedDays] = useState(new Set());
 
   const getRange = useCallback(() => {
     if (range === 'all') return {};
@@ -87,6 +88,23 @@ function FoodItemsPage({ token }) {
       .map(([dayKey, val]) => ({ dayKey, ...val }));
   }, [rows]);
 
+  const allDayKeys = dayGroups.map(d => d.dayKey);
+  const allCollapsed = allDayKeys.length > 0 && allDayKeys.every(k => collapsedDays.has(k));
+
+  const toggleDay = (dayKey) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(dayKey)) next.delete(dayKey);
+      else next.add(dayKey);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allCollapsed) setCollapsedDays(new Set());
+    else setCollapsedDays(new Set(allDayKeys));
+  };
+
   if (!token) return <div className="fi-page"><p className="fi-empty">Please log in.</p></div>;
 
   return (
@@ -96,14 +114,21 @@ function FoodItemsPage({ token }) {
           <h2 className="fi-title">🍽️ Food Log</h2>
           <p className="fi-subtitle">Exactly what you ate, split by day</p>
         </div>
-        <div className="fi-range-row">
-          {RANGE_OPTIONS.map(o => (
-            <button
-              key={o.id}
-              className={`fi-range-btn${range === o.id ? ' active' : ''}`}
-              onClick={() => setRange(o.id)}
-            >{o.label}</button>
-          ))}
+        <div className="fi-header-right">
+          {allDayKeys.length > 0 && (
+            <button className="fi-toggle-all-btn" onClick={toggleAll}>
+              {allCollapsed ? 'Expand All ▾' : 'Collapse All ▴'}
+            </button>
+          )}
+          <div className="fi-range-row">
+            {RANGE_OPTIONS.map(o => (
+              <button
+                key={o.id}
+                className={`fi-range-btn${range === o.id ? ' active' : ''}`}
+                onClick={() => setRange(o.id)}
+              >{o.label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -117,30 +142,47 @@ function FoodItemsPage({ token }) {
         </div>
       )}
 
-      {!loading && dayGroups.map(day => (
-        <section key={day.dayKey} className="fi-day">
-          <h3 className="fi-day-title">{day.dayLabel}</h3>
-          <ul className="fi-list">
-            {day.entries.map((e, idx) => (
-              <li key={`${e.timestamp}-${idx}`} className="fi-item">
-                <div className="fi-main">
-                  <span className="fi-time">{e.time}</span>
-                  <span className="fi-name">{e.name}</span>
-                  {e.qty !== null && String(e.qty).trim() !== '' && (
-                    <span className="fi-serving">{String(e.qty)}</span>
-                  )}
-                </div>
-                <div className="fi-macros">
-                  {e.calories !== null && <span>{Math.round(e.calories)} kcal</span>}
-                  {e.protein !== null && <span>P {e.protein.toFixed(1)}g</span>}
-                  {e.carbs !== null && <span>C {e.carbs.toFixed(1)}g</span>}
-                  {e.fat !== null && <span>F {e.fat.toFixed(1)}g</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {!loading && dayGroups.map(day => {
+        const isCollapsed = collapsedDays.has(day.dayKey);
+        const totalCals = day.entries.reduce((s, e) => s + (e.calories ?? 0), 0);
+        return (
+          <section key={day.dayKey} className="fi-day">
+            <button
+              type="button"
+              className="fi-day-title-btn"
+              onClick={() => toggleDay(day.dayKey)}
+              aria-expanded={!isCollapsed}
+            >
+              <span className="fi-day-chevron">{isCollapsed ? '▸' : '▾'}</span>
+              <span className="fi-day-label">{day.dayLabel}</span>
+              {totalCals > 0 && (
+                <span className="fi-day-total-cals">{Math.round(totalCals).toLocaleString()} kcal</span>
+              )}
+            </button>
+            {!isCollapsed && (
+              <ul className="fi-list">
+                {day.entries.map((e, idx) => (
+                  <li key={`${e.timestamp}-${idx}`} className="fi-item">
+                    <div className="fi-main">
+                      <span className="fi-time">{e.time}</span>
+                      <span className="fi-name">{e.name}</span>
+                      {e.qty !== null && String(e.qty).trim() !== '' && (
+                        <span className="fi-serving">{String(e.qty)}</span>
+                      )}
+                    </div>
+                    <div className="fi-macros">
+                      {e.calories !== null && <span>{Math.round(e.calories)} kcal</span>}
+                      {e.protein !== null && <span>P {e.protein.toFixed(1)}g</span>}
+                      {e.carbs !== null && <span>C {e.carbs.toFixed(1)}g</span>}
+                      {e.fat !== null && <span>F {e.fat.toFixed(1)}g</span>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
