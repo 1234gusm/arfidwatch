@@ -233,12 +233,14 @@ function App() {
           <span className="nav-brand">📊 ArfidWatch</span>
           <button
             type="button"
-            className="nav-burger"
+            className={`nav-burger${mobileMenuOpen ? ' nav-burger--open' : ''}`}
             onClick={() => setMobileMenuOpen(v => !v)}
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
           >
-            ☰
+            <span className="nav-burger-line" />
+            <span className="nav-burger-line" />
+            <span className="nav-burger-line" />
           </button>
         </div>
         {token ? (
@@ -250,7 +252,7 @@ function App() {
                 <React.Fragment key={tab.id}>
                   <Link
                     to={tab.to}
-                    className={`nav-tab-link${isDragging ? ' nav-tab-link--dragging' : ''}${isDropTarget ? ' nav-tab-link--drop-target' : ''}`}
+                    className={`nav-tab-link${isDragging ? ' nav-tab-link--dragging' : ''}${isDropTarget ? ' nav-tab-link--drop-target' : ''}${location.pathname === tab.to ? ' nav-tab-link--active' : ''}`}
                     draggable={!isMobileNav}
                     onDragStart={() => onTabDragStart(tab.id)}
                     onDragEnd={onTabDragEnd}
