@@ -509,6 +509,28 @@ function HealthPage({ token }) {
     // MacroFactor trend weight aliases to the same weight_lb card
     trend_weight_lbs:            'weight_lb',
     trend_weight_lb:             'weight_lb',
+    // Amino acid bare names → canonical l_* keys (covers older DB entries / CSV imports)
+    tyrosine_mg:                 'l_tyrosine_mg',
+    tryptophan_mg:               'l_tryptophan_mg',
+    glutamine_mg:                'l_glutamine_mg',
+    arginine_mg:                 'l_arginine_mg',
+    lysine_mg:                   'l_lysine_mg',
+    leucine_mg:                  'l_leucine_mg',
+    isoleucine_mg:               'l_isoleucine_mg',
+    valine_mg:                   'l_valine_mg',
+    phenylalanine_mg:            'l_phenylalanine_mg',
+    methionine_mg:               'l_methionine_mg',
+    threonine_mg:                'l_threonine_mg',
+    histidine_mg:                'l_histidine_mg',
+    cysteine_mg:                 'l_cysteine_mg',
+    carnitine_mg:                'l_carnitine_mg',
+    citrulline_mg:               'l_citrulline_mg',
+    theanine_mg:                 'l_theanine_mg',
+    proline_mg:                  'l_proline_mg',
+    serine_mg:                   'l_serine_mg',
+    alanine_mg:                  'l_alanine_mg',
+    aspartate_mg:                'l_aspartate_mg',
+    glutamate_mg:                'l_glutamate_mg',
   };
 
   // Resolve a raw type key to its canonical key (or itself if no alias).
