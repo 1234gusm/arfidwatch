@@ -656,8 +656,20 @@ function ProfilePage({ token }) {
         <p className="profile-hint">
           Endpoint:
           <br />
-          <code className="profile-code">POST https://arfidwatch.onrender.com/api/health/import</code>
+          <code className="profile-code">https://arfidwatch.onrender.com/api/health/import</code>
         </p>
+        <div className="profile-hint profile-setup-instructions">
+          <strong>How to set up in Health Auto Export:</strong>
+          <ol style={{ margin: '6px 0 0 0', paddingLeft: '18px', lineHeight: 1.7 }}>
+            <li>Open the <strong>Health Auto Export</strong> app and go to <strong>Automations</strong>.</li>
+            <li>Create a new automation and set <strong>Automation Type</strong> to <strong>REST API</strong>.</li>
+            <li>Paste the endpoint URL above into the URL field.</li>
+            <li>Set <strong>Data Type</strong> to <strong>Health Metrics</strong> and select <strong>All</strong> health metrics.</li>
+            <li>Under <strong>Headers</strong>, add: <code>X-INGEST-KEY</code> → your key below.</li>
+            <li>Set <strong>Content-Type</strong> to <code>application/json</code>.</li>
+            <li>Enable the automation and tap <strong>Run</strong> to sync.</li>
+          </ol>
+        </div>
 
         <div className="profile-row" style={{ marginBottom: 8 }}>
           <span className="profile-field-label">Connection</span>
@@ -686,47 +698,6 @@ function ProfilePage({ token }) {
             <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
           )}
         </div>
-      </div>
-
-      <div className="profile-card">
-        <div className="profile-section-title">Food Log</div>
-        <p className="profile-hint">
-          Upload a MacroFactor food log CSV via the Health page — any file containing a
-          &ldquo;Food&rdquo; column is automatically detected and stored here.
-        </p>
-
-        {foodLogStatus.count > 0 ? (
-          <>
-            <div className="profile-row">
-              <span className="profile-badge profile-badge--green">
-                {foodLogStatus.count.toLocaleString()} entries
-                {foodLogStatus.earliest && foodLogStatus.latest
-                  ? ` · ${foodLogStatus.earliest} – ${foodLogStatus.latest}`
-                  : ''}
-              </span>
-              <button className="profile-btn-danger" onClick={handleClearFoodLog}>Clear</button>
-            </div>
-
-            <div className="profile-toggle-row">
-              <div className="profile-toggle-info">
-                <span className="profile-toggle-label">Include in share profile</span>
-                <span className="profile-toggle-sub">
-                  {shareFoodLog ? 'Meal-by-meal breakdown visible to doctor' : 'Food log hidden from share view'}
-                </span>
-              </div>
-              <button
-                className={`profile-toggle-switch${shareFoodLog ? ' profile-toggle-switch--on' : ''}`}
-                onClick={() => handleToggleFoodLogShare(!shareFoodLog)}
-                role="switch"
-                aria-checked={shareFoodLog}
-              >
-                <span className="profile-toggle-knob" />
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="profile-hint" style={{ fontStyle: 'italic' }}>No food log data yet — upload your MacroFactor food log CSV on the Health page.</p>
-        )}
       </div>
 
       <div className="profile-card">
