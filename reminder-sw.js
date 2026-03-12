@@ -32,7 +32,8 @@ function checkReminders() {
     if (fired.has(key)) continue;
     fired.add(key);
 
-    self.registration.showNotification(TITLES[r.type] || 'ArfidWatch Reminder', {
+    const title = r.label || TITLES[r.type] || 'ArfidWatch Reminder';
+    self.registration.showNotification(title, {
       body:     BODIES[r.type] || '',
       tag:      r.id,
       renotify: true,
