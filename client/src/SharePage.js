@@ -428,7 +428,7 @@ function SharePage() {
             })()}
           </div>
           <div className="share-period">
-            {periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}
+            Averages&nbsp;&middot;&nbsp;{periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}
           </div>
           {(() => {
             const avgCals    = maps['dietary_energy_kcal'] ? avgOf(maps['dietary_energy_kcal']) : null;
