@@ -508,8 +508,15 @@ function HealthPage({ token }) {
     physical_effort_kcalhr_kg:   'physical_effort_kcalhrkg',
   };
 
-  // Resolve a raw type key to its canonical key (or itself if no alias)
-  const canonical = t => typeAliases[t] || t;
+  // Resolve a raw type key to its canonical key (or itself if no alias).
+  // Any macrofactor_ key not explicitly aliased falls back to the bare suffix,
+  // so unknown MacroFactor columns never surface with "macrofactor_" in their name.
+  const canonical = t => {
+    if (!t) return t;
+    if (typeAliases[t]) return typeAliases[t];
+    if (t.startsWith('macrofactor_')) return t.slice('macrofactor_'.length);
+    return t;
+  };
 
   // Auto-discover all unique canonical types from the actual imported data
   const allTypes = [...new Set(data.map(d => canonical(d.type)))].filter(Boolean);
