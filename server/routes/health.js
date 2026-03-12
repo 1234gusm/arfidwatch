@@ -497,10 +497,12 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
           if (/date|time|timestamp/i.test(k)) continue;
           if (v === undefined || v === null || String(v).trim() === '') continue;
 
-          // normalize type key
+          // normalize type key — strip brackets, parens, dots, slashes, and
+          // Unicode punctuation like the middle-dot (·, U+00B7) used in units
+          // such as "ml/(kg·min)" so the key matches the typeMeta/SECTIONS keys.
           const typeKey = String(k).trim().toLowerCase()
             .replace(/\s+/g, '_')
-            .replace(/\[|\]|\(|\)|\.|\//g, '')
+            .replace(/[\[\]()\./\u00B7\u22C5\u2022]/g, '')
             .replace(/[^a-z0-9_]/g, '_');
 
           // Skip sleep data from Health Auto Export — only AutoSleep CSV should provide sleep

@@ -36,7 +36,8 @@ const TYPE_ALIASES = {
   'lean_mass':              'lean_body_mass_lb',
   // activity
   'steps':                  'step_count_count',
-  'vo2_max_mlkg_min':       'vo2_max_mlkgmin',
+  'vo2_max_mlkg_min':       'vo2_max_mlkgmin',           // CSV middle-dot variant
+  'physical_effort_kcalhr_kg': 'physical_effort_kcalhrkg', // CSV middle-dot variant
   // heart
   'resting_heart_rate':     'resting_heart_rate_countmin',
 };
@@ -84,7 +85,23 @@ const SECTIONS = [
       { keys: ['vitamin_c_mg', 'vitamin_c'],                          label: 'Vitamin C',     unit: 'mg',   dp: 0, mode: 'avg' },
       { keys: ['vitamin_d_mcg', 'vitamin_d'],                         label: 'Vitamin D',     unit: 'mcg',  dp: 1, mode: 'avg' },
       { keys: ['vitamin_b12_mcg', 'vitamin_b12'],                     label: 'Vitamin B12',   unit: 'mcg',  dp: 1, mode: 'avg' },
+      { keys: ['vitamin_b6_mg'],                                       label: 'Vitamin B6',    unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['vitamin_e_mg'],                                        label: 'Vitamin E',     unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['vitamin_k_mcg'],                                       label: 'Vitamin K',     unit: 'mcg',  dp: 1, mode: 'avg' },
       { keys: ['folate_mcg', 'folic_acid_mcg'],                       label: 'Folate',        unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['biotin_mcg'],                                          label: 'Biotin',        unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['niacin_mg'],                                           label: 'Niacin',        unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['pantothenic_acid_mg'],                                 label: 'Pantothenic Acid', unit: 'mg', dp: 1, mode: 'avg' },
+      { keys: ['riboflavin_mg'],                                       label: 'Riboflavin',    unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['thiamin_mg'],                                          label: 'Thiamin',       unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['chromium_mcg'],                                        label: 'Chromium',      unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['copper_mg'],                                           label: 'Copper',        unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['iodine_mcg'],                                          label: 'Iodine',        unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['manganese_mg'],                                        label: 'Manganese',     unit: 'mg',   dp: 1, mode: 'avg' },
+      { keys: ['molybdenum_mcg'],                                      label: 'Molybdenum',    unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['selenium_mcg'],                                        label: 'Selenium',      unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['monounsaturated_fat_g'],                               label: 'Monounsat. Fat',unit: 'g',    dp: 1, mode: 'avg' },
+      { keys: ['polyunsaturated_fat_g'],                               label: 'Polyunsat. Fat',unit: 'g',    dp: 1, mode: 'avg' },
       { keys: ['caffeine_mg', 'caffeine'],                            label: 'Caffeine',      unit: 'mg',   dp: 0, mode: 'avg' },
       { keys: ['water_fl_oz_us', 'water'],                            label: 'Water',         unit: 'fl oz',dp: 1, mode: 'avg' },
     ],
@@ -108,6 +125,8 @@ const SECTIONS = [
       { keys: ['blood_pressure_diastolic_mmhg'],                      label: 'Diastolic BP',  unit: 'mmHg', dp: 0, mode: 'avg' },
       { keys: ['blood_glucose_mgdl'],                                 label: 'Blood Glucose', unit: 'mg/dL',dp: 0, mode: 'avg' },
       { keys: ['body_temperature_degf'],                              label: 'Body Temp',     unit: '\u00b0F', dp: 1, mode: 'avg' },
+      { keys: ['basal_body_temperature_degf'],                         label: 'Basal Temp',    unit: '\u00b0F', dp: 1, mode: 'avg' },
+      { keys: ['atrial_fibrillation_burden__'],                        label: 'AFib Burden',   unit: '%',    dp: 1, mode: 'avg' },
     ],
   },
   {
@@ -122,8 +141,35 @@ const SECTIONS = [
       { keys: ['walking___running_distance_mi'],                      label: 'Walk+Run Dist.', unit: 'mi',         dp: 2, mode: 'avg' },
       { keys: ['flights_climbed_count'],                              label: 'Flights Climbed',unit: '',           dp: 0, mode: 'avg' },
       { keys: ['stand_time_min'],                                     label: 'Stand Time',     unit: 'min',        dp: 0, mode: 'avg' },
-      { keys: ['vo2_max_mlkgmin'],                                    label: 'VO\u2082 Max',   unit: 'ml/kg/min',  dp: 1, mode: 'avg' },
+      { keys: ['stand_hour_count'],                                   label: 'Stand Hours',    unit: 'hr',         dp: 0, mode: 'avg' },
+      { keys: ['move_time_min'],                                      label: 'Move Time',      unit: 'min',        dp: 0, mode: 'avg' },
+      { keys: ['vo2_max_mlkgmin', 'vo2_max_mlkg_min'],                label: 'VO\u2082 Max',   unit: 'ml/kg/min',  dp: 1, mode: 'avg' },
       { keys: ['expenditure', 'energy_expenditure'],                  label: 'Expenditure',    unit: 'kcal',       dp: 0, mode: 'avg' },
+      { keys: ['physical_effort_kcalhrkg', 'physical_effort_kcalhr_kg'], label: 'Physical Effort', unit: 'kcal/hr\u00B7kg', dp: 1, mode: 'avg' },
+      { keys: ['cardio_recovery_countmin'],                           label: 'Cardio Recovery',unit: 'bpm',        dp: 0, mode: 'avg' },
+      { keys: ['walking_speed_mihr'],                                 label: 'Walking Speed',  unit: 'mph',        dp: 2, mode: 'avg' },
+      { keys: ['walking_step_length_in'],                             label: 'Step Length',    unit: 'in',         dp: 1, mode: 'avg' },
+      { keys: ['walking_asymmetry_percentage__'],                     label: 'Walk Asymmetry', unit: '%',          dp: 1, mode: 'avg' },
+      { keys: ['walking_double_support_percentage__'],                label: 'Double Support', unit: '%',          dp: 1, mode: 'avg' },
+      { keys: ['walking_heart_rate_average_countmin'],                label: 'Walking HR',     unit: 'bpm',        dp: 0, mode: 'avg' },
+      { keys: ['running_speed_mihr'],                                 label: 'Running Speed',  unit: 'mph',        dp: 2, mode: 'avg' },
+      { keys: ['running_power_w'],                                    label: 'Running Power',  unit: 'W',          dp: 0, mode: 'avg' },
+      { keys: ['running_stride_length_m'],                            label: 'Stride Length',  unit: 'm',          dp: 2, mode: 'avg' },
+      { keys: ['running_ground_contact_time_ms'],                     label: 'Ground Contact', unit: 'ms',         dp: 0, mode: 'avg' },
+      { keys: ['running_vertical_oscillation_cm'],                    label: 'Vert. Oscillation', unit: 'cm',     dp: 1, mode: 'avg' },
+      { keys: ['cycling_distance_mi'],                                label: 'Cycling Distance',unit: 'mi',        dp: 2, mode: 'avg' },
+      { keys: ['cycling_speed_mihr'],                                 label: 'Cycling Speed',  unit: 'mph',        dp: 1, mode: 'avg' },
+      { keys: ['cycling_power_w'],                                    label: 'Cycling Power',  unit: 'W',          dp: 0, mode: 'avg' },
+      { keys: ['cycling_cadence_countmin'],                           label: 'Cycling Cadence',unit: 'rpm',        dp: 0, mode: 'avg' },
+      { keys: ['stair_speed__down_fts'],                              label: 'Stair Speed Down',unit: 'ft/s',      dp: 2, mode: 'avg' },
+      { keys: ['stair_speed__up_fts'],                                label: 'Stair Speed Up', unit: 'ft/s',       dp: 2, mode: 'avg' },
+      { keys: ['six_minute_walking_test_distance_m'],                 label: '6-Min Walk Test',unit: 'm',          dp: 0, mode: 'avg' },
+      { keys: ['time_in_daylight_min'],                               label: 'Time in Daylight',unit: 'min',       dp: 0, mode: 'avg' },
+      { keys: ['mindful_minutes_min'],                                label: 'Mindful Minutes',unit: 'min',        dp: 0, mode: 'avg' },
+      { keys: ['handwashing_s'],                                      label: 'Handwashing',    unit: 's',          dp: 0, mode: 'avg' },
+      { keys: ['toothbrushing_s'],                                    label: 'Toothbrushing',  unit: 's',          dp: 0, mode: 'avg' },
+      { keys: ['environmental_audio_exposure_dbaspl'],                label: 'Env. Audio',     unit: 'dB',         dp: 0, mode: 'avg' },
+      { keys: ['headphone_audio_exposure_dbaspl'],                    label: 'Headphone Audio',unit: 'dB',         dp: 0, mode: 'avg' },
     ],
   },
   {
@@ -494,9 +540,7 @@ function SharePage() {
         </div>
 
         {activeTab === 'overview' && <>
-        {/* Nutrition section only */}
-        {renderMetricSection(SECTIONS[0])}
-        <p className="share-disclaimer">Vitamin info does not include medication stats.</p>
+        {SECTIONS.map(s => renderMetricSection(s))}
         </>}
 
         {activeTab === 'log' && (() => {

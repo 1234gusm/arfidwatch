@@ -167,8 +167,12 @@ function HealthPage({ token }) {
     try { text = await file.text(); } catch { alert('Could not read file'); return; }
     const firstLine = text.split('\n')[0].toLowerCase();
 
-    // Health Auto Export headers often include spaces/quotes (e.g. "Source Name", "Start Date").
-    const isHealthAutoExport = /(source\s*name|start\s*date|end\s*date|creation\s*date)/i.test(firstLine);
+    // Health Auto Export headers: row-per-measurement shape ("Source Name", "Start Date") or
+    // daily aggregate shape where the first column is "Date/Time" followed by metric columns.
+    const isHealthAutoExport =
+      /(source\s*name|start\s*date|end\s*date|creation\s*date)/i.test(firstLine) ||
+      (/^"?date\/time"?[,;]/i.test(firstLine.trimStart()) &&
+        /(active.energy|heart.rate|step.count|blood.oxygen|walking.*running)/i.test(firstLine));
     const isAutoSleepHeaderShape = /(iso8601,.*fromdate,.*todate|\binbed\b|\bfellasleepin\b|\basleepavg7\b|\befficiencyavg7\b)/i.test(firstLine.replace(/\s+/g, ''));
     const isAutoSleepCsv = isAutoSleepHeaderShape || /\bautosleep\b/i.test(firstLine);
     if (isHealthAutoExport) {
@@ -319,6 +323,53 @@ function HealthPage({ token }) {
     time_in_daylight_min: { label: 'Time in Daylight', unit: 'min', group: 'Other' },
     walking_speed_mihr: { label: 'Walking Speed', unit: 'mph', group: 'Other' },
     walking_step_length_in: { label: 'Step Length', unit: 'in', group: 'Other' },
+    // Vitamins & B-vitamins
+    vitamin_a_mcg:           { label: 'Vitamin A',          unit: 'mcg',         group: 'Nutrition' },
+    vitamin_b12_mcg:         { label: 'Vitamin B12',        unit: 'mcg',         group: 'Nutrition' },
+    vitamin_b6_mg:           { label: 'Vitamin B6',         unit: 'mg',          group: 'Nutrition' },
+    vitamin_c_mg:            { label: 'Vitamin C',          unit: 'mg',          group: 'Nutrition' },
+    vitamin_d_mcg:           { label: 'Vitamin D',          unit: 'mcg',         group: 'Nutrition' },
+    vitamin_e_mg:            { label: 'Vitamin E',          unit: 'mg',          group: 'Nutrition' },
+    vitamin_k_mcg:           { label: 'Vitamin K',          unit: 'mcg',         group: 'Nutrition' },
+    biotin_mcg:              { label: 'Biotin',             unit: 'mcg',         group: 'Nutrition' },
+    niacin_mg:               { label: 'Niacin',             unit: 'mg',          group: 'Nutrition' },
+    pantothenic_acid_mg:     { label: 'Pantothenic Acid',   unit: 'mg',          group: 'Nutrition' },
+    riboflavin_mg:           { label: 'Riboflavin',         unit: 'mg',          group: 'Nutrition' },
+    thiamin_mg:              { label: 'Thiamin',            unit: 'mg',          group: 'Nutrition' },
+    // Minerals
+    chromium_mcg:            { label: 'Chromium',           unit: 'mcg',         group: 'Nutrition' },
+    copper_mg:               { label: 'Copper',             unit: 'mg',          group: 'Nutrition' },
+    iodine_mcg:              { label: 'Iodine',             unit: 'mcg',         group: 'Nutrition' },
+    iron_mg:                 { label: 'Iron',               unit: 'mg',          group: 'Nutrition' },
+    manganese_mg:            { label: 'Manganese',          unit: 'mg',          group: 'Nutrition' },
+    molybdenum_mcg:          { label: 'Molybdenum',         unit: 'mcg',         group: 'Nutrition' },
+    potassium_mg:            { label: 'Potassium',          unit: 'mg',          group: 'Nutrition' },
+    selenium_mcg:            { label: 'Selenium',           unit: 'mcg',         group: 'Nutrition' },
+    monounsaturated_fat_g:   { label: 'Monounsat. Fat',     unit: 'g',           group: 'Nutrition' },
+    polyunsaturated_fat_g:   { label: 'Polyunsat. Fat',     unit: 'g',           group: 'Nutrition' },
+    // Running
+    running_speed_mihr:                  { label: 'Running Speed',       unit: 'mph',         group: 'Activity' },
+    running_power_w:                     { label: 'Running Power',       unit: 'W',           group: 'Activity' },
+    running_ground_contact_time_ms:      { label: 'Ground Contact',      unit: 'ms',          group: 'Activity' },
+    running_stride_length_m:             { label: 'Stride Length',       unit: 'm',           group: 'Activity' },
+    running_vertical_oscillation_cm:     { label: 'Vert. Oscillation',   unit: 'cm',          group: 'Activity' },
+    // Cycling
+    cycling_distance_mi:     { label: 'Cycling Distance',   unit: 'mi',          group: 'Activity' },
+    cycling_speed_mihr:      { label: 'Cycling Speed',      unit: 'mph',         group: 'Activity' },
+    cycling_power_w:         { label: 'Cycling Power',      unit: 'W',           group: 'Activity' },
+    cycling_cadence_countmin:{ label: 'Cycling Cadence',    unit: 'rpm',         group: 'Activity' },
+    // Walking extras
+    walking_asymmetry_percentage__:      { label: 'Walk Asymmetry',       unit: '%',           group: 'Activity' },
+    walking_double_support_percentage__: { label: 'Double Support',       unit: '%',           group: 'Activity' },
+    stair_speed__down_fts:   { label: 'Stair Speed Down',   unit: 'ft/s',        group: 'Activity' },
+    stair_speed__up_fts:     { label: 'Stair Speed Up',     unit: 'ft/s',        group: 'Activity' },
+    six_minute_walking_test_distance_m: { label: '6-Min Walk Test', unit: 'm',  group: 'Activity' },
+    // VO2 / Physical Effort — both the old key (with middle-dot → _) and new clean key
+    vo2_max_mlkg_min:        { label: 'VO\u2082 Max',       unit: 'ml/kg/min',   group: 'Activity' },
+    physical_effort_kcalhr_kg: { label: 'Physical Effort',  unit: 'kcal/hr\u00B7kg', group: 'Activity' },
+    // Other
+    handwashing_s:           { label: 'Handwashing',        unit: 's',           group: 'Other' },
+    toothbrushing_s:         { label: 'Toothbrushing',      unit: 's',           group: 'Other' },
     // MacroFactor exports (prefix: macrofactor_)
     macrofactor_energy: { label: 'MF Energy', unit: 'kcal', group: 'Nutrition' },
     macrofactor_calories: { label: 'MF Calories', unit: 'kcal', group: 'Nutrition' },
@@ -376,6 +427,9 @@ function HealthPage({ token }) {
     macrofactor_sleep_analysis_rem_hr:         'sleep_analysis_rem_hr',
     macrofactor_sleep_analysis_deep_hr:        'sleep_analysis_deep_hr',
     macrofactor_sleep_analysis_awake_hr:       'sleep_analysis_awake_hr',
+    // HealthAutoExport CSV with middle-dot in units produces these keys; alias to clean versions
+    vo2_max_mlkg_min:            'vo2_max_mlkgmin',
+    physical_effort_kcalhr_kg:   'physical_effort_kcalhrkg',
   };
 
   // Resolve a raw type key to its canonical key (or itself if no alias)
