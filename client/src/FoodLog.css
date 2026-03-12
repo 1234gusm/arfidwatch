@@ -26,6 +26,33 @@
   color: #4a7a9a;
 }
 
+/* Header right cluster */
+.fl-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Collapse/Expand All button */
+.fl-toggle-all-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(0,160,255,0.25);
+  color: #7ab8d8;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  min-height: 34px;
+  align-self: flex-end;
+  touch-action: manipulation;
+}
+.fl-toggle-all-btn:hover {
+  background: rgba(0,160,255,0.14);
+  color: #aadeff;
+}
+
 /* Range buttons */
 .fl-range-row {
   display: flex;

@@ -109,6 +109,13 @@ function FoodLog({ token }) {
     });
   };
 
+  const allCollapsed = days.length > 0 && days.every(d => collapsedDays.has(d));
+
+  const toggleAll = () => {
+    if (allCollapsed) setCollapsedDays(new Set());
+    else setCollapsedDays(new Set(days));
+  };
+
   if (!token) return <div className="fl-page"><p className="fl-empty">Please log in.</p></div>;
 
   return (
@@ -118,6 +125,12 @@ function FoodLog({ token }) {
           <h2 className="fl-title">🥗 Macros</h2>
           <p className="fl-subtitle">Daily macro summary from Food Log entries only</p>
         </div>
+        <div className="fl-header-right">
+        {days.length > 0 && (
+          <button className="fl-toggle-all-btn" onClick={toggleAll}>
+            {allCollapsed ? 'Expand All ▾' : 'Collapse All ▴'}
+          </button>
+        )}
         <div className="fl-range-row">
           {RANGE_OPTIONS.map(o => (
             <button
@@ -126,6 +139,7 @@ function FoodLog({ token }) {
               onClick={() => setRange(o.id)}
             >{o.label}</button>
           ))}
+        </div>
         </div>
       </div>
 
