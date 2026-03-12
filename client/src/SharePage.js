@@ -107,8 +107,8 @@ const SECTIONS = [
     ],
   },
   {
-    id: 'body',
-    title: 'Body & Weight',
+    id: 'body_activity',
+    title: 'Body & Activity',
     defaultOpen: true,
     metrics: [
       { keys: ['weight_lb', 'weight_lb', 'weight'],                  label: 'Weight',        unit: 'lb',   dp: 1, mode: 'latest' },
@@ -127,13 +127,7 @@ const SECTIONS = [
       { keys: ['body_temperature_degf'],                              label: 'Body Temp',     unit: '\u00b0F', dp: 1, mode: 'avg' },
       { keys: ['basal_body_temperature_degf'],                         label: 'Basal Temp',    unit: '\u00b0F', dp: 1, mode: 'avg' },
       { keys: ['atrial_fibrillation_burden__'],                        label: 'AFib Burden',   unit: '%',    dp: 1, mode: 'avg' },
-    ],
-  },
-  {
-    id: 'activity',
-    title: 'Activity',
-    defaultOpen: true,
-    metrics: [
+      // ── Activity ──
       { keys: ['step_count_count', 'steps'],                          label: 'Steps',          unit: '',           dp: 0, mode: 'avg' },
       { keys: ['exercise_time_min'],                                  label: 'Exercise Time',  unit: 'min',        dp: 0, mode: 'avg' },
       { keys: ['active_energy_kcal'],                                 label: 'Active Energy',  unit: 'kcal',       dp: 0, mode: 'avg' },
@@ -540,7 +534,7 @@ function SharePage() {
         </div>
 
         {activeTab === 'overview' && <>
-        {SECTIONS.map(s => renderMetricSection(s))}
+        {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
         </>}
 
         {activeTab === 'log' && (() => {
