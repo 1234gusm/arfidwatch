@@ -459,7 +459,7 @@ function SharePage() {
           <button
             className={`share-tab${activeTab === 'daily' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('daily')}
-          >Daily Nutrients{macroDays.length > 0 ? ` (${macroDays.length})` : ''}</button>
+          >Daily Macros{macroDays.length > 0 ? ` (${macroDays.length})` : ''}</button>
           <button
             className={`share-tab${activeTab === 'sleep' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('sleep')}
