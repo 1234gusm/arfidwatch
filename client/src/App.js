@@ -181,6 +181,22 @@ function App() {
     };
   }, [token, healthApiUrl]);
 
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker
+      .register(`${process.env.PUBLIC_URL}/reminder-sw.js`, {
+        scope: `${process.env.PUBLIC_URL}/`,
+      })
+      .then(() => {
+        try {
+          const list = JSON.parse(localStorage.getItem('arfidwatch_reminders') || '[]');
+          navigator.serviceWorker.ready.then(reg => {
+            if (reg.active) reg.active.postMessage({ type: 'SET_REMINDERS', reminders: list });
+          });
+        } catch (_) {}
+      })
+      .catch(() => {});
+  }, []);
 
   const reorderTabs = (sourceId, targetId) => {
     if (!sourceId || !targetId || sourceId === targetId) return;
