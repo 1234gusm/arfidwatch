@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import './CalendarPage.css';
 import API_BASE from './apiBase';
 import { toDateKey } from './utils/dateUtils';
 
@@ -12,10 +13,15 @@ const MOODS = [
   { val: 5, emoji: '😁', label: 'Great' },
 ];
 
+const fmtWeekday = d => d.toLocaleDateString('en-US', { weekday: 'long' });
+const fmtMonthDay = d => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const isTodayFn = d => toDateKey(d) === toDateKey(new Date());
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+
 function CalendarPage({ token }) {
   const nowTime = () => {
     const d = new Date();
-    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
   const [entries, setEntries] = useState([]);
@@ -27,35 +33,48 @@ function CalendarPage({ token }) {
   const [time, setTime] = useState(nowTime);
   const [toast, setToast] = useState(null);
   const [expandedEntry, setExpandedEntry] = useState(null);
+  const [showCal, setShowCal] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2500);
   };
 
-  const fetchEntries = async () => {
-    const res = await fetch(`${API_BASE}/api/journal?start=1970-01-01`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    setEntries(data.entries || []);
-  };
+  const fetchEntries = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/journal?start=1970-01-01`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setEntries(data.entries || []);
+    } catch (_) {
+      // Silently ignore; data shows as empty if unreachable.
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (token) fetchEntries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, fetchEntries]);
 
-  const onClickDay = date => {
-    setSelectedDate(date);
-    const iso = toDateKey(date);
+  // Auto-compute day entries when entries load OR selectedDate changes —
+  // ensures today's data appears immediately on mount without clicking.
+  useEffect(() => {
+    const iso = toDateKey(selectedDate);
     const filtered = entries.filter(e => e.date.slice(0, 10) === iso);
     setDayEntries(filtered.sort((a, b) => new Date(a.date) - new Date(b.date)));
-    // clear form
+  }, [entries, selectedDate]);
+
+  const selectDate = (date) => {
+    setSelectedDate(date);
     setText('');
     setTitle('');
     setMood(3);
     setTime(nowTime());
+    setExpandedEntry(null);
   };
 
   const handleSave = async () => {
@@ -65,9 +84,8 @@ function CalendarPage({ token }) {
     }
     const base = new Date(selectedDate);
     const [h, m] = time.split(':');
-    base.setHours(parseInt(h), parseInt(m), 0, 0);
-    // Build ISO string manually using local date parts to avoid UTC day shift.
-    const iso = `${toDateKey(base)}T${String(base.getHours()).padStart(2,'0')}:${String(base.getMinutes()).padStart(2,'0')}:00`;
+    base.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+    const iso = `${toDateKey(base)}T${String(base.getHours()).padStart(2, '0')}:${String(base.getMinutes()).padStart(2, '0')}:00`;
     const res = await fetch(`${API_BASE}/api/journal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -81,205 +99,179 @@ function CalendarPage({ token }) {
     const json = await res.json();
     const newEntry = { id: json.id, date: iso, title: title || '', text: text || '', mood: mood || 3 };
     setEntries(prev => [newEntry, ...prev]);
-    setDayEntries(prev => [...prev, newEntry].sort((a, b) => new Date(a.date) - new Date(b.date)));
-    // clear form
     setText('');
     setTitle('');
     setMood(3);
     setTime(nowTime());
+    showToast('Entry saved');
   };
 
   const handleDelete = async (entryId) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
-      if (!entryId) {
-        showToast('No entry ID found', 'error');
-        return;
-      }
-      
-      const url = `${API_BASE}/api/journal/${entryId}`;
-      const response = await fetch(url, {
+      const res = await fetch(`${API_BASE}/api/journal/${entryId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      
-      const responseText = await response.text();
-      if (!response.ok) {
-        showToast('Failed to delete: ' + responseText, 'error');
+      if (!res.ok) {
+        showToast('Failed to delete', 'error');
         return;
       }
-      
       setEntries(prev => prev.filter(e => e.id !== entryId));
-      setDayEntries(prev => prev.filter(e => e.id !== entryId));
+      setExpandedEntry(null);
       showToast('Entry deleted');
     } catch (err) {
-      console.error('Delete error:', err);
-      alert(`Error: ${err.message}`);
-    }
-  };
-
-  const moodEmoji = moodVal => {
-    switch (moodVal) {
-      case 1:
-        return '😢';
-      case 2:
-        return '😞';
-      case 3:
-        return '😐';
-      case 4:
-        return '😊';
-      case 5:
-        return '😁';
-      default:
-        return '';
+      showToast('Error: ' + err.message, 'error');
     }
   };
 
   const tileContent = ({ date, view }) => {
     if (view !== 'month') return null;
     const iso = toDateKey(date);
-    const dayCount = entries.filter(e => e.date.slice(0, 10) === iso).length;
-    if (dayCount === 0) return null;
-    const hasText = entries.some(e => e.date.slice(0, 10) === iso && e.text);
-    return (
-      <div style={{ fontSize: '0.9em', color: '#001f4d', fontWeight: 'bold' }}>
-        {hasText ? '📝' : '😐'} {dayCount}
-      </div>
-    );
+    const dayEs = entries.filter(e => e.date.slice(0, 10) === iso);
+    if (!dayEs.length) return null;
+    const avg = dayEs.reduce((s, e) => s + (e.mood || 3), 0) / dayEs.length;
+    const emoji = avg >= 4.5 ? '😁' : avg >= 3.5 ? '😊' : avg >= 2.5 ? '😐' : avg >= 1.5 ? '😞' : '😢';
+    return <div className="jnl-tile-dot">{emoji}</div>;
   };
 
-  // Get all days that have entries
-  const daysWithEntries = [...new Set(entries.map(e => e.date.slice(0, 10)))].sort().reverse();
-
   if (!token) {
-    return <div style={{padding: '20px', textAlign:'center'}}>Please log in</div>;
+    return <div className="jnl-page"><p className="jnl-empty-text">Please log in.</p></div>;
   }
 
+  const moodObj = MOODS.find(m => m.val === mood) || MOODS[2];
+
   return (
-    <div className="calendar-section">
-      {toast && (
-        <div className={`toast toast--${toast.type}`}>{toast.msg}</div>
+    <div className="jnl-page">
+      {toast && <div className={`toast toast--${toast.type}`}>{toast.msg}</div>}
+
+      <div className="jnl-header">
+        <div>
+          <h2 className="jnl-title">Journal</h2>
+          <p className="jnl-subtitle">{entries.length} {entries.length === 1 ? 'entry' : 'entries'} total</p>
+        </div>
+        <div className="jnl-header-actions">
+          <button className="jnl-cal-toggle" onClick={() => setShowCal(v => !v)}>
+            {showCal ? 'Hide calendar' : 'Show calendar'}
+          </button>
+          <button className="jnl-today-btn" onClick={() => selectDate(new Date())}>
+            Today
+          </button>
+        </div>
+      </div>
+
+      {showCal && (
+        <div className="jnl-cal-wrap">
+          <Calendar
+            onClickDay={selectDate}
+            tileContent={tileContent}
+            value={selectedDate}
+          />
+        </div>
       )}
-      <h2>📅 Journal Calendar</h2>
-      
-      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-        {/* Calendar on left */}
-        <div style={{ flex: '1', minWidth: '300px' }}>
-          <Calendar onClickDay={onClickDay} tileContent={tileContent} />
-          
-          {/* Quick access to days with entries */}
-          {daysWithEntries.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <h4>Days with entries</h4>
-              <ul className="health-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {daysWithEntries.map(dateStr => (
-                  <li 
-                    key={dateStr}
-                    onClick={() => onClickDay(new Date(dateStr + 'T00:00:00'))}
-                    style={{ 
-                      cursor: 'pointer',
-                      padding: '8px',
-                      backgroundColor: dateStr === toDateKey(selectedDate) ? '#e0eeff' : 'transparent',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    {new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+
+      <div className="jnl-day-panel">
+        {/* Day navigation */}
+        <div className="jnl-day-nav">
+          <button
+            className="jnl-nav-arrow"
+            onClick={() => selectDate(addDays(selectedDate, -1))}
+            aria-label="Previous day"
+          >‹</button>
+          <div className="jnl-day-heading">
+            <span className="jnl-day-weekday">{fmtWeekday(selectedDate)}</span>
+            <span className="jnl-day-date">{fmtMonthDay(selectedDate)}</span>
+            {isTodayFn(selectedDate) && <span className="jnl-today-badge">Today</span>}
+          </div>
+          <button
+            className="jnl-nav-arrow"
+            onClick={() => selectDate(addDays(selectedDate, 1))}
+            aria-label="Next day"
+          >›</button>
         </div>
 
-        {/* Day view on right */}
-        <div style={{ flex: '1', minWidth: '300px' }}>
-          <div style={{ 
-            background: '#f8fafb', 
-            padding: '20px', 
-            borderRadius: '6px',
-            border: '2px solid #0052cc'
-          }}>
-            <h3 style={{ color: '#001f4d', margin: '0 0 15px 0' }}>
-              📁 {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </h3>
-
-            {/* All entries for this day */}
-            {dayEntries.length > 0 ? (
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ color: '#1a4d7a' }}>Entries ({dayEntries.length})</h4>
-                {dayEntries.map((e) => {
-                  const isOpen = expandedEntry === e.id;
-                  const displayTitle = e.title || (e.text ? e.text.slice(0, 40) + (e.text.length > 40 ? '…' : '') : 'Entry');
-                  return (
-                    <div key={e.id} className="entry-detail">
-                      <div
-                        className="entry-header"
-                        onClick={() => setExpandedEntry(isOpen ? null : e.id)}
-                      >
-                        <span className="entry-collapse-arrow">{isOpen ? '▾' : '▸'}</span>
-                        <span className="entry-title-display">
-                          {moodEmoji(e.mood)} {displayTitle}
-                        </span>
-                        <small className="entry-time">
-                          {new Date(e.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </small>
-                      </div>
-                      {isOpen && (
-                        <div className="entry-body">
-                          {e.text && <p>{e.text}</p>}
-                          <div className="entry-options">
-                            <button className="delete-btn" onClick={() => handleDelete(e.id)}>Delete</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p style={{ color: '#666', fontStyle: 'italic' }}>No entries for this day yet</p>
-            )}
-
-            {/* Add new entry to this day */}
-            <div style={{ borderTop: '2px solid #d0dce6', paddingTop: '15px' }}>
-              <h4 style={{ color: '#1a4d7a', marginTop: 0 }}>+ Add entry</h4>
-              <label>Time:</label>
-              <input
-                type="time"
-                value={time}
-                onChange={e => setTime(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Title (optional)"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                style={{ width: '100%', marginTop: '8px', marginBottom: '6px' }}
-              />
-              <textarea 
-                placeholder="What's on your mind?" 
-                value={text} 
-                onChange={e => setText(e.target.value)} 
-                rows={3}
-                style={{ width: '100%' }}
-              />
-                      <label style={{ marginBottom: '6px', display: 'block' }}>Mood:</label>
-              <div className="mood-picker">
-                {MOODS.map(m => (
-                  <button
-                    key={m.val}
-                    type="button"
-                    className={`mood-btn${mood === m.val ? ' mood-btn--active' : ''}`}
-                    onClick={() => setMood(m.val)}
-                    title={m.label}
-                  >
-                    {m.emoji}
-                  </button>
-                ))}
-              </div>
-              <button onClick={handleSave} style={{ marginTop: '8px' }}>Save Entry</button>
-            </div>
+        {/* Entries for this day */}
+        {loading && <p className="jnl-loading">Loading…</p>}
+        {!loading && dayEntries.length === 0 && (
+          <div className="jnl-empty">
+            <span className="jnl-empty-icon">✍️</span>
+            <p>No entries for this day yet.</p>
           </div>
+        )}
+
+        <div className="jnl-entries">
+          {dayEntries.map(e => {
+            const isOpen = expandedEntry === e.id;
+            const em = MOODS.find(m => m.val === e.mood) || MOODS[2];
+            const displayTitle = e.title || (e.text ? e.text.slice(0, 52) + (e.text.length > 52 ? '…' : '') : 'Entry');
+            const timeStr = new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={e.id} className={`jnl-entry${isOpen ? ' jnl-entry--open' : ''}`}>
+                <button
+                  className="jnl-entry-header"
+                  onClick={() => setExpandedEntry(isOpen ? null : e.id)}
+                >
+                  <span className="jnl-entry-mood" title={em.label}>{em.emoji}</span>
+                  <span className="jnl-entry-titletext">{displayTitle}</span>
+                  <span className="jnl-entry-time">{timeStr}</span>
+                  <span className="jnl-entry-chevron">{isOpen ? '▾' : '›'}</span>
+                </button>
+                {isOpen && (
+                  <div className="jnl-entry-body">
+                    {e.title && e.text && <div className="jnl-entry-full-title">{e.title}</div>}
+                    {e.text && <p className="jnl-entry-text">{e.text}</p>}
+                    <div className="jnl-entry-meta">
+                      <span className="jnl-mood-chip">{em.emoji} {em.label}</span>
+                      <button className="jnl-delete-btn" onClick={() => handleDelete(e.id)}>Delete</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add new entry form */}
+        <div className="jnl-form">
+          <div className="jnl-form-title">+ New entry</div>
+          <div className="jnl-form-row">
+            <input
+              className="jnl-input"
+              type="text"
+              placeholder="Title (optional)"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+            />
+            <input
+              className="jnl-input jnl-input--time"
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+            />
+          </div>
+          <textarea
+            className="jnl-textarea"
+            placeholder="What's on your mind?"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            rows={3}
+          />
+          <div className="jnl-mood-row">
+            <span className="jnl-mood-label-text">Mood:</span>
+            {MOODS.map(m => (
+              <button
+                key={m.val}
+                type="button"
+                className={`jnl-mood-btn${mood === m.val ? ' jnl-mood-btn--active' : ''}`}
+                onClick={() => setMood(m.val)}
+                title={m.label}
+              >
+                {m.emoji}
+              </button>
+            ))}
+            <span className="jnl-mood-selected-label">{moodObj.label}</span>
+          </div>
+          <button className="jnl-save-btn" onClick={handleSave}>Save Entry</button>
         </div>
       </div>
     </div>
@@ -287,3 +279,4 @@ function CalendarPage({ token }) {
 }
 
 export default CalendarPage;
+

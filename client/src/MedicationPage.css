@@ -433,3 +433,17 @@
   .med-meta { flex-wrap: wrap; gap: 4px 8px; font-size: 0.85rem; }
   .med-actions { gap: 6px; }
 }
+
+/* ── Touch/desktop drag states ── */
+.med-quick-item--dragging {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.med-quick-item--over {
+  border: 2px dashed rgba(0, 120, 255, 0.75) !important;
+  background: rgba(10, 102, 194, 0.13) !important;
+  border-radius: 10px;
+  transform: scale(1.025);
+  transition: transform 0.1s, border-color 0.1s;
+}

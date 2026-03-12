@@ -257,3 +257,100 @@
     justify-content: flex-start;
   }
 }
+
+/* ── Collapsible table header ── */
+.sleep-table-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sleep-table-toggle {
+  font-size: 0.78rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 6px;
+  color: #7aaabb;
+  padding: 4px 12px;
+  cursor: pointer;
+  min-height: 30px;
+  transition: background 0.15s;
+  touch-action: manipulation;
+}
+.sleep-table-toggle:hover { background: rgba(255,255,255,0.1); }
+
+/* Quality badge (compact, inline) */
+.sleep-quality-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.sleep-quality-chip--excellent { background: #dcfce7; color: #166534; }
+.sleep-quality-chip--good      { background: #dbeafe; color: #1d4ed8; }
+.sleep-quality-chip--fair      { background: #fef3c7; color: #92400e; }
+.sleep-quality-chip--low       { background: #fee2e2; color: #991b1b; }
+.sleep-quality-chip--na        { background: #e2e8f0; color: #334155; }
+
+.sleep-quality-label { font-size: 0.68rem; font-weight: 500; }
+
+/* Clickable table rows */
+.sleep-tr { cursor: pointer; transition: background 0.1s; }
+.sleep-tr:hover { background: rgba(0, 100, 220, 0.08); }
+.sleep-tr--open { background: rgba(0, 100, 220, 0.13); }
+
+/* Sticky date column for horizontal scroll on mobile */
+.sleep-td-sticky {
+  position: sticky;
+  left: 0;
+  background: #f8fafc;
+  z-index: 1;
+  white-space: nowrap;
+}
+.sleep-tr--open .sleep-td-sticky { background: #eef4ff; }
+.sleep-tr:hover .sleep-td-sticky { background: #f2f7ff; }
+
+.sleep-td-chevron {
+  width: 22px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.sleep-th-expand { width: 22px; }
+
+/* Detail expansion row */
+.sleep-tr-detail td {
+  background: #f3f7fc;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 12px 16px !important;
+}
+
+.sleep-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px 16px;
+}
+
+.sleep-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sleep-detail-item small {
+  font-size: 0.67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.sleep-detail-item strong {
+  font-size: 0.88rem;
+  color: #1e3a5f;
+  font-weight: 600;
+}

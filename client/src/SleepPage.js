@@ -107,6 +107,8 @@ function SleepPage({ token }) {
   const [showRem, setShowRem] = useState(true);
   const [showCore, setShowCore] = useState(true);
   const [showAwake, setShowAwake] = useState(false);
+  const [tableVisible, setTableVisible] = useState(true);
+  const [expandedSleepRow, setExpandedSleepRow] = useState(null);
 
   const tzOffsetMinutes = new Date().getTimezoneOffset();
 
@@ -305,45 +307,77 @@ function SleepPage({ token }) {
 
       {dailyRows.length > 0 ? (
         <div className="sleep-table-wrap">
-          <div className="sleep-table-title">Last 30 Nights</div>
-          <table className="sleep-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Total</th>
-                <th>Deep</th>
-                <th>REM</th>
-                <th>Core</th>
-                <th>Asleep</th>
-                <th>In Bed</th>
-                <th>Awake</th>
-                <th>Effic.</th>
-                <th>Sleep HR</th>
-                <th>HRV</th>
-                <th>SpO₂</th>
-                <th>Resp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...dailyRows].reverse().slice(0, 30).map((r) => (
-                <tr key={r.day}>
-                  <td>{r.day}</td>
-                  <td>{r.total_sleep_hr != null ? r.total_sleep_hr.toFixed(2) : '-'}</td>
-                  <td>{r.deep_hr != null ? r.deep_hr.toFixed(2) : '-'}</td>
-                  <td>{r.rem_hr != null ? r.rem_hr.toFixed(2) : '-'}</td>
-                  <td>{r.core_hr != null ? r.core_hr.toFixed(2) : '-'}</td>
-                  <td>{r.asleep_hr != null ? r.asleep_hr.toFixed(2) : '-'}</td>
-                  <td>{r.in_bed_hr != null ? r.in_bed_hr.toFixed(2) : '-'}</td>
-                  <td>{r.awake_hr != null ? r.awake_hr.toFixed(2) : '-'}</td>
-                  <td>{r.efficiency != null ? `${r.efficiency.toFixed(1)}%` : '-'}</td>
-                  <td>{r.sleep_bpm != null ? Math.round(r.sleep_bpm) : '-'}</td>
-                  <td>{r.hrv != null ? Math.round(r.hrv) : '-'}</td>
-                  <td>{r.spo2 != null ? `${r.spo2.toFixed(1)}%` : '-'}</td>
-                  <td>{r.resp_rate != null ? r.resp_rate.toFixed(1) : '-'}</td>
+          <div className="sleep-table-title-row">
+            <span className="sleep-table-title">Last 30 Nights</span>
+            <button
+              type="button"
+              className="sleep-table-toggle"
+              onClick={() => setTableVisible(v => !v)}
+            >
+              {tableVisible ? 'Hide ▴' : 'Show ▾'}
+            </button>
+          </div>
+          {tableVisible && (
+            <table className="sleep-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Quality</th>
+                  <th>Deep</th>
+                  <th>REM</th>
+                  <th>Core</th>
+                  <th>Awake</th>
+                  <th className="sleep-th-expand" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[...dailyRows].reverse().slice(0, 30).map((r) => {
+                  const score = scoreNight(r);
+                  const band = scoreBand(score);
+                  const isExpanded = expandedSleepRow === r.day;
+                  return (
+                    <React.Fragment key={r.day}>
+                      <tr
+                        className={`sleep-tr${isExpanded ? ' sleep-tr--open' : ''}`}
+                        onClick={() => setExpandedSleepRow(isExpanded ? null : r.day)}
+                      >
+                        <td className="sleep-td-sticky">{fmtDate(r.day)}</td>
+                        <td>{r.total_sleep_hr != null ? r.total_sleep_hr.toFixed(2) : '–'}</td>
+                        <td>
+                          <span className={band.className.replace('sleep-score-badge', 'sleep-quality-chip')}>
+                            {score != null ? score : '–'}
+                            {score != null && <span className="sleep-quality-label"> {band.label}</span>}
+                          </span>
+                        </td>
+                        <td>{r.deep_hr != null ? r.deep_hr.toFixed(2) : '–'}</td>
+                        <td>{r.rem_hr != null ? r.rem_hr.toFixed(2) : '–'}</td>
+                        <td>{r.core_hr != null ? r.core_hr.toFixed(2) : '–'}</td>
+                        <td>{r.awake_hr != null ? r.awake_hr.toFixed(2) : '–'}</td>
+                        <td className="sleep-td-chevron">{isExpanded ? '▾' : '›'}</td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="sleep-tr-detail">
+                          <td colSpan="8">
+                            <div className="sleep-detail-grid">
+                              <div className="sleep-detail-item"><small>Score</small><strong>{score != null ? `${score}/100` : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>Asleep</small><strong>{r.asleep_hr != null ? r.asleep_hr.toFixed(2) + ' hr' : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>In Bed</small><strong>{r.in_bed_hr != null ? r.in_bed_hr.toFixed(2) + ' hr' : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>Efficiency</small><strong>{r.efficiency != null ? r.efficiency.toFixed(1) + '%' : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>Sleep HR</small><strong>{r.sleep_bpm != null ? Math.round(r.sleep_bpm) + ' bpm' : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>HRV</small><strong>{r.hrv != null ? Math.round(r.hrv) + ' ms' : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>SpO₂</small><strong>{r.spo2 != null ? r.spo2.toFixed(1) + '%' : '–'}</strong></div>
+                              <div className="sleep-detail-item"><small>Resp Rate</small><strong>{r.resp_rate != null ? r.resp_rate.toFixed(1) + ' /min' : '–'}</strong></div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       ) : null}
     </div>

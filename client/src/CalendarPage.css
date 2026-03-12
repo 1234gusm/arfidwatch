@@ -1,0 +1,486 @@
+/* ── Journal Page ─────────────────────────────────────────────────────────── */
+.jnl-page {
+  padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  color: #eaf6ff;
+  background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
+  min-height: 100vh;
+}
+
+.jnl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.jnl-title {
+  margin: 0 0 2px;
+  font-size: 1.55rem;
+  color: #dff3ff;
+  font-weight: 800;
+}
+
+.jnl-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4a7a9a;
+}
+
+.jnl-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.jnl-today-btn {
+  background: var(--primary-light, #003d99);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 18px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+  min-height: 36px;
+  touch-action: manipulation;
+}
+.jnl-today-btn:hover { background: var(--primary-lighter, #0052cc); }
+
+.jnl-cal-toggle {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  color: #8ab8d8;
+  font-size: 0.83rem;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  min-height: 36px;
+  touch-action: manipulation;
+}
+.jnl-cal-toggle:hover { background: rgba(255,255,255,0.1); }
+
+/* ── Dark-theme calendar overrides ── */
+.jnl-cal-wrap {
+  margin-bottom: 22px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0,100,220,0.3);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.4);
+  max-width: 440px;
+}
+
+.jnl-cal-wrap .react-calendar {
+  background: #021733;
+  border: none;
+  border-radius: 0;
+  color: #cce7ff;
+  width: 100%;
+}
+.jnl-cal-wrap .react-calendar__navigation {
+  background: #001040;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.jnl-cal-wrap .react-calendar__navigation button {
+  background: transparent;
+  border: none;
+  color: #88c0e8;
+  font-weight: 600;
+  min-width: 44px;
+  min-height: 44px;
+}
+.jnl-cal-wrap .react-calendar__navigation button:hover,
+.jnl-cal-wrap .react-calendar__navigation button:focus {
+  background: rgba(255,255,255,0.08);
+}
+.jnl-cal-wrap .react-calendar__month-view__weekdays {
+  background: #001535;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.jnl-cal-wrap .react-calendar__month-view__weekdays__weekday abbr {
+  color: #386888;
+  text-decoration: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.jnl-cal-wrap .react-calendar__tile {
+  background: transparent;
+  color: #8ab8d8;
+  padding: 7px 4px 3px;
+  line-height: 1.2;
+}
+.jnl-cal-wrap .react-calendar__tile:hover,
+.jnl-cal-wrap .react-calendar__tile:focus {
+  background: rgba(0,100,255,0.14);
+  color: #cce7ff;
+}
+.jnl-cal-wrap .react-calendar__tile--now {
+  background: rgba(0,80,200,0.24);
+  color: #7dd3ff;
+  font-weight: 700;
+}
+.jnl-cal-wrap .react-calendar__tile--active,
+.jnl-cal-wrap .react-calendar__tile--active:hover {
+  background: #0044b0 !important;
+  color: #fff !important;
+  border-radius: 6px;
+}
+.jnl-cal-wrap .react-calendar__month-view__days__day--weekend {
+  color: #7aa8cc;
+}
+.jnl-cal-wrap .react-calendar__month-view__days__day--neighboringMonth {
+  color: #1e3a58;
+  opacity: 0.5;
+}
+.jnl-tile-dot {
+  font-size: 0.68rem;
+  text-align: center;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+/* ── Day panel ── */
+.jnl-day-panel {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(0,100,200,0.22);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.jnl-day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: rgba(0,20,70,0.45);
+}
+
+.jnl-nav-arrow {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 9px;
+  color: #88bbe0;
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  line-height: 1;
+  padding: 0;
+}
+.jnl-nav-arrow:hover { background: rgba(255,255,255,0.14); }
+
+.jnl-day-heading {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.jnl-day-weekday {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dff3ff;
+}
+
+.jnl-day-date {
+  font-size: 0.8rem;
+  color: #4a7a9a;
+}
+
+.jnl-today-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: #3cdc50;
+  color: #001a08;
+  border-radius: 4px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ── Entries list ── */
+.jnl-entries {
+  padding: 12px 16px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.jnl-loading {
+  color: #4a7a9a;
+  padding: 20px;
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.jnl-empty {
+  padding: 30px;
+  text-align: center;
+  color: #3a6880;
+}
+.jnl-empty-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+.jnl-empty p { margin: 0; font-size: 0.88rem; }
+.jnl-empty-text { color: #aaa; padding: 20px; }
+
+.jnl-entry {
+  border: 1px solid rgba(0,100,200,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0,30,80,0.22);
+  transition: border-color 0.15s;
+}
+.jnl-entry--open {
+  border-color: rgba(0,140,255,0.45);
+  background: rgba(0,40,100,0.3);
+}
+
+.jnl-entry-header {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  color: #dff3ff;
+  box-sizing: border-box;
+}
+.jnl-entry-header:hover { background: rgba(255,255,255,0.05); }
+
+.jnl-entry-mood {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.jnl-entry-titletext {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c8e8ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.jnl-entry-time {
+  font-size: 0.73rem;
+  color: #4a7a9a;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.jnl-entry-chevron {
+  font-size: 0.9rem;
+  color: #4a7a9a;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.jnl-entry-body {
+  padding: 2px 14px 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.18);
+}
+
+.jnl-entry-full-title {
+  font-weight: 700;
+  color: #aaddff;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  padding-top: 10px;
+}
+
+.jnl-entry-text {
+  margin: 10px 0 12px;
+  font-size: 0.88rem;
+  color: #9bbdd8;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.jnl-entry-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.jnl-mood-chip {
+  font-size: 0.78rem;
+  color: #5a8ab0;
+}
+
+.jnl-delete-btn {
+  background: rgba(160,20,20,0.2);
+  border: 1px solid rgba(230,130,130,0.3);
+  border-radius: 7px;
+  color: #f0a0a0;
+  font-size: 0.78rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  min-height: 32px;
+  touch-action: manipulation;
+  transition: background 0.12s;
+}
+.jnl-delete-btn:hover { background: rgba(160,20,20,0.38); }
+
+/* ── Add-entry form ── */
+.jnl-form {
+  margin: 4px 16px 16px;
+  padding: 16px;
+  background: rgba(0,16,48,0.6);
+  border: 1px solid rgba(0,100,200,0.22);
+  border-radius: 12px;
+}
+
+.jnl-form-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #3a6888;
+  margin-bottom: 10px;
+}
+
+.jnl-form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.jnl-input {
+  flex: 1;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(0,100,200,0.32);
+  border-radius: 8px;
+  color: #dff3ff;
+  padding: 9px 12px;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.jnl-input:focus { border-color: rgba(0,140,255,0.55); }
+.jnl-input::placeholder { color: rgba(255,255,255,0.28); }
+.jnl-input--time { flex: 0 0 auto; width: 120px; }
+
+.jnl-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(0,100,200,0.32);
+  border-radius: 8px;
+  color: #dff3ff;
+  padding: 9px 12px;
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+.jnl-textarea:focus { border-color: rgba(0,140,255,0.55); }
+.jnl-textarea::placeholder { color: rgba(255,255,255,0.28); }
+
+.jnl-mood-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.jnl-mood-label-text {
+  font-size: 0.8rem;
+  color: #5a8ab0;
+  margin-right: 2px;
+}
+
+.jnl-mood-btn {
+  font-size: 1.25rem;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+  line-height: 1;
+  touch-action: manipulation;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.jnl-mood-btn:hover { transform: scale(1.15); }
+.jnl-mood-btn--active {
+  border-color: #4da6ff;
+  background: rgba(0,140,255,0.16);
+  transform: scale(1.18);
+}
+
+.jnl-mood-selected-label {
+  font-size: 0.78rem;
+  color: #4da6ff;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.jnl-save-btn {
+  width: 100%;
+  background: #003d99;
+  border: none;
+  border-radius: 9px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  touch-action: manipulation;
+  min-height: 46px;
+}
+.jnl-save-btn:hover { background: #0052cc; }
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .jnl-page { padding: 12px 10px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .jnl-title { font-size: 1.3rem; }
+  .jnl-header { margin-bottom: 14px; }
+  .jnl-day-nav { padding: 12px 12px 10px; }
+  .jnl-form { margin: 4px 10px 12px; padding: 12px; }
+  .jnl-entries { padding: 10px 10px 6px; }
+  .jnl-form-row { flex-direction: column; }
+  .jnl-input--time { width: 100%; }
+  .jnl-cal-wrap { max-width: 100%; }
+}

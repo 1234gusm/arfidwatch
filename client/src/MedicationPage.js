@@ -49,8 +49,10 @@ function MedicationPage({ token }) {
   const [takenAt, setTakenAt] = useState(() => toLocalDateTimeInput());
   const [collapsedDays, setCollapsedDays] = useState(new Set());
   const [pressedQuickId, setPressedQuickId] = useState(null);
+  const [dragOverQuickId, setDragOverQuickId] = useState(null);
   const longPressTimerRef = useRef(null);
   const didLongPressRef = useRef(false);
+  const touchDragRef = useRef({ active: false, fromId: null, toId: null });
   const [entryColors, setEntryColors] = useState({});
 
   useEffect(() => {
@@ -401,6 +403,40 @@ function MedicationPage({ token }) {
     }
   };
 
+  const handleTouchDragStart = (btnId, e) => {
+    e.stopPropagation();
+    cancelLongPress();
+    touchDragRef.current = { active: true, fromId: btnId, toId: btnId };
+    setDraggingButtonId(btnId);
+    setDragOverQuickId(null);
+  };
+
+  const handleTouchDragMove = (e) => {
+    if (!touchDragRef.current.active) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const item = el?.closest('[data-qbid]');
+    if (item) {
+      const id = parseInt(item.getAttribute('data-qbid'), 10);
+      if (!isNaN(id) && id !== touchDragRef.current.fromId) {
+        touchDragRef.current.toId = id;
+        setDragOverQuickId(id);
+      }
+    }
+  };
+
+  const handleTouchDragEnd = async () => {
+    if (!touchDragRef.current.active) return;
+    const { fromId, toId } = touchDragRef.current;
+    touchDragRef.current = { active: false, fromId: null, toId: null };
+    setDraggingButtonId(null);
+    setDragOverQuickId(null);
+    if (fromId != null && toId != null && fromId !== toId) {
+      await moveQuickButton(fromId, toId);
+    }
+  };
+
   if (!token) return <div className="med-page"><p className="med-empty">Please log in.</p></div>;
 
   return (
@@ -432,11 +468,14 @@ function MedicationPage({ token }) {
             {quickButtons.map(btn => (
               <div
                 key={btn.id}
-                className="med-quick-item"
-                onDragOver={e => e.preventDefault()}
+                data-qbid={btn.id}
+                className={`med-quick-item${draggingButtonId === btn.id ? ' med-quick-item--dragging' : ''}${dragOverQuickId === btn.id && draggingButtonId !== btn.id ? ' med-quick-item--over' : ''}`}
+                onDragOver={e => { e.preventDefault(); setDragOverQuickId(btn.id); }}
+                onDragLeave={() => setDragOverQuickId(v => v === btn.id ? null : v)}
                 onDrop={async () => {
                   const fromId = draggingButtonId;
                   setDraggingButtonId(null);
+                  setDragOverQuickId(null);
                   await moveQuickButton(fromId, btn.id);
                 }}
               >
@@ -491,13 +530,17 @@ function MedicationPage({ token }) {
                       <button
                         className="med-quick-drag-handle"
                         draggable={editingQuickButtonId !== btn.id}
-                        onDragStart={() => setDraggingButtonId(btn.id)}
+                        onDragStart={() => { setDraggingButtonId(btn.id); setDragOverQuickId(null); }}
                         onMouseDown={e => e.stopPropagation()}
+                        onTouchStart={(e) => handleTouchDragStart(btn.id, e)}
+                        onTouchMove={handleTouchDragMove}
+                        onTouchEnd={handleTouchDragEnd}
+                        onTouchCancel={handleTouchDragEnd}
                         onClick={e => e.preventDefault()}
                         title="Drag to reorder"
                         aria-label="Drag to reorder"
                       >
-                        ≡
+                        ⠿
                       </button>
                       <label
                         className="med-color-btn"
