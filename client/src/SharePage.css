@@ -408,6 +408,50 @@
   gap: 10px;
 }
 
+/* Combined log tab */
+.share-combined-log {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0;
+}
+
+.share-combined-day {
+  background: #fff;
+  border: 1px solid #e8ecf4;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.share-combined-day-header {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--secondary, #5a6a8a);
+  background: #f4f6fb;
+  padding: 7px 14px;
+  border-bottom: 1px solid #e8ecf4;
+}
+
+.share-combined-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f2f8;
+}
+
+.share-combined-section:last-child {
+  border-bottom: none;
+}
+
+.share-combined-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #a0abc0;
+  margin-bottom: 6px;
+}
+
 .share-foodlog-date {
   font-size: 0.78rem;
   font-weight: 700;

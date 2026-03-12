@@ -474,102 +474,106 @@ function SharePage() {
         <p className="share-disclaimer">Vitamin info does not include medication stats.</p>
         </>}
 
-        {activeTab === 'log' && <>
-        {/* Food Log */}
-        {foodLog.length > 0 && (() => {
-          const grouped = groupFoodLog(foodLog);
+        {activeTab === 'log' && (() => {
+          // Build a unified day-keyed map
+          const allDays = new Set([
+            ...foodLog.map(e => e.date),
+            ...journal.map(e => e.date),
+            ...medications.map(e => e.date),
+          ]);
+          const sortedDays = [...allDays].sort().reverse();
+
+          const foodByDate = {};
+          groupFoodLog(foodLog).forEach(g => { foodByDate[g.date] = g.meals; });
+
+          const journalByDate = {};
+          journal.forEach(e => { journalByDate[e.date] = e; });
+
+          const medByDate = {};
+          groupMedications(medications).forEach(g => { medByDate[g.date] = g.items; });
+
+          if (sortedDays.length === 0) {
+            return <p className="share-empty">No entries for this period.</p>;
+          }
+
           return (
-            <Section title="Food Log" badge={grouped.length + 'd'} defaultOpen={true}>
-              <div className="share-foodlog-list">
-                {grouped.map(({ date, meals }) => (
-                  <div key={date} className="share-foodlog-day">
-                    <div className="share-foodlog-date">{localDateStr(date)}</div>
-                    {meals.map(({ meal, items }) => (
-                      <div key={meal} className="share-foodlog-meal">
-                        <div className="share-foodlog-meal-name">{meal}</div>
+            <div className="share-combined-log">
+              {sortedDays.map(date => {
+                const meals   = foodByDate[date];
+                const jEntry  = journalByDate[date];
+                const meds    = medByDate[date];
+                return (
+                  <div key={date} className="share-combined-day">
+                    <div className="share-combined-day-header">{localDateStr(date)}</div>
+
+                    {jEntry && (
+                      <div className="share-combined-section">
+                        <div className="share-combined-section-label">Journal</div>
+                        <div className="share-journal-header">
+                          {jEntry.mood && (
+                            <span className="share-journal-mood" style={{ color: MOOD_COLOR[jEntry.mood] }}>
+                              {MOOD_LABEL[jEntry.mood]}
+                            </span>
+                          )}
+                        </div>
+                        {jEntry.title && <div className="share-journal-title">{jEntry.title}</div>}
+                      </div>
+                    )}
+
+                    {meals && (
+                      <div className="share-combined-section">
+                        <div className="share-combined-section-label">Food Log</div>
+                        {meals.map(({ meal, items }) => (
+                          <div key={meal} className="share-foodlog-meal">
+                            <div className="share-foodlog-meal-name">{meal}</div>
+                            <table className="share-table share-foodlog-table">
+                              <tbody>
+                                {items.map((item, i) => (
+                                  <tr key={i}>
+                                    <td className="share-foodlog-food">{item.food_name}</td>
+                                    <td className="share-foodlog-qty">{item.quantity}</td>
+                                    <td className="share-foodlog-cals">
+                                      {item.calories != null ? `${Math.round(item.calories)} kcal` : ''}
+                                    </td>
+                                    <td className="share-foodlog-macros">
+                                      {[
+                                        item.protein_g != null ? `P ${Math.round(item.protein_g)}g` : null,
+                                        item.carbs_g   != null ? `C ${Math.round(item.carbs_g)}g`   : null,
+                                        item.fat_g     != null ? `F ${Math.round(item.fat_g)}g`     : null,
+                                      ].filter(Boolean).join(' \u00b7 ')}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {meds && (
+                      <div className="share-combined-section">
+                        <div className="share-combined-section-label">Medications</div>
                         <table className="share-table share-foodlog-table">
                           <tbody>
-                            {items.map((item, i) => (
+                            {meds.map((item, i) => (
                               <tr key={i}>
-                                <td className="share-foodlog-food">{item.food_name}</td>
-                                <td className="share-foodlog-qty">{item.quantity}</td>
-                                <td className="share-foodlog-cals">
-                                  {item.calories != null ? `${Math.round(item.calories)} kcal` : ''}
-                                </td>
-                                <td className="share-foodlog-macros">
-                                  {[
-                                    item.protein_g != null ? `P ${Math.round(item.protein_g)}g` : null,
-                                    item.carbs_g   != null ? `C ${Math.round(item.carbs_g)}g`   : null,
-                                    item.fat_g     != null ? `F ${Math.round(item.fat_g)}g`     : null,
-                                  ].filter(Boolean).join(' \u00b7 ')}
-                                </td>
+                                <td className="share-foodlog-food">{item.medication_name}</td>
+                                <td className="share-foodlog-qty">{item.dosage || ''}</td>
+                                <td className="share-foodlog-cals">{item.time || ''}</td>
+                                <td className="share-foodlog-macros">{item.notes || ''}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </Section>
-          );
-        })()}
-
-        {/* Journal */}
-        <Section title="Journal" badge={journal.length} defaultOpen={true}>
-          {journal.length === 0 ? (
-            <p className="share-empty">No journal entries for this period.</p>
-          ) : (
-            <div className="share-journal-list">
-              {journal.map((e, i) => (
-                <div key={i} className="share-journal-entry">
-                  <div className="share-journal-header">
-                    <span className="share-journal-date">{localDateStr(e.date)}</span>
-                    {e.mood && (
-                      <span
-                        className="share-journal-mood"
-                        style={{ color: MOOD_COLOR[e.mood] }}
-                      >
-                        {MOOD_LABEL[e.mood]}
-                      </span>
                     )}
                   </div>
-                  {e.title && <div className="share-journal-title">{e.title}</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
-        </Section>
-
-        {/* Medications */}
-        {medications.length > 0 && (() => {
-          const grouped = groupMedications(medications);
-          return (
-            <Section title="Medications" badge={grouped.length + 'd'} defaultOpen={true}>
-              <div className="share-foodlog-list">
-                {grouped.map(({ date, items }) => (
-                  <div key={date} className="share-foodlog-day">
-                    <div className="share-foodlog-date">{localDateStr(date)}</div>
-                    <table className="share-table share-foodlog-table">
-                      <tbody>
-                        {items.map((item, i) => (
-                          <tr key={i}>
-                            <td className="share-foodlog-food">{item.medication_name}</td>
-                            <td className="share-foodlog-qty">{item.dosage || ''}</td>
-                            <td className="share-foodlog-cals">{item.time || ''}</td>
-                            <td className="share-foodlog-macros">{item.notes || ''}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            </Section>
           );
         })()}
-        </>}
 
         {/* ── Daily Nutrient Data tab ── */}
         {activeTab === 'daily' && (
