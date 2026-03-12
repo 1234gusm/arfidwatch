@@ -70,3 +70,20 @@ self.addEventListener('notificationclick', event => {
 
 // Check every 30 seconds; fired-set deduplication prevents double-firing within a minute
 setInterval(checkReminders, 30000);
+
+// Handle server-sent push notifications (work even when the site is closed)
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch {}
+  const title = data.title || 'ArfidWatch Reminder';
+  const body  = data.body  || '';
+  const tag   = data.tag   || 'arfidwatch-reminder';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      renotify: true,
+      icon: self.registration.scope + 'logo192.png',
+    })
+  );
+});
