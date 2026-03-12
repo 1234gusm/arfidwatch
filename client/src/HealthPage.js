@@ -318,11 +318,11 @@ function HealthPage({ token }) {
     blood_pressure_systolic_mmhg: { label: 'BP Systolic', unit: 'mmHg', group: 'Vitals' },
     blood_pressure_diastolic_mmhg: { label: 'BP Diastolic', unit: 'mmHg', group: 'Vitals' },
     // Environment / Other
-    environmental_audio_exposure_dbaspl: { label: 'Environmental Audio', unit: 'dB', group: 'Other' },
-    headphone_audio_exposure_dbaspl: { label: 'Headphone Audio', unit: 'dB', group: 'Other' },
-    time_in_daylight_min: { label: 'Time in Daylight', unit: 'min', group: 'Other' },
-    walking_speed_mihr: { label: 'Walking Speed', unit: 'mph', group: 'Other' },
-    walking_step_length_in: { label: 'Step Length', unit: 'in', group: 'Other' },
+    environmental_audio_exposure_dbaspl: { label: 'Environmental Audio', unit: 'dB', group: 'Vitals' },
+    headphone_audio_exposure_dbaspl: { label: 'Headphone Audio', unit: 'dB', group: 'Vitals' },
+    time_in_daylight_min: { label: 'Time in Daylight', unit: 'min', group: 'Activity' },
+    walking_speed_mihr: { label: 'Walking Speed', unit: 'mph', group: 'Activity' },
+    walking_step_length_in: { label: 'Step Length', unit: 'in', group: 'Activity' },
     // Vitamins & B-vitamins
     vitamin_a_mcg:           { label: 'Vitamin A',          unit: 'mcg',         group: 'Nutrition' },
     vitamin_b12_mcg:         { label: 'Vitamin B12',        unit: 'mcg',         group: 'Nutrition' },
@@ -372,8 +372,8 @@ function HealthPage({ token }) {
     vo2_max_mlkg_min:        { label: 'VO\u2082 Max',       unit: 'ml/kg/min',   group: 'Activity' },
     physical_effort_kcalhr_kg: { label: 'Physical Effort',  unit: 'kcal/hr\u00B7kg', group: 'Activity' },
     // Other
-    handwashing_s:           { label: 'Handwashing',        unit: 's',           group: 'Other' },
-    toothbrushing_s:         { label: 'Toothbrushing',      unit: 's',           group: 'Other' },
+    handwashing_s:           { label: 'Handwashing',        unit: 's',           group: 'Vitals' },
+    toothbrushing_s:         { label: 'Toothbrushing',      unit: 's',           group: 'Vitals' },
     // Supplements / Amino Acids
     creatine_g:              { label: 'Creatine',            unit: 'g',           group: 'Supplements' },
     l_glutamine_mg:          { label: 'L-Glutamine',         unit: 'mg',          group: 'Supplements' },
@@ -529,7 +529,7 @@ function HealthPage({ token }) {
   });
 
   // Group order for display
-  const groupOrder = ['Nutrition', 'Supplements', 'Body', 'Activity', 'Heart', 'Vitals', 'Other'];
+  const groupOrder = ['Nutrition', 'Supplements', 'Activity', 'Heart', 'Body', 'Vitals', 'Other'];
 
   // Within-group sort priority — lower number = shown first
   const typePriority = {
