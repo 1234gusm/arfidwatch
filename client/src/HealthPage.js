@@ -528,8 +528,8 @@ function HealthPage({ token }) {
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
 
-  // Group order for display — priority groups first
-  const groupOrder = ['Nutrition', 'Body', 'Activity', 'Sleep', 'Heart', 'Vitals', 'Other', 'Supplements'];
+  // Group order for display — Nutrition + physical first, clinical at the bottom
+  const groupOrder = ['Nutrition', 'Body', 'Activity', 'Other', 'Supplements', 'Heart', 'Vitals'];
 
   // Within-group sort priority — lower number = shown first
   const typePriority = {
@@ -728,14 +728,24 @@ function HealthPage({ token }) {
         </div>
 
         <div className="summary-cards-wrapper">
-          {orderedVisible.map(t => {
-            const meta = typeMeta[t];
-            const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-            const unit = meta?.unit || '';
-            const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
-            const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
-            const isDragOver = dragOver === t;
-            return (
+          {(() => {
+            let lastGroup = null;
+            return orderedVisible.flatMap(t => {
+              const meta = typeMeta[t];
+              const group = meta?.group || 'Other';
+              const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              const unit = meta?.unit || '';
+              const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
+              const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
+              const isDragOver = dragOver === t;
+              const items = [];
+              if (group !== lastGroup) {
+                lastGroup = group;
+                items.push(
+                  <div key={`group-header-${group}`} className="metric-group-header">{group}</div>
+                );
+              }
+              items.push(
               <div
                 key={t}
                 className={`stat-card${isDragOver ? ' drag-over' : ''}`}
@@ -776,8 +786,10 @@ function HealthPage({ token }) {
                   </div>
                 )}
               </div>
-            );
-          })}
+              );
+              return items;
+            });
+          })()}
         </div>
       </section>
 

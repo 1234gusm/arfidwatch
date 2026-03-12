@@ -347,3 +347,21 @@
 }
 
 .metric-group {}
+
+/* Full-width section divider headers inside the card grid */
+.metric-group-header {
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #7ecfff;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 10px 2px 4px;
+  border-top: 1px solid rgba(110, 231, 255, 0.18);
+  margin-top: 4px;
+}
+.metric-group-header:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
