@@ -507,6 +507,7 @@ function HealthPage({ token }) {
     vo2_max_mlkg_min:            'vo2_max_mlkgmin',
     physical_effort_kcalhr_kg:   'physical_effort_kcalhrkg',
     // MacroFactor trend weight aliases to the same weight_lb card
+    weight_lbs:                  'weight_lb',
     trend_weight_lbs:            'weight_lb',
     trend_weight_lb:             'weight_lb',
     // Amino acid bare names → canonical l_* keys (covers older DB entries / CSV imports)
