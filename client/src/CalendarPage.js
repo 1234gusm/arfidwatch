@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './CalendarPage.css';
@@ -35,6 +35,7 @@ function CalendarPage({ token }) {
   const [expandedEntry, setExpandedEntry] = useState(null);
   const [showCal, setShowCal] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [expandedHistDays, setExpandedHistDays] = useState(new Set());
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -135,6 +136,32 @@ function CalendarPage({ token }) {
     return <div className="jnl-tile-dot">{emoji}</div>;
   };
 
+  // Group all entries by date for sidebar history
+  const historyGroups = useMemo(() => {
+    const map = {};
+    entries.forEach(e => {
+      const dk = e.date.slice(0, 10);
+      if (!map[dk]) map[dk] = [];
+      map[dk].push(e);
+    });
+    return Object.entries(map)
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([dk, es]) => ({
+        dateKey: dk,
+        label: new Date(dk + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+        isToday: dk === toDateKey(new Date()),
+        entries: es.slice().sort((a, b) => new Date(a.date) - new Date(b.date)),
+      }));
+  }, [entries]);
+
+  const toggleHistDay = (dk) => {
+    setExpandedHistDays(prev => {
+      const next = new Set(prev);
+      if (next.has(dk)) next.delete(dk); else next.add(dk);
+      return next;
+    });
+  };
+
   if (!token) {
     return <div className="jnl-page"><p className="jnl-empty-text">Please log in.</p></div>;
   }
@@ -160,119 +187,136 @@ function CalendarPage({ token }) {
         </div>
       </div>
 
-      {showCal && (
-        <div className="jnl-cal-wrap">
-          <Calendar
-            onClickDay={selectDate}
-            tileContent={tileContent}
-            value={selectedDate}
-          />
-        </div>
-      )}
+      <div className="jnl-body">
+        {/* ── LEFT: calendar + day panel ── */}
+        <div className="jnl-left">
+          {showCal && (
+            <div className="jnl-cal-wrap">
+              <Calendar
+                onClickDay={selectDate}
+                tileContent={tileContent}
+                value={selectedDate}
+              />
+            </div>
+          )}
 
-      <div className="jnl-day-panel">
-        {/* Day navigation */}
-        <div className="jnl-day-nav">
-          <button
-            className="jnl-nav-arrow"
-            onClick={() => selectDate(addDays(selectedDate, -1))}
-            aria-label="Previous day"
-          >‹</button>
-          <div className="jnl-day-heading">
-            <span className="jnl-day-weekday">{fmtWeekday(selectedDate)}</span>
-            <span className="jnl-day-date">{fmtMonthDay(selectedDate)}</span>
-            {isTodayFn(selectedDate) && <span className="jnl-today-badge">Today</span>}
-          </div>
-          <button
-            className="jnl-nav-arrow"
-            onClick={() => selectDate(addDays(selectedDate, 1))}
-            aria-label="Next day"
-          >›</button>
-        </div>
-
-        {/* Entries for this day */}
-        {loading && <p className="jnl-loading">Loading…</p>}
-        {!loading && dayEntries.length === 0 && (
-          <div className="jnl-empty">
-            <span className="jnl-empty-icon">✍️</span>
-            <p>No entries for this day yet.</p>
-          </div>
-        )}
-
-        <div className="jnl-entries">
-          {dayEntries.map(e => {
-            const isOpen = expandedEntry === e.id;
-            const em = MOODS.find(m => m.val === e.mood) || MOODS[2];
-            const displayTitle = e.title || (e.text ? e.text.slice(0, 52) + (e.text.length > 52 ? '…' : '') : 'Entry');
-            const timeStr = new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return (
-              <div key={e.id} className={`jnl-entry${isOpen ? ' jnl-entry--open' : ''}`}>
-                <button
-                  className="jnl-entry-header"
-                  onClick={() => setExpandedEntry(isOpen ? null : e.id)}
-                >
-                  <span className="jnl-entry-mood" title={em.label}>{em.emoji}</span>
-                  <span className="jnl-entry-titletext">{displayTitle}</span>
-                  <span className="jnl-entry-time">{timeStr}</span>
-                  <span className="jnl-entry-chevron">{isOpen ? '▾' : '›'}</span>
-                </button>
-                {isOpen && (
-                  <div className="jnl-entry-body">
-                    {e.title && e.text && <div className="jnl-entry-full-title">{e.title}</div>}
-                    {e.text && <p className="jnl-entry-text">{e.text}</p>}
-                    <div className="jnl-entry-meta">
-                      <span className="jnl-mood-chip">{em.emoji} {em.label}</span>
-                      <button className="jnl-delete-btn" onClick={() => handleDelete(e.id)}>Delete</button>
-                    </div>
-                  </div>
-                )}
+          <div className="jnl-day-panel">
+            <div className="jnl-day-nav">
+              <button className="jnl-nav-arrow" onClick={() => selectDate(addDays(selectedDate, -1))} aria-label="Previous day">‹</button>
+              <div className="jnl-day-heading">
+                <span className="jnl-day-weekday">{fmtWeekday(selectedDate)}</span>
+                <span className="jnl-day-date">{fmtMonthDay(selectedDate)}</span>
+                {isTodayFn(selectedDate) && <span className="jnl-today-badge">Today</span>}
               </div>
-            );
-          })}
+              <button className="jnl-nav-arrow" onClick={() => selectDate(addDays(selectedDate, 1))} aria-label="Next day">›</button>
+            </div>
+
+            {loading && <p className="jnl-loading">Loading…</p>}
+            {!loading && dayEntries.length === 0 && (
+              <div className="jnl-empty">
+                <span className="jnl-empty-icon">✍️</span>
+                <p>No entries for this day yet.</p>
+              </div>
+            )}
+
+            <div className="jnl-entries">
+              {dayEntries.map(e => {
+                const isOpen = expandedEntry === e.id;
+                const em = MOODS.find(m => m.val === e.mood) || MOODS[2];
+                const displayTitle = e.title || (e.text ? e.text.slice(0, 52) + (e.text.length > 52 ? '…' : '') : 'Entry');
+                const timeStr = new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <div key={e.id} className={`jnl-entry${isOpen ? ' jnl-entry--open' : ''}`}>
+                    <button className="jnl-entry-header" onClick={() => setExpandedEntry(isOpen ? null : e.id)}>
+                      <span className="jnl-entry-mood" title={em.label}>{em.emoji}</span>
+                      <span className="jnl-entry-titletext">{displayTitle}</span>
+                      <span className="jnl-entry-time">{timeStr}</span>
+                      <span className="jnl-entry-chevron">{isOpen ? '▾' : '›'}</span>
+                    </button>
+                    {isOpen && (
+                      <div className="jnl-entry-body">
+                        {e.title && e.text && <div className="jnl-entry-full-title">{e.title}</div>}
+                        {e.text && <p className="jnl-entry-text">{e.text}</p>}
+                        <div className="jnl-entry-meta">
+                          <span className="jnl-mood-chip">{em.emoji} {em.label}</span>
+                          <button className="jnl-delete-btn" onClick={() => handleDelete(e.id)}>Delete</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="jnl-form">
+              <div className="jnl-form-title">+ New entry</div>
+              <div className="jnl-form-row">
+                <input className="jnl-input" type="text" placeholder="Title (optional)" value={title} onChange={e => setTitle(e.target.value)} />
+                <input className="jnl-input jnl-input--time" type="time" value={time} onChange={e => setTime(e.target.value)} />
+              </div>
+              <textarea className="jnl-textarea" placeholder="What's on your mind?" value={text} onChange={e => setText(e.target.value)} rows={3} />
+              <div className="jnl-mood-row">
+                <span className="jnl-mood-label-text">Mood:</span>
+                {MOODS.map(m => (
+                  <button key={m.val} type="button" className={`jnl-mood-btn${mood === m.val ? ' jnl-mood-btn--active' : ''}`} onClick={() => setMood(m.val)} title={m.label}>{m.emoji}</button>
+                ))}
+                <span className="jnl-mood-selected-label">{moodObj.label}</span>
+              </div>
+              <button className="jnl-save-btn" onClick={handleSave}>Save Entry</button>
+            </div>
+          </div>
         </div>
 
-        {/* Add new entry form */}
-        <div className="jnl-form">
-          <div className="jnl-form-title">+ New entry</div>
-          <div className="jnl-form-row">
-            <input
-              className="jnl-input"
-              type="text"
-              placeholder="Title (optional)"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-            />
-            <input
-              className="jnl-input jnl-input--time"
-              type="time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-            />
+        {/* ── RIGHT: history sidebar ── */}
+        <aside className="jnl-history">
+          <div className="jnl-hist-header">
+            <span className="jnl-hist-title">All Entries</span>
+            <span className="jnl-hist-count">{historyGroups.length} {historyGroups.length === 1 ? 'day' : 'days'}</span>
           </div>
-          <textarea
-            className="jnl-textarea"
-            placeholder="What's on your mind?"
-            value={text}
-            onChange={e => setText(e.target.value)}
-            rows={3}
-          />
-          <div className="jnl-mood-row">
-            <span className="jnl-mood-label-text">Mood:</span>
-            {MOODS.map(m => (
-              <button
-                key={m.val}
-                type="button"
-                className={`jnl-mood-btn${mood === m.val ? ' jnl-mood-btn--active' : ''}`}
-                onClick={() => setMood(m.val)}
-                title={m.label}
-              >
-                {m.emoji}
-              </button>
-            ))}
-            <span className="jnl-mood-selected-label">{moodObj.label}</span>
+          {historyGroups.length === 0 && !loading && (
+            <p className="jnl-hist-empty">No past entries yet.</p>
+          )}
+          <div className="jnl-hist-list">
+            {historyGroups.map(g => {
+              const isOpen = expandedHistDays.has(g.dateKey);
+              const isSelected = toDateKey(selectedDate) === g.dateKey;
+              return (
+                <div key={g.dateKey} className={`jnl-hist-day${isSelected ? ' jnl-hist-day--active' : ''}`}>
+                  <button
+                    className="jnl-hist-day-btn"
+                    onClick={() => {
+                      selectDate(new Date(g.dateKey + 'T12:00:00'));
+                      toggleHistDay(g.dateKey);
+                    }}
+                  >
+                    <span className="jnl-hist-chevron">{isOpen ? '▾' : '▸'}</span>
+                    <span className="jnl-hist-day-label">
+                      {g.isToday && <span className="jnl-hist-today">Today · </span>}
+                      {g.label}
+                    </span>
+                    <span className="jnl-hist-badge">{g.entries.length}</span>
+                  </button>
+                  {isOpen && (
+                    <ul className="jnl-hist-entries">
+                      {g.entries.map(e => {
+                        const em = MOODS.find(m => m.val === e.mood) || MOODS[2];
+                        const preview = e.title || (e.text ? e.text.slice(0, 48) + (e.text.length > 48 ? '…' : '') : 'Entry');
+                        const t = new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        return (
+                          <li key={e.id} className="jnl-hist-entry">
+                            <span className="jnl-hist-entry-mood">{em.emoji}</span>
+                            <span className="jnl-hist-entry-text">{preview}</span>
+                            <span className="jnl-hist-entry-time">{t}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <button className="jnl-save-btn" onClick={handleSave}>Save Entry</button>
-        </div>
+        </aside>
       </div>
     </div>
   );
