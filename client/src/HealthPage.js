@@ -572,12 +572,11 @@ function HealthPage({ token }) {
   const typesOfInterest = allTypes.filter(t => {
     if (PERMANENTLY_HIDDEN.has(t)) return false;
     if (typeMeta[t]?.group === 'Sleep') return false;
-    if ((typeMeta[t]?.group || 'Extra Nutritional Info') === 'Extra Nutritional Info') return false;
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
 
   // Group order for display
-  const groupOrder = ['Nutrition', 'Activity', 'Heart', 'Body', 'Vitals'];
+  const groupOrder = ['Nutrition', 'Activity', 'Heart', 'Body', 'Vitals', 'Extra Nutritional Info'];
 
   // Within-group sort priority — lower number = shown first
   const typePriority = {
