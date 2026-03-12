@@ -609,14 +609,10 @@ function SharePage() {
             className={`share-tab${activeTab === 'log' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('log')}
           >Food Log</button>
-          <button
-            className={`share-tab${activeTab === 'supplements' ? ' share-tab--active' : ''}`}
-            onClick={() => setActiveTab('supplements')}
-          >Supplements</button>
         </div>
 
         {activeTab === 'overview' && <>
-        {SECTIONS.filter(s => s.id !== 'sleep' && s.id !== 'supplements').map(s => renderMetricSection(s))}
+        {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
         </>}
 
         {activeTab === 'log' && (() => {
@@ -790,11 +786,6 @@ function SharePage() {
             )}
           </div>
         )}
-
-        {/* ── Sleep tab ── */}
-        {activeTab === 'supplements' && <>
-          {renderMetricSection(SECTIONS.find(s => s.id === 'supplements'))}
-        </>}
 
         {activeTab === 'sleep' && (
           <div className="share-daily-tab">
