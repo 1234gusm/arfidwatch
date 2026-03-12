@@ -85,6 +85,7 @@ const SECTIONS = [
       { keys: ['vitamin_d_mcg', 'vitamin_d'],                         label: 'Vitamin D',     unit: 'mcg',  dp: 1, mode: 'avg' },
       { keys: ['vitamin_b12_mcg', 'vitamin_b12'],                     label: 'Vitamin B12',   unit: 'mcg',  dp: 1, mode: 'avg' },
       { keys: ['folate_mcg', 'folic_acid_mcg'],                       label: 'Folate',        unit: 'mcg',  dp: 0, mode: 'avg' },
+      { keys: ['caffeine_mg', 'caffeine'],                            label: 'Caffeine',      unit: 'mg',   dp: 0, mode: 'avg' },
       { keys: ['water_fl_oz_us', 'water'],                            label: 'Water',         unit: 'fl oz',dp: 1, mode: 'avg' },
     ],
   },
