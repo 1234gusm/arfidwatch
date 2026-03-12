@@ -791,7 +791,7 @@ function ProfilePage({ token }) {
       <div className="profile-card">
         <div className="profile-section-title">Doctor Share — Journal</div>
         <p className="profile-hint">
-          When enabled, your journal entries for the share period will be visible to your doctor on the share page.
+          When enabled, your journal entry titles and mood for the share period will be visible to your doctor on the share page. Entry text is never shared.
         </p>
         <div className="profile-toggle-row">
           <div className="profile-toggle-info">

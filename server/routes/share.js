@@ -104,7 +104,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
           .where({ user_id: userId })
           .where('date', '>=', start.toISOString())
           .where('date', '<=', end.toISOString())
-          .select('date', 'title', 'text', 'mood')
+          .select('date', 'title', 'mood')
           .orderBy('date', 'asc')
       : [];
 
