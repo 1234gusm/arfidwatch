@@ -383,7 +383,7 @@ function HealthPage({ token }) {
     l_isoleucine_mg:         { label: 'L-Isoleucine',        unit: 'mg',          group: 'Extra Nutritional Info' },
     l_valine_mg:             { label: 'L-Valine',            unit: 'mg',          group: 'Extra Nutritional Info' },
     bcaa_mg:                 { label: 'BCAAs',               unit: 'mg',          group: 'Extra Nutritional Info' },
-    l_tryptophan_mg:         { label: 'L-Tryptophan',        unit: 'mg',          group: 'Extra Nutritional Info' },
+    l_tryptophan_mg:         { label: 'Tryptophan',           unit: 'mg',          group: 'Other' },
     l_tyrosine_mg:           { label: 'L-Tyrosine',          unit: 'mg',          group: 'Extra Nutritional Info' },
     l_phenylalanine_mg:      { label: 'L-Phenylalanine',     unit: 'mg',          group: 'Extra Nutritional Info' },
     l_methionine_mg:         { label: 'L-Methionine',        unit: 'mg',          group: 'Extra Nutritional Info' },
