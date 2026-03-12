@@ -462,18 +462,24 @@ function SharePage() {
             className={`share-tab${activeTab === 'sleep' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('sleep')}
           >Sleep{sleepDays.length > 0 ? ` (${sleepDays.length})` : ''}</button>
+          <button
+            className={`share-tab${activeTab === 'log' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('log')}
+          >Food/Journal/Medications</button>
         </div>
 
         {activeTab === 'overview' && <>
         {/* Nutrition section */}
         {renderMetricSection(SECTIONS[0])}
         <p className="share-disclaimer">Vitamin info does not include medication stats.</p>
+        </>}
 
-        {/* Food Log — collapsed, right after nutrition */}
+        {activeTab === 'log' && <>
+        {/* Food Log */}
         {foodLog.length > 0 && (() => {
           const grouped = groupFoodLog(foodLog);
           return (
-            <Section title="Food Log" badge={grouped.length + 'd'} defaultOpen={false}>
+            <Section title="Food Log" badge={grouped.length + 'd'} defaultOpen={true}>
               <div className="share-foodlog-list">
                 {grouped.map(({ date, meals }) => (
                   <div key={date} className="share-foodlog-day">
@@ -510,11 +516,8 @@ function SharePage() {
           );
         })()}
 
-        {/* Sleep section */}
-        {renderMetricSection(SECTIONS[3])}
-
-        {/* Journal — collapsed by default */}
-        <Section title="Journal" badge={journal.length} defaultOpen={false}>
+        {/* Journal */}
+        <Section title="Journal" badge={journal.length} defaultOpen={true}>
           {journal.length === 0 ? (
             <p className="share-empty">No journal entries for this period.</p>
           ) : (
@@ -539,11 +542,11 @@ function SharePage() {
           )}
         </Section>
 
-        {/* Medications — collapsed by default, only shown if data exists */}
+        {/* Medications */}
         {medications.length > 0 && (() => {
           const grouped = groupMedications(medications);
           return (
-            <Section title="Medications" badge={grouped.length + 'd'} defaultOpen={false}>
+            <Section title="Medications" badge={grouped.length + 'd'} defaultOpen={true}>
               <div className="share-foodlog-list">
                 {grouped.map(({ date, items }) => (
                   <div key={date} className="share-foodlog-day">
@@ -566,7 +569,6 @@ function SharePage() {
             </Section>
           );
         })()}
-
         </>}
 
         {/* ── Daily Nutrient Data tab ── */}
