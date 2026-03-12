@@ -9,7 +9,6 @@ import {
 import './App.css';
 import HealthPage from './HealthPage';
 import CalendarPage from './CalendarPage';
-import ExportPage from './ExportPage';
 import FoodLog from './FoodLog';
 import FoodItemsPage from './FoodItemsPage';
 import MedicationPage from './MedicationPage';
@@ -29,7 +28,6 @@ const TAB_DEFS = [
   { id: 'food', label: 'Food Log', to: '/food' },
   { id: 'medications', label: 'Medications', to: '/medications' },
   { id: 'journal', label: 'Journal', to: '/calendar' },
-  { id: 'export', label: 'Export', to: '/export' },
   { id: 'settings', label: 'Settings', to: '/profile' },
 ];
 
@@ -58,7 +56,6 @@ function App() {
   const [isMobileNav, setIsMobileNav] = useState(() => window.innerWidth <= 900);
   const navigate = useNavigate();
   const location = useLocation();
-  const isExport = location.pathname === '/export';
 
 
   const saveTabPrefs = async (next) => {
@@ -214,7 +211,7 @@ function App() {
 
 
   return (
-    <div className={isExport ? 'App App--export' : 'App'}>
+    <div className="App">
       <nav>
         <div className="nav-left-group">
           <span className="nav-brand">📊 ArfidWatch</span>
@@ -290,10 +287,6 @@ function App() {
         <Route
           path="/calendar"
           element={token ? <CalendarPage token={token} /> : <LoginPage setToken={setToken} />}
-        />
-        <Route
-          path="/export"
-          element={token ? <ExportPage token={token} /> : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/profile"

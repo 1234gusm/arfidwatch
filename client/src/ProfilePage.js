@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ProfilePage.css';
 import API_BASE from './apiBase';
+import { localToday, localOffset, localMonthAgo } from './utils/dateUtils';
 
 const PERIOD_OPTIONS = [
   { id: 'today', label: 'Today' },
@@ -44,6 +45,12 @@ function ProfilePage({ token }) {
   const [ingestKey,       setIngestKey]       = useState('');
   const [ingestCopied,    setIngestCopied]    = useState(false);
   const [ingestLastUsed,  setIngestLastUsed]  = useState(null);
+  const [exportCustomStart, setExportCustomStart] = useState(() => localOffset(-30));
+  const [exportCustomEnd,   setExportCustomEnd]   = useState(() => localToday());
+  const [includeJournal,    setIncludeJournal]    = useState(true);
+  const [quickExport,       setQuickExport]       = useState(false);
+  const [exporting,         setExporting]         = useState(false);
+  const [exportError,       setExportError]       = useState(null);
 
   const appBasePath = window.location.pathname.replace(/\/$/, '');
   const shareUrl = shareToken
@@ -362,6 +369,36 @@ function ProfilePage({ token }) {
     });
   };
 
+  const handleExport = async () => {
+    setExporting(true); setExportError(null);
+    let start, end;
+    if (exportPeriod === 'custom') {
+      start = exportCustomStart; end = exportCustomEnd;
+    } else if (exportPeriod === 'today') {
+      start = localToday(); end = localToday();
+    } else if (exportPeriod === 'week') {
+      start = localOffset(-7); end = localToday();
+    } else {
+      start = localMonthAgo(); end = localToday();
+    }
+    const params = new URLSearchParams({ start, end, includeJournal: includeJournal ? '1' : '0', quick: quickExport ? '1' : '0' });
+    try {
+      const res = await fetch(`${API_BASE}/api/journal/export?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { setExportError('Export failed — check server logs.'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `arfidwatch-${start}-to-${end}.pdf`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      setExportError('Export error: ' + e.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const ingestConnection = !hasIngestKey
     ? { label: 'Not connected', hint: 'Generate a key, then add it to your Health Auto Export automation.' }
     : (ingestLastUsed
@@ -560,23 +597,65 @@ function ProfilePage({ token }) {
         )}
       </div>
 
-      {/* Export settings */}
+      {/* Export */}
       <div className="profile-card">
-        <div className="profile-section-title">Export Settings</div>
-        <div className="profile-row">
-          <label className="profile-field-label" htmlFor="export-period">Default preview period</label>
-          <select
-            id="export-period"
-            className="profile-select"
-            value={exportPeriod}
-            onChange={e => handleSavePeriod(e.target.value)}
-          >
-            {PERIOD_OPTIONS.map(p => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
+        <div className="profile-section-title">Export PDF Report</div>
+        <p className="profile-hint">Download a full PDF of your health data &amp; journal.</p>
+
+        <div className="profile-row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+          {PERIOD_OPTIONS.map(p => (
+            <button
+              key={p.id}
+              className={exportPeriod === p.id ? 'profile-save-btn' : 'profile-btn-secondary'}
+              style={{ padding: '5px 13px', fontSize: '0.85rem' }}
+              onClick={() => handleSavePeriod(p.id)}
+            >{p.label}</button>
+          ))}
         </div>
-        <p className="profile-hint">Saved automatically when changed.</p>
+
+        {exportPeriod === 'custom' && (
+          <div className="profile-row" style={{ flexWrap: 'wrap', gap: 10, marginTop: 6, marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="profile-hint" style={{ margin: 0 }}>From</span>
+              <input type="date" className="profile-passcode-input" style={{ width: 'auto' }} value={exportCustomStart} onChange={e => setExportCustomStart(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="profile-hint" style={{ margin: 0 }}>To</span>
+              <input type="date" className="profile-passcode-input" style={{ width: 'auto' }} value={exportCustomEnd} onChange={e => setExportCustomEnd(e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        <div className="profile-toggle-row" style={{ marginTop: 10 }}>
+          <div className="profile-toggle-info">
+            <span className="profile-toggle-label">Include journal entries</span>
+          </div>
+          <button
+            className={`profile-toggle-switch${includeJournal ? ' profile-toggle-switch--on' : ''}`}
+            onClick={() => setIncludeJournal(v => !v)}
+            role="switch"
+            aria-checked={includeJournal}
+          ><span className="profile-toggle-knob" /></button>
+        </div>
+
+        <div className="profile-toggle-row">
+          <div className="profile-toggle-info">
+            <span className="profile-toggle-label">Quick export</span>
+            <span className="profile-toggle-sub">Primary metrics only, no daily tables</span>
+          </div>
+          <button
+            className={`profile-toggle-switch${quickExport ? ' profile-toggle-switch--on' : ''}`}
+            onClick={() => setQuickExport(v => !v)}
+            role="switch"
+            aria-checked={quickExport}
+          ><span className="profile-toggle-knob" /></button>
+        </div>
+
+        {exportError && <p className="profile-error" style={{ marginTop: 10 }}>{exportError}</p>}
+
+        <button className="profile-save-btn" style={{ marginTop: 14 }} onClick={handleExport} disabled={exporting}>
+          {exporting ? 'Generating…' : '⬇️ Download PDF'}
+        </button>
       </div>
 
       {/* Doctor share link */}
