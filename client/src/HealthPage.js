@@ -527,7 +527,7 @@ function HealthPage({ token }) {
   });
 
   // Group order for display — priority groups first
-  const groupOrder = ['Nutrition', 'Body', 'Activity', 'Sleep', 'Heart', 'Vitals', 'Other'];
+  const groupOrder = ['Nutrition', 'Body', 'Activity', 'Sleep', 'Heart', 'Vitals', 'Other', 'Supplements'];
 
   // Within-group sort priority — lower number = shown first
   const typePriority = {
