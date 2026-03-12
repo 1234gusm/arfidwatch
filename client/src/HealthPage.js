@@ -528,8 +528,8 @@ function HealthPage({ token }) {
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
 
-  // Group order for display — Nutrition + physical first, clinical at the bottom
-  const groupOrder = ['Nutrition', 'Body', 'Activity', 'Other', 'Supplements', 'Heart', 'Vitals'];
+  // Group order for display
+  const groupOrder = ['Nutrition', 'Supplements', 'Body', 'Activity', 'Heart', 'Vitals', 'Other'];
 
   // Within-group sort priority — lower number = shown first
   const typePriority = {
