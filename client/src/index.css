@@ -6,6 +6,18 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #001428;
+  /* Prevent overscroll bounce from revealing background */
+  overscroll-behavior-y: none;
+}
+
+/* Prevent iOS tap highlight flash */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent double-tap zoom on buttons/links without blocking pinch-zoom */
+button, a, label, select {
+  touch-action: manipulation;
 }
 
 code {

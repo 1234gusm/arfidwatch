@@ -62,6 +62,7 @@
 /* Midnight-blue themed health dashboard styles */
 .health-page {
   padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
   color: #eaf6ff;
   background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
   min-height: 100vh;
@@ -334,6 +335,134 @@
   .summary-cards { flex-direction: column; }
   .import-controls { flex-direction: column; }
   .modal-stats-row { gap: 10px; }
+
+  /* Eating banner: stack label + stats vertically */
+  .eating-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .eating-banner-stats {
+    gap: 10px;
+  }
+  .eating-stat strong { font-size: 1.1rem; }
+
+  /* Header: stack title and actions */
+  .health-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .health-page-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .health-upload-btn,
+  .reset-order-btn {
+    flex: 1;
+    text-align: center;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 2-column stat card grid on tablet/mobile */
+  .summary-cards-wrapper {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* Stat card remove button: always visible on touch devices */
+  .stat-remove-btn {
+    opacity: 1;
+    top: -6px;
+    right: -6px;
+  }
+
+  /* Expanded modal: full-screen on mobile */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-card {
+    border-radius: 20px 20px 0 0;
+    padding: 20px 18px;
+    max-width: 100%;
+    max-height: 92vh;
+    width: 100%;
+  }
+  .modal-data-table {
+    max-height: 180px;
+  }
+  .modal-stats-row {
+    gap: 8px;
+  }
+  .modal-stat {
+    min-width: 80px;
+    padding: 8px 12px;
+  }
+
+  /* Picker modal */
+  .picker-grid {
+    gap: 8px;
+  }
+  .picker-btn {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Imports table: horizontal scroll */
+  .imports-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Date range controls: wrap more gracefully */
+  .date-controls {
+    gap: 8px;
+  }
+  .date-controls input {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .health-page {
+    padding: 12px 10px;
+  }
+
+  /* Single column on very small phones */
+  .summary-cards-wrapper {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 10px 10px 8px;
+  }
+  .stat-title { font-size: 0.78rem; }
+  .stat-values div { font-size: 0.84rem; }
+  .mini-chart { height: 72px; }
+
+  /* Modal: taller on small screens */
+  .modal-card {
+    max-height: 96vh;
+    padding: 18px 14px;
+  }
+
+  /* Picker pills: smaller */
+  .picker-btn {
+    font-size: 0.8rem;
+    padding: 5px 11px;
+  }
+
+  /* Eating banner: tighter */
+  .eating-stat strong { font-size: 1rem; }
 }
 
 .date-controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }

@@ -1,5 +1,6 @@
 .fl-page {
   padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
   color: #eaf6ff;
   background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
   min-height: 100vh;
@@ -40,6 +41,10 @@
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  touch-action: manipulation;
 }
 .fl-range-btn:hover { background: rgba(0,160,255,0.12); color: #aadeff; }
 .fl-range-btn.active {
@@ -232,4 +237,25 @@
   .fl-header { flex-direction: column; }
   .fl-macros { gap: 6px; }
   .fl-macro { min-width: 60px; padding: 7px 10px; }
+  .fl-day { padding: 10px 14px; }
+  .fl-bar-legend { font-size: 0.65rem; gap: 6px; }
+}
+
+@media (max-width: 480px) {
+  .fl-page { padding: 12px 10px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .fl-title { font-size: 1.2rem; }
+  .fl-subtitle { font-size: 0.78rem; }
+  .fl-range-btn { font-size: 0.78rem; padding: 5px 11px; min-height: 34px; }
+  .fl-day { padding: 9px 11px; margin-bottom: 10px; }
+  .fl-day-date { font-size: 0.82rem; }
+  .fl-day-cals { font-size: 0.88rem; }
+  .fl-macros { gap: 4px; }
+  .fl-macro { min-width: 50px; padding: 5px 7px; }
+  .fl-macro strong { font-size: 0.92rem; }
+  .fl-macro span { font-size: 0.6rem; }
+  .fl-bar-wrap { gap: 7px; }
+  .fl-bar { height: 5px; }
+  .fl-bar-legend { font-size: 0.62rem; gap: 5px; }
+  .fl-secondary { gap: 5px 10px; padding-top: 7px; }
+  .fl-sec-item { font-size: 0.72rem; }
 }

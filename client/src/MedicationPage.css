@@ -2,6 +2,7 @@
   max-width: 980px;
   margin: 0 auto;
   padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 .med-header {
@@ -37,6 +38,8 @@
   padding: 6px 10px;
   border-radius: 999px;
   cursor: pointer;
+  min-height: 36px;
+  touch-action: manipulation;
 }
 
 .med-range-btn.active {
@@ -123,6 +126,10 @@
   cursor: grab;
   font-weight: 700;
   line-height: 1;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  touch-action: manipulation;
 }
 
 .med-quick-drag-handle:active {
@@ -136,6 +143,10 @@
   border-radius: 6px;
   padding: 4px 8px;
   cursor: pointer;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  touch-action: manipulation;
 }
 
 .med-create-quick-row {
@@ -185,6 +196,7 @@
   border: 1px solid #c8d4e6;
   border-radius: 7px;
   padding: 6px 8px;
+  font-size: 16px;
 }
 
 .med-quick-edit-actions {
@@ -202,6 +214,7 @@
   border: 1px solid #d0d7e2;
   border-radius: 8px;
   padding: 8px 10px;
+  font-size: 16px;
 }
 
 .med-add-btn {
@@ -211,6 +224,8 @@
   color: #fff;
   padding: 8px 12px;
   cursor: pointer;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
 .med-notes {
@@ -219,6 +234,8 @@
   border: 1px solid #d0d7e2;
   border-radius: 8px;
   padding: 8px 10px;
+  font-size: 16px;
+  box-sizing: border-box;
 }
 
 .med-error {
@@ -328,6 +345,8 @@
   padding: 6px 10px;
   cursor: pointer;
   font-size: 0.85rem;
+  min-height: 36px;
+  touch-action: manipulation;
 }
 
 .med-actions {
@@ -382,4 +401,16 @@
     grid-column: auto;
     justify-self: start;
   }
+}
+
+@media (max-width: 600px) {
+  .med-page { padding: 10px 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .med-header { gap: 8px; }
+  .med-range-row { gap: 6px; }
+  .med-quick-grid { grid-template-columns: 1fr; }
+  .med-day-title { padding: 10px 10px; font-size: 0.95rem; }
+  .med-item { padding: 9px 10px; }
+  .med-main { flex-wrap: wrap; gap: 4px; }
+  .med-meta { flex-wrap: wrap; gap: 4px 8px; font-size: 0.85rem; }
+  .med-actions { gap: 6px; }
 }
