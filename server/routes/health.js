@@ -425,7 +425,8 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
       value: s.value,
       timestamp: s.startDate || s.timestamp || s.date,
       raw: JSON.stringify(s),
-    })).filter(r => r.type && r.timestamp && r.value !== undefined && r.value !== null);
+    })).filter(r => r.type && r.timestamp && r.value !== undefined && r.value !== null
+      && !/^sleep_analysis_/i.test(String(r.type)));
     const deduped = await filterDuplicateStats(req.user.id, records);
     if (deduped.length) await insertInChunks('health_data', deduped);
     return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length });
@@ -491,6 +492,9 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
             .replace(/\s+/g, '_')
             .replace(/\[|\]|\(|\)|\.|\//g, '')
             .replace(/[^a-z0-9_]/g, '_');
+
+          // Skip sleep data from Health Auto Export — only AutoSleep CSV should provide sleep
+          if (/^sleep_analysis_/i.test(typeKey)) continue;
 
           const num = parseFloat(String(v).replace(/[^0-9eE+\-.]/g, ''));
           const value = Number.isFinite(num) ? num : String(v);
@@ -729,6 +733,9 @@ const isHealthAutoExportHeaders = (headers = []) => {
 };
 
 const toRecord = (userId, typeKey, val, ts, meta = {}) => {
+  // Skip sleep data from macro imports — only AutoSleep CSV should provide sleep
+  if (/^sleep_analysis_/i.test(typeKey)) return null;
+
   const sleepTypeMatch = /sleep_analysis_/.test(typeKey);
   const parsedSleepHours = sleepTypeMatch ? parseDurationHours(val) : null;
   const num = parseFloat(String(val).replace(/[^0-9eE+\-.]/g, ''));
@@ -838,11 +845,12 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           if (!h || tsCandidates.test(h)) return;
           const cellVal = toCellValue(row.getCell(col).value);
           if (cellVal === null || cellVal === undefined || cellVal === '') return;
-          records.push(toRecord(req.user.id, normalizeKey(h), cellVal, ts, {
+          const rec = toRecord(req.user.id, normalizeKey(h), cellVal, ts, {
             rowUid,
             rowNum,
             source: 'macro_xlsx',
-          }));
+          });
+          if (rec) records.push(rec);
         });
       });
     } else {
@@ -887,11 +895,12 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
         if (!ts) ts = new Date().toISOString();
         for (const [k, v] of Object.entries(row)) {
           if (tsCandidates.test(k) || !v || String(v).trim() === '') continue;
-          records.push(toRecord(req.user.id, normalizeKey(k), v, ts, {
+          const rec = toRecord(req.user.id, normalizeKey(k), v, ts, {
             rowUid,
             rowNum: csvRowNum,
             source: 'macro_csv',
-          }));
+          });
+          if (rec) records.push(rec);
         }
       }
 

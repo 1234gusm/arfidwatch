@@ -115,6 +115,12 @@ const HERO_DEFS = [
   { ct: 'sleep_analysis_total_sleep_hr',label: 'Avg Sleep',    color: '#5b2d8e', mode: 'avg'    },
 ];
 
+const MACRO_DEFS = [
+  { ct: 'protein_g',       label: 'Protein',  calPerGram: 4, color: '#4a9' },
+  { ct: 'carbohydrates_g', label: 'Carbs',    calPerGram: 4, color: '#e8a735' },
+  { ct: 'total_fat_g',     label: 'Fat',      calPerGram: 9, color: '#d66' },
+];
+
 const MOOD_LABEL = { 1: 'Very Bad', 2: 'Bad', 3: 'Okay', 4: 'Good', 5: 'Great' };
 const MOOD_EMOJI = { 1: '😢', 2: '😞', 3: '😐', 4: '😊', 5: '😁' };
 
@@ -152,6 +158,9 @@ function ExportPage({ token }) {
   const [loading,        setLoading]        = useState(false);
   const [exporting,      setExporting]      = useState(false);
   const [error,          setError]          = useState(null);
+  const [foodLogOpen,    setFoodLogOpen]    = useState(false);
+  const [macroDaysOpen,  setMacroDaysOpen]  = useState(false);
+  const [activeTab,      setActiveTab]      = useState('overview');
 
   // Load the user's default export period from their profile
   useEffect(() => {
@@ -173,17 +182,24 @@ function ExportPage({ token }) {
     setLoading(true); setError(null); setPreview(null);
     const { start, end } = getRange();
     try {
-      const [jRes, hRes, heroRes] = await Promise.all([
+      const [jRes, hRes, heroRes, flRes, flDailyRes] = await Promise.all([
         fetch(`${API_BASE}/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/health/hero`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/food-log/items?start=${start}&end=${end}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/food-log/daily?start=${start}T00:00:00&end=${end}T23:59:59`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
-      const jData    = await jRes.json();
-      const hData    = await hRes.json();
-      const heroData = await heroRes.json();
+      const jData      = await jRes.json();
+      const hData      = await hRes.json();
+      const heroData   = await heroRes.json();
+      const flData     = await flRes.json();
+      const flDaily    = await flDailyRes.json();
       const maps        = buildMaps(hData.data || []);
       const heroFallback = buildMaps(heroData.data || []);
-      setPreview({ entries: jData.entries || [], maps, heroFallback, totalHealth: (hData.data || []).length });
+      setFoodLogOpen(false);
+      setMacroDaysOpen(false);
+      setActiveTab('overview');
+      setPreview({ entries: jData.entries || [], maps, heroFallback, totalHealth: (hData.data || []).length, foodLogItems: flData.data || [], macroDays: flDaily.data || [] });
     } catch (e) {
       setError('Preview failed: ' + e.message);
     } finally {
@@ -291,7 +307,7 @@ function ExportPage({ token }) {
         )}
 
         {preview && (() => {
-          const { entries, maps, heroFallback, totalHealth } = preview;
+          const { entries, maps, heroFallback, totalHealth, foodLogItems, macroDays } = preview;
 
           // Hero stats — use period data, fall back to all-time if period has none
           const heroStats = HERO_DEFS.map(h => {
@@ -311,8 +327,39 @@ function ExportPage({ token }) {
             !SECTION_ALL_COLS.has(ct) && daysOf(maps[ct]) > 0
           );
 
+          // Daily macro helper
+          const dayBar = (d) => {
+            const p = (d.protein_g || 0) * 4;
+            const c = (d.carbohydrates_g || 0) * 4;
+            const f = (d.total_fat_g || 0) * 9;
+            const tot = p + c + f;
+            if (!tot) return null;
+            return { p: Math.round(p / tot * 100), c: Math.round(c / tot * 100), f: Math.round(f / tot * 100) };
+          };
+          const sortedMacroDays = [...macroDays]
+            .map(d => ({
+              ...d,
+              dietary_energy_kcal: d.dietary_energy_kcal != null ? parseFloat(d.dietary_energy_kcal) : undefined,
+              protein_g:           d.protein_g != null           ? parseFloat(d.protein_g)           : undefined,
+              carbohydrates_g:     d.carbohydrates_g != null     ? parseFloat(d.carbohydrates_g)     : undefined,
+              total_fat_g:         d.total_fat_g != null         ? parseFloat(d.total_fat_g)         : undefined,
+            }))
+            .sort((a, b) => (a.date < b.date ? 1 : -1));
+
           return (
             <>
+              {/* ── Tabs ── */}
+              <div className="ep-tabs">
+                <button
+                  className={`ep-tab${activeTab === 'overview' ? ' ep-tab--active' : ''}`}
+                  onClick={() => setActiveTab('overview')}
+                >Overview</button>
+                <button
+                  className={`ep-tab${activeTab === 'daily' ? ' ep-tab--active' : ''}`}
+                  onClick={() => setActiveTab('daily')}
+                >Daily Nutrient Data{sortedMacroDays.length > 0 ? ` (${sortedMacroDays.length})` : ''}</button>
+              </div>
+              {activeTab === 'overview' && <>
               {/* Hero row */}
               <div className="ep-hero-row">
                 {heroStats.map(h => (
@@ -343,18 +390,6 @@ function ExportPage({ token }) {
                 const activePrimary   = sec.primary.filter(ct => daysOf(maps[ct]) > 0);
                 const activeSecondary = sec.secondary.filter(ct => daysOf(maps[ct]) > 0);
                 if (!activePrimary.length && !activeSecondary.length && !sec.alwaysShow) return null;
-
-                // Nutrition macro split
-                const macroSplit = (() => {
-                  if (sec.id !== 'nutrition') return null;
-                  const ap = avgOf(maps['protein_g']);
-                  const ac = avgOf(maps['carbohydrates_g']);
-                  const af = avgOf(maps['total_fat_g']);
-                  if (!ap || !ac || !af) return null;
-                  const tot = ap*4 + ac*4 + af*9;
-                  if (!tot) return null;
-                  return `Protein ${Math.round(ap*4/tot*100)}%  \u00b7  Carbs ${Math.round(ac*4/tot*100)}%  \u00b7  Fat ${Math.round(af*9/tot*100)}%`;
-                })();
 
                 const chipsToShow = sec.alwaysShow ? sec.primary : activePrimary;
 
@@ -395,8 +430,44 @@ function ExportPage({ token }) {
                       </div>
                     )}
 
-                    {/* Macro split for nutrition */}
-                    {macroSplit && <p className="ep-pv-total">Avg macro split: {macroSplit}</p>}
+                    {/* Macro breakdown for nutrition */}
+                    {sec.id === 'nutrition' && (() => {
+                      const macros = MACRO_DEFS.map(m => {
+                        const avg = avgOf(maps[m.ct]);
+                        if (avg === null) return null;
+                        const cal = avg * m.calPerGram;
+                        return { ...m, avg, cal };
+                      }).filter(Boolean);
+                      const totalCal = macros.reduce((s, m) => s + m.cal, 0);
+                      if (!macros.length || !totalCal) return null;
+                      return (
+                        <div className="ep-macro-breakdown">
+                          <div className="ep-macro-bar">
+                            {macros.map(m => (
+                              <div
+                                key={m.ct}
+                                className="ep-macro-bar-seg"
+                                style={{ width: `${Math.round(m.cal / totalCal * 100)}%`, background: m.color }}
+                                title={`${m.label}: ${Math.round(m.cal / totalCal * 100)}%`}
+                              />
+                            ))}
+                          </div>
+                          <div className="ep-macro-legend">
+                            {macros.map(m => {
+                              const meta = TYPE_META[m.ct];
+                              return (
+                                <div key={m.ct} className="ep-macro-item">
+                                  <span className="ep-macro-dot" style={{ background: m.color }} />
+                                  <span className="ep-macro-name">{m.label}</span>
+                                  <span className="ep-macro-val">{fmt(m.avg, meta)}</span>
+                                  <span className="ep-macro-pct">{Math.round(m.cal / totalCal * 100)}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Period totals */}
                     {sec.id === 'nutrition' && maps['dietary_energy_kcal'] && (
@@ -404,6 +475,7 @@ function ExportPage({ token }) {
                         Period total: {Math.round(totalOf(maps['dietary_energy_kcal'])).toLocaleString()} kcal
                       </p>
                     )}
+
                     {sec.id === 'activity' && maps['step_count_count'] && (
                       <p className="ep-pv-total">
                         Period total: {Math.round(totalOf(maps['step_count_count'])).toLocaleString()} steps
@@ -462,6 +534,47 @@ function ExportPage({ token }) {
                 </div>
               )}
 
+              {/* Food Log — collapsible */}
+              {foodLogItems.length > 0 && (
+                <div className="ep-pv-section">
+                  <button
+                    className="ep-pv-collapse-btn"
+                    onClick={() => setFoodLogOpen(v => !v)}
+                  >
+                    <span className={`ep-pv-arrow${foodLogOpen ? ' ep-pv-arrow--open' : ''}`}>&#9654;</span>
+                    <span className="ep-pv-title" style={{ color: '#1a7a1a', margin: 0 }}>🍽️ Food Log ({foodLogItems.length} {foodLogItems.length === 1 ? 'item' : 'items'})</span>
+                  </button>
+                  {foodLogOpen && (() => {
+                    const byDay = {};
+                    foodLogItems.forEach(item => {
+                      const d = item.date || 'Unknown';
+                      if (!byDay[d]) byDay[d] = [];
+                      byDay[d].push(item);
+                    });
+                    const sortedDays = Object.keys(byDay).sort((a, b) => b.localeCompare(a));
+                    return (
+                      <div className="ep-fl-list">
+                        {sortedDays.slice(0, 10).map(day => (
+                          <div key={day} className="ep-fl-day">
+                            <div className="ep-fl-day-header">
+                              {new Date(day + 'T12:00:00').toLocaleDateString([], { dateStyle: 'medium' })}
+                            </div>
+                            {byDay[day].map((item, i) => (
+                              <div key={i} className="ep-fl-item">
+                                <span className="ep-fl-food">{item.food_name}</span>
+                                {item.meal && <span className="ep-fl-meal">{item.meal}</span>}
+                                <span className="ep-fl-cals">{item.calories != null ? `${Math.round(item.calories)} kcal` : ''}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        {sortedDays.length > 10 && <p className="ep-hint">and {sortedDays.length - 10} more days in the PDF&#8230;</p>}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Journal */}
               {includeJournal && entries.length > 0 && (
                 <div className="ep-pv-section">
@@ -485,6 +598,64 @@ function ExportPage({ token }) {
 
               {entries.length === 0 && totalHealth === 0 && (
                 <div className="ep-preview-empty"><p>No data found in this date range.</p></div>
+              )}
+              </>}
+
+              {/* ── Daily Nutrient Data tab ── */}
+              {activeTab === 'daily' && (
+                <div className="ep-daily-tab">
+                  {sortedMacroDays.length === 0 ? (
+                    <div className="ep-preview-empty"><p>No daily nutrient data in this date range.</p></div>
+                  ) : (
+                    <div className="ep-md-list">
+                      {sortedMacroDays.map(d => {
+                        const bar = dayBar(d);
+                        return (
+                          <div key={d.date} className="ep-md-day">
+                            <div className="ep-md-day-header">
+                              <span className="ep-md-day-date">
+                                {new Date(d.date + 'T12:00:00').toLocaleDateString([], { dateStyle: 'medium' })}
+                              </span>
+                              {d.dietary_energy_kcal !== undefined && (
+                                <span className="ep-md-day-cals">{Math.round(d.dietary_energy_kcal).toLocaleString()} kcal</span>
+                              )}
+                            </div>
+                            <div className="ep-md-chips">
+                              {[
+                                { key: 'dietary_energy_kcal', label: 'Calories', unit: 'kcal', dp: 0 },
+                                { key: 'protein_g',           label: 'Protein',  unit: 'g',    dp: 1 },
+                                { key: 'carbohydrates_g',     label: 'Carbs',    unit: 'g',    dp: 1 },
+                                { key: 'total_fat_g',         label: 'Fat',      unit: 'g',    dp: 1 },
+                              ].map(m => {
+                                const v = d[m.key];
+                                return (
+                                  <div key={m.key} className={`ep-md-chip${v === undefined ? ' ep-md-chip--missing' : ''}`}>
+                                    <strong>{v !== undefined ? (m.dp === 0 ? Math.round(v).toLocaleString() : v.toFixed(m.dp)) + ' ' + m.unit : '\u2014'}</strong>
+                                    <span>{m.label}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {bar && (
+                              <div className="ep-md-bar-wrap">
+                                <div className="ep-md-bar">
+                                  <div className="ep-md-bar-p" style={{ width: bar.p + '%' }} />
+                                  <div className="ep-md-bar-c" style={{ width: bar.c + '%' }} />
+                                  <div className="ep-md-bar-f" style={{ width: bar.f + '%' }} />
+                                </div>
+                                <span className="ep-md-bar-legend">
+                                  <em style={{ color: '#4ac8a0' }}>P {bar.p}%</em>
+                                  <em style={{ color: '#4a88e0' }}>C {bar.c}%</em>
+                                  <em style={{ color: '#e08040' }}>F {bar.f}%</em>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </>
           );

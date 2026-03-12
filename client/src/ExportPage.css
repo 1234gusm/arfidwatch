@@ -1,8 +1,9 @@
 .export-page {
   padding: 28px 32px;
-  max-width: 860px;
+  max-width: 900px;
   margin: 0 auto;
   color: #c8d8e8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Header */
@@ -11,14 +12,15 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 .ep-title {
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 700;
   color: #e8f4ff;
   margin: 0 0 4px;
+  letter-spacing: -0.01em;
 }
 .ep-subtitle {
   font-size: 0.88rem;
@@ -34,14 +36,16 @@
 
 .ep-preview-btn,
 .ep-download-btn {
-  padding: 9px 20px;
-  border-radius: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.18s, opacity 0.18s, transform 0.1s;
 }
+.ep-preview-btn:active,
+.ep-download-btn:active { transform: scale(0.97); }
 .ep-preview-btn {
   background: rgba(0, 100, 200, 0.18);
   color: #7ecfff;
@@ -49,10 +53,11 @@
 }
 .ep-preview-btn:hover:not(:disabled)  { background: rgba(0,100,200,0.28); }
 .ep-download-btn {
-  background: #0066cc;
+  background: linear-gradient(135deg, #0066cc, #0088ee);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 100, 200, 0.3);
 }
-.ep-download-btn:hover:not(:disabled) { background: #0077ee; }
+.ep-download-btn:hover:not(:disabled) { background: linear-gradient(135deg, #0077ee, #009aff); }
 .ep-preview-btn:disabled,
 .ep-download-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -62,11 +67,12 @@
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  background: rgba(0, 60, 120, 0.18);
-  border: 1px solid rgba(0, 100, 200, 0.2);
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 18px;
+  background: rgba(0, 40, 90, 0.22);
+  border: 1px solid rgba(0, 100, 200, 0.18);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(4px);
 }
 .ep-period-row {
   display: flex;
@@ -74,20 +80,21 @@
 }
 .ep-period-btn {
   padding: 6px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   background: transparent;
   color: #88aacc;
-  border: 1px solid rgba(100, 160, 220, 0.3);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  border: 1px solid rgba(100, 160, 220, 0.25);
+  transition: all 0.15s;
 }
-.ep-period-btn:hover { background: rgba(0, 100, 200, 0.2); color: #aad4ff; }
+.ep-period-btn:hover { background: rgba(0, 100, 200, 0.18); color: #aad4ff; }
 .ep-period-btn.active {
   background: rgba(0, 100, 200, 0.35);
   color: #d0eaff;
   border-color: rgba(0, 140, 255, 0.55);
+  box-shadow: 0 0 8px rgba(0, 120, 255, 0.15);
 }
 
 .ep-custom {
@@ -131,7 +138,7 @@
   background: transparent;
   color: #5578a0;
   border: 1px solid rgba(100, 160, 220, 0.25);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: all 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -155,11 +162,12 @@
 
 /* Preview panel */
 .ep-preview {
-  background: rgba(0, 30, 70, 0.3);
-  border: 1px solid rgba(0, 80, 160, 0.25);
-  border-radius: 12px;
-  padding: 20px 22px;
+  background: rgba(0, 25, 60, 0.35);
+  border: 1px solid rgba(0, 80, 160, 0.22);
+  border-radius: 14px;
+  padding: 24px 26px;
   min-height: 180px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .ep-preview-empty {
@@ -207,11 +215,11 @@
   letter-spacing: 0.04em;
 }
 
-/* Sections */
+/* ── Sections ── */
 .ep-pv-section {
-  margin-bottom: 20px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid rgba(0, 80, 160, 0.2);
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(0, 80, 160, 0.15);
 }
 .ep-pv-section:last-child { border-bottom: none; margin-bottom: 0; }
 
@@ -219,11 +227,11 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: #88c0e8;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   letter-spacing: 0.02em;
 }
 
-/* Metric chips */
+/* ── Metric chips ── */
 .ep-pv-metrics {
   display: flex;
   flex-wrap: wrap;
@@ -233,16 +241,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 16px;
-  background: rgba(0, 100, 200, 0.1);
-  border: 1px solid rgba(0, 120, 220, 0.22);
+  padding: 12px 16px 10px;
+  background: rgba(0, 60, 130, 0.12);
+  border: 1px solid rgba(0, 120, 220, 0.18);
   border-top: 3px solid var(--chip-color, #0066cc);
-  border-radius: 8px;
-  min-width: 82px;
+  border-radius: 10px;
+  min-width: 86px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ep-pv-metric:hover {
+  background: rgba(0, 80, 160, 0.18);
 }
 .ep-pv-metric strong {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.08rem;
+  font-weight: 700;
   color: #60c8ff;
   line-height: 1.2;
 }
@@ -260,11 +272,15 @@
   text-align: center;
 }
 
-/* Journal entries */
+/* ── Journal entries ── */
 .ep-pv-entry {
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(0, 80, 160, 0.12);
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 80, 160, 0.1);
+  border-radius: 6px;
+  margin-bottom: 2px;
+  transition: background 0.12s;
 }
+.ep-pv-entry:hover { background: rgba(0, 60, 130, 0.1); }
 .ep-pv-entry:last-child { border-bottom: none; }
 .ep-pv-meta {
   display: flex;
@@ -285,7 +301,7 @@
   font-size: 0.87rem;
   color: #8aaccc;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* Misc */
@@ -322,26 +338,28 @@
 }
 @keyframes ep-spin { to { transform: rotate(360deg); } }
 
-/* ── Hero stats row ──────────────────────────────────────────────────── */
+/* ── Hero stats row ── */
 .ep-hero-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .ep-hero-stat {
   flex: 1 1 0;
-  min-width: 100px;
-  background: rgba(0, 40, 90, 0.25);
-  border: 1px solid rgba(0, 100, 200, 0.2);
+  min-width: 105px;
+  background: rgba(0, 35, 80, 0.3);
+  border: 1px solid rgba(0, 100, 200, 0.18);
   border-top: 3px solid var(--hero-color, #0066cc);
-  border-radius: 8px;
-  padding: 11px 10px 9px;
+  border-radius: 10px;
+  padding: 14px 12px 11px;
   text-align: center;
+  transition: background 0.15s;
 }
+.ep-hero-stat:hover { background: rgba(0, 50, 110, 0.35); }
 .ep-hero-stat strong {
   display: block;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #70d0ff;
   line-height: 1.15;
@@ -352,7 +370,7 @@
   color: #5578a0;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 .ep-hero-stat small {
   display: block;
@@ -367,7 +385,9 @@
   gap: 16px;
   font-size: 0.79rem;
   color: #4a6888;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 80, 160, 0.12);
 }
 
 /* Secondary chips */
@@ -376,7 +396,7 @@
   opacity: 0.85;
 }
 .ep-pv-metric--sm {
-  padding: 6px 10px;
+  padding: 8px 10px;
   min-width: 68px;
   background: rgba(0, 80, 160, 0.08);
   border-color: rgba(0, 100, 200, 0.15);
@@ -421,11 +441,261 @@
 .ep-pv-total {
   font-size: 0.79rem;
   color: #4a7090;
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-style: italic;
 }
 
-/* Other metrics table */
+/* ── Macro breakdown ── */
+.ep-macro-breakdown {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(0, 50, 100, 0.12);
+  border: 1px solid rgba(0, 100, 200, 0.12);
+  border-radius: 10px;
+}
+.ep-macro-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.ep-macro-bar-seg {
+  min-width: 4px;
+  transition: width 0.3s;
+}
+.ep-macro-bar-seg:first-child { border-radius: 5px 0 0 5px; }
+.ep-macro-bar-seg:last-child  { border-radius: 0 5px 5px 0; }
+.ep-macro-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.ep-macro-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+}
+.ep-macro-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ep-macro-name {
+  color: #7aa0bb;
+  font-weight: 500;
+}
+.ep-macro-val {
+  color: #90c8e0;
+  font-weight: 600;
+}
+.ep-macro-pct {
+  color: #557090;
+  font-size: 0.76rem;
+}
+
+/* ── Tabs ── */
+.ep-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid rgba(0, 80, 160, 0.18);
+  padding-bottom: 0;
+}
+.ep-tab {
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  color: #5580a0;
+  border-radius: 8px 8px 0 0;
+  transition: color 0.15s, border-color 0.2s, background 0.15s;
+}
+.ep-tab:hover {
+  color: #88c0e8;
+  background: rgba(0, 80, 160, 0.08);
+}
+.ep-tab--active {
+  color: #7ecfff;
+  border-bottom-color: #0088ee;
+  background: rgba(0, 80, 160, 0.12);
+}
+
+/* ── Daily nutrient data tab ── */
+.ep-daily-tab {
+  padding-top: 4px;
+}
+
+/* ── Daily macro breakdown ── */
+.ep-md-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ep-md-day {
+  background: rgba(0, 50, 30, 0.12);
+  border: 1px solid rgba(0, 100, 60, 0.15);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.ep-md-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.ep-md-day-date {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #8ac0a0;
+}
+.ep-md-day-cals {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #5a9a6a;
+}
+.ep-md-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ep-md-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px 6px;
+  background: rgba(0, 60, 130, 0.1);
+  border: 1px solid rgba(0, 100, 200, 0.15);
+  border-radius: 8px;
+  min-width: 72px;
+}
+.ep-md-chip strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #60c8ff;
+  line-height: 1.2;
+}
+.ep-md-chip span {
+  font-size: 0.66rem;
+  color: #5580a0;
+  margin-top: 2px;
+}
+.ep-md-chip--missing {
+  opacity: 0.45;
+}
+.ep-md-chip--missing strong {
+  color: #3a5268;
+}
+.ep-md-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ep-md-bar {
+  display: flex;
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ep-md-bar-p { background: #4ac8a0; }
+.ep-md-bar-c { background: #4a88e0; }
+.ep-md-bar-f { background: #e08040; }
+.ep-md-bar-legend {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ep-md-bar-legend em {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* ── Collapsible section toggle ── */
+.ep-pv-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.ep-pv-collapse-btn:hover { background: rgba(0, 80, 160, 0.1); }
+.ep-pv-arrow {
+  font-size: 0.7rem;
+  color: #5580a0;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.ep-pv-arrow--open {
+  transform: rotate(90deg);
+}
+
+/* ── Food log list ── */
+.ep-fl-list {
+  margin-top: 10px;
+}
+.ep-fl-day {
+  margin-bottom: 12px;
+}
+.ep-fl-day-header {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #7aaa88;
+  margin-bottom: 4px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(0, 100, 60, 0.15);
+}
+.ep-fl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+.ep-fl-item:hover { background: rgba(0, 80, 60, 0.08); }
+.ep-fl-food {
+  flex: 1;
+  color: #9ab8cc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ep-fl-meal {
+  font-size: 0.72rem;
+  color: #557080;
+  background: rgba(0, 100, 120, 0.12);
+  padding: 1px 7px;
+  border-radius: 4px;
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+.ep-fl-cals {
+  font-size: 0.78rem;
+  color: #5a9060;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ── Other metrics table ── */
 .ep-other-table {
   width: 100%;
   border-collapse: collapse;
@@ -436,15 +706,31 @@
   text-align: left;
   font-size: 0.74rem;
   color: #5580a0;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid rgba(0, 80, 160, 0.2);
   font-weight: 600;
 }
 .ep-other-table td {
-  padding: 5px 8px;
+  padding: 6px 8px;
   color: #9ab8cc;
-  border-bottom: 1px solid rgba(0, 60, 120, 0.12);
+  border-bottom: 1px solid rgba(0, 60, 120, 0.1);
 }
 .ep-other-table tr:nth-child(even) td {
-  background: rgba(0, 40, 100, 0.1);
+  background: rgba(0, 40, 100, 0.08);
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .export-page { padding: 16px; }
+  .ep-header { gap: 10px; }
+  .ep-hero-row { gap: 6px; }
+  .ep-hero-stat { min-width: 80px; padding: 10px 6px; }
+  .ep-hero-stat strong { font-size: 1rem; }
+  .ep-pv-metrics { gap: 6px; }
+  .ep-pv-metric { min-width: 70px; padding: 8px 10px; }
+  .ep-macro-legend { gap: 8px; }
+  .ep-fl-item { gap: 6px; }
+  .ep-md-chips { gap: 5px; }
+  .ep-md-chip { min-width: 60px; padding: 6px 8px; }
+  .ep-md-chip strong { font-size: 0.8rem; }
 }
