@@ -330,6 +330,14 @@
   margin: 0;
 }
 
+/* ── Disclaimer ── */
+.share-disclaimer {
+  font-size: 0.74rem;
+  color: #9aabbb;
+  font-style: italic;
+  margin: -8px 0 0 4px;
+}
+
 /* ── Journal entries ── */
 .share-journal-list {
   display: flex;

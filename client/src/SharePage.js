@@ -467,6 +467,7 @@ function SharePage() {
         {activeTab === 'overview' && <>
         {/* Nutrition section */}
         {renderMetricSection(SECTIONS[0])}
+        <p className="share-disclaimer">Vitamin info does not include medication stats.</p>
 
         {/* Food Log — collapsed, right after nutrition */}
         {foodLog.length > 0 && (() => {
