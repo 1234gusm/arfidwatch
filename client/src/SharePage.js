@@ -458,20 +458,28 @@ function SharePage() {
     return Math.round(diff) + 1;
   })();
 
-  // Build daily macro data from health maps
-  const macroDays = (() => {
-    const allDays = new Set();
-    ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'].forEach(ct => {
-      if (maps[ct]) Object.keys(maps[ct]).forEach(d => allDays.add(d));
-    });
-    return [...allDays].sort().reverse().map(date => ({
-      date,
-      kcal:    maps['dietary_energy_kcal']?.[date],
-      protein: maps['protein_g']?.[date],
-      carbs:   maps['carbohydrates_g']?.[date],
-      fat:     maps['total_fat_g']?.[date],
-    }));
+  // All YYYY-MM-DD dates in the period, most-recent-first
+  const allPeriodDates = (() => {
+    if (!healthInfo?.start || !healthInfo?.end) return [];
+    const dates = [];
+    const cur = new Date(healthInfo.start + 'T00:00:00');
+    const end = new Date(healthInfo.end   + 'T00:00:00');
+    while (cur <= end) {
+      dates.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`);
+      cur.setDate(cur.getDate() + 1);
+    }
+    return dates.reverse();
   })();
+
+  // Build daily macro data — zero-fill every day in the period
+  const macroDays = allPeriodDates.map(date => ({
+    date,
+    empty: !maps['dietary_energy_kcal']?.[date] && !maps['protein_g']?.[date] && !maps['carbohydrates_g']?.[date] && !maps['total_fat_g']?.[date],
+    kcal:    maps['dietary_energy_kcal']?.[date] ?? 0,
+    protein: maps['protein_g']?.[date]           ?? 0,
+    carbs:   maps['carbohydrates_g']?.[date]     ?? 0,
+    fat:     maps['total_fat_g']?.[date]         ?? 0,
+  }));
 
   const dayBar = (d) => {
     const p = (d.protein || 0) * 4;
@@ -662,8 +670,9 @@ function SharePage() {
         </>}
 
         {activeTab === 'log' && (() => {
-          // Build a unified day-keyed map
+          // Build a unified day-keyed map — always include every day in the period
           const logAllDays = new Set([
+            ...allPeriodDates,
             ...foodLog.map(e => e.date),
             ...(showJournal ? journal.map(e => e.date) : []),
             ...(showMeds    ? medications.map(e => e.date) : []),
@@ -725,7 +734,7 @@ function SharePage() {
                       </div>
                     )}
 
-                    {meals && (
+                    {meals ? (
                       <div className="share-combined-section">
                         <div className="share-combined-section-label">Food Log</div>
                         {meals.map(({ meal, items }) => (
@@ -752,7 +761,11 @@ function SharePage() {
                           </div>
                         ))}
                       </div>
-                    )}
+                    ) : !jEntry && !meds ? (
+                      <div className="share-combined-section share-foodlog-empty-day">
+                        <span>No food logged · 0 kcal</span>
+                      </div>
+                    ) : null}
 
                     {meds && (
                       <div className="share-combined-section">
@@ -792,9 +805,7 @@ function SharePage() {
                     <div key={d.date} className="share-daily-card">
                       <div className="share-daily-header">
                         <span className="share-daily-date">{localDateStr(d.date)}</span>
-                        {d.kcal != null && (
-                          <span className="share-daily-cals">{Math.round(d.kcal).toLocaleString()} kcal</span>
-                        )}
+                        <span className={`share-daily-cals${d.empty ? ' share-daily-cals--zero' : ''}`}>{Math.round(d.kcal).toLocaleString()} kcal</span>
                       </div>
                       <div className="share-daily-chips">
                         {[
@@ -803,8 +814,8 @@ function SharePage() {
                           { val: d.carbs,    label: 'Carbs',    unit: 'g',    dp: 1 },
                           { val: d.fat,      label: 'Fat',      unit: 'g',    dp: 1 },
                         ].map(m => (
-                          <div key={m.label} className={`share-daily-chip${m.val == null ? ' share-daily-chip--empty' : ''}`}>
-                            <strong>{m.val != null ? (m.dp === 0 ? Math.round(m.val).toLocaleString() : m.val.toFixed(m.dp)) + ' ' + m.unit : '\u2014'}</strong>
+                          <div key={m.label} className={`share-daily-chip${d.empty ? ' share-daily-chip--zero' : ''}`}>
+                            <strong>{m.dp === 0 ? Math.round(m.val).toLocaleString() : m.val.toFixed(m.dp)} {m.unit}</strong>
                             <span>{m.label}</span>
                           </div>
                         ))}

@@ -679,6 +679,15 @@
   gap: 2px;
 }
 
+.share-foodlog-empty-day {
+  font-size: 0.75rem;
+  color: #3a6070;
+  font-style: italic;
+  padding: 4px 0 2px;
+  border-top: 1px dashed rgba(255,255,255,0.06);
+  margin-top: 4px;
+}
+
 .share-foodlog-meal-name {
   font-size: 0.7rem;
   font-weight: 600;
@@ -752,6 +761,13 @@
   font-weight: 600;
 }
 .share-daily-chip--empty { opacity: 0.3; }
+.share-daily-chip--zero  { opacity: 0.38; }
+.share-daily-chip--zero strong { color: #4a6a8a; }
+
+.share-daily-cals--zero {
+  color: #3a6070;
+  font-weight: 600;
+}
 
 .share-daily-bar-wrap {
   display: flex;
