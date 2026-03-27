@@ -75,18 +75,24 @@ function FoodLog({ token }) {
 
   const { byDay, days } = useMemo(() => {
     const nextByDay = {};
+    const datesWithEntries = new Set();
+
     rows.forEach(r => {
       const day = r.date;
       if (!day) return;
+      datesWithEntries.add(day); // day has real food_log_entries regardless of macro values
       const entry = {};
       if (r.dietary_energy_kcal != null) entry.dietary_energy_kcal = parseFloat(r.dietary_energy_kcal);
       if (r.protein_g != null)           entry.protein_g           = parseFloat(r.protein_g);
       if (r.carbohydrates_g != null)     entry.carbohydrates_g     = parseFloat(r.carbohydrates_g);
       if (r.total_fat_g != null)         entry.total_fat_g         = parseFloat(r.total_fat_g);
-      if (Object.keys(entry).length > 0) nextByDay[day] = entry;
+      // Always add the day — even if all macros are null, it has real entries
+      nextByDay[day] = Object.keys(entry).length > 0
+        ? entry
+        : { dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
     });
 
-    // Zero-fill every day in the selected range so gaps are visible
+    // Zero-fill only days that have NO entries at all in the selected range
     if (range !== 'all') {
       const dayCount = parseInt(range, 10);
       const today = new Date();
@@ -94,7 +100,7 @@ function FoodLog({ token }) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
         const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        if (!nextByDay[key]) {
+        if (!datesWithEntries.has(key) && !nextByDay[key]) {
           nextByDay[key] = { _empty: true, dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
         }
       }
