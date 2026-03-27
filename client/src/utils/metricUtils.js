@@ -1,4 +1,6 @@
-export const avgOf    = m => { if (!m) return null; const v = Object.values(m); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+export const avgOf       = m => { if (!m) return null; const v = Object.values(m); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+// Zero-fill variant: divides by total period days so days with no data count as 0.
+export const avgOfPeriod = (m, days) => { if (!m || !days) return null; const sum = Object.values(m).reduce((a, b) => a + b, 0); return sum / days; };
 export const latestOf = m => { if (!m) return null; const d = Object.keys(m).sort(); return d.length ? m[d[d.length - 1]] : null; };
 export const totalOf  = m => { if (!m) return null; const v = Object.values(m); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
 export const minOf    = m => { if (!m) return null; const v = Object.values(m); return v.length ? Math.min(...v) : null; };

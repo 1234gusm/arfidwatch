@@ -28,6 +28,9 @@ function dateRangeForPeriod(period) {
   } else if (period === 'month') {
     start.setMonth(start.getMonth() - 1);
     start.setHours(0, 0, 0, 0);
+  } else if (period === 'two_weeks') {
+    start.setDate(start.getDate() - 14);
+    start.setHours(0, 0, 0, 0);
   } else {
     // 'week' or anything else — 7 days back, from start of that day
     start.setDate(start.getDate() - 7);
@@ -90,7 +93,16 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
     const userId = req.share.user_id;
     const user = await db('users').where({ id: userId }).select('username').first();
     const profile = await db('user_profiles').where({ user_id: userId }).first();
-    const exportPeriod = profile?.export_period || 'week';
+
+    // User-locked period takes priority; otherwise use doctor's ?period= param or default 'week'
+    const VALID_PERIODS = ['today', 'week', 'two_weeks', 'month'];
+    const lockedPeriod = profile?.share_period || null;
+    const reqPeriod = req.query.period;
+    const exportPeriod = lockedPeriod
+      || (VALID_PERIODS.includes(reqPeriod) ? reqPeriod : null)
+      || profile?.export_period
+      || 'week';
+
     const { start, end } = dateRangeForPeriod(exportPeriod);
 
     const healthData = await db('health_data')
@@ -133,6 +145,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
     res.json({
       username: user.username,
       export_period: exportPeriod,
+      period_locked: !!lockedPeriod,
       start: startDate,
       end: endDate,
       data: healthData,

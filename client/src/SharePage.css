@@ -92,6 +92,42 @@
   margin-bottom: 14px;
 }
 
+.share-period-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.share-period-btn {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  color: rgba(180,210,255,0.7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.share-period-btn:hover:not(:disabled) {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: rgba(96,165,250,0.4);
+  color: #bfdbfe;
+}
+
+.share-period-btn--active {
+  background: rgba(96,165,250,0.22);
+  border-color: rgba(96,165,250,0.55);
+  color: #93c5fd;
+}
+
+.share-period-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .share-patient-macros {
   display: flex;
   flex-wrap: wrap;

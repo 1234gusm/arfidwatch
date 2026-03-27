@@ -43,6 +43,7 @@ function ProfilePage({ token }) {
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
   const [shareMeds,       setShareMeds]       = useState(false);
   const [shareJournal,    setShareJournal]    = useState(false);
+  const [sharePeriod,     setSharePeriod]     = useState(null);
   const [hasIngestKey,    setHasIngestKey]    = useState(false);
   const [ingestKey,       setIngestKey]       = useState('');
   const [ingestCopied,    setIngestCopied]    = useState(false);
@@ -71,6 +72,7 @@ function ProfilePage({ token }) {
     if (d.share_food_log !== undefined) setShareFoodLog(!!d.share_food_log);
     if (d.share_medications !== undefined) setShareMeds(!!d.share_medications);
     if (d.share_journal !== undefined) setShareJournal(!!d.share_journal);
+    if (d.share_period !== undefined) setSharePeriod(d.share_period || null);
     if (d.has_ingest_key !== undefined) setHasIngestKey(!!d.has_ingest_key);
     if (d.ingest_key_last_used_at !== undefined) setIngestLastUsed(d.ingest_key_last_used_at || null);
   };
@@ -299,6 +301,14 @@ function ProfilePage({ token }) {
       setHasPasscode(d.has_passcode);
       showFlash('Passcode removed');
     } catch { setError('Failed to remove passcode'); }
+  };
+
+  const handleSetSharePeriod = async (val) => {
+    try {
+      await callPut({ share_period: val });
+      setSharePeriod(val);
+      showFlash(val ? 'Doctor view period locked' : 'Doctor can now choose view period');
+    } catch { setError('Failed to save doctor view period'); }
   };
 
   const handleCopy = () => {
@@ -670,6 +680,28 @@ function ProfilePage({ token }) {
                 )}
               </div>
             )}
+
+            <div className="profile-section-title" style={{ marginTop: 16 }}>Doctor View Period</div>
+            <p className="profile-hint">
+              Set how far back your doctor sees data. Leave it at "Doctor chooses" to let them pick.
+            </p>
+            <div className="profile-row" style={{ flexWrap: 'wrap', gap: 6 }}>
+              {[
+                { id: null,         label: 'Doctor chooses' },
+                { id: 'week',       label: '1 week' },
+                { id: 'two_weeks',  label: '2 weeks' },
+                { id: 'month',      label: '1 month' },
+              ].map(opt => (
+                <button
+                  key={String(opt.id)}
+                  className={sharePeriod === opt.id ? 'profile-save-btn' : 'profile-btn-secondary'}
+                  style={{ padding: '5px 13px', fontSize: '0.85rem' }}
+                  onClick={() => handleSetSharePeriod(opt.id)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </>
         ) : (
           <button className="profile-save-btn" onClick={handleGenerateShare}>

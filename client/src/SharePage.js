@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import './SharePage.css';
 import API_BASE from './apiBase';
-import { avgOf, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
+import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 const canonical = t => {
@@ -274,7 +274,7 @@ const SECTIONS = [
 
 const MOOD_LABEL = { 1: 'Very Bad', 2: 'Bad', 3: 'Okay', 4: 'Good', 5: 'Great' };
 const MOOD_COLOR = { 1: '#c0392b', 2: '#e67e22', 3: '#f1c40f', 4: '#27ae60', 5: '#2ecc71' };
-const PERIOD_LABEL = { today: 'Today', week: 'Last 7 days', month: 'Last 30 days', custom: 'Custom' };
+const PERIOD_LABEL = { today: 'Today', week: 'Last 7 days', two_weeks: 'Last 14 days', month: 'Last 30 days', custom: 'Custom' };
 
 function groupFoodLog(entries) {
   const byDate = {};
@@ -340,6 +340,9 @@ function SharePage() {
   const [activeTab,  setActiveTab]  = useState('overview');
   const [showJournal, setShowJournal] = useState(false);
   const [showMeds,    setShowMeds]    = useState(false);
+  const [shareJwt,    setShareJwt]    = useState(null);
+  const [activePeriod, setActivePeriod] = useState('week');
+  const [periodLoading, setPeriodLoading] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/share/${shareToken}`)
@@ -353,6 +356,16 @@ function SharePage() {
       .catch(() => { setErrMsg('Could not reach server.'); setPhase('error'); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shareToken]);
+
+  const fetchData = async (jwt, period = 'week') => {
+    const url = `${API_BASE}/api/share/${shareToken}/data?period=${encodeURIComponent(period)}`;
+    const dr = await fetch(url, { headers: { Authorization: `Bearer ${jwt}` } });
+    const dd = await dr.json();
+    if (!dr.ok) { setErrMsg(dd.error || 'Failed to load data.'); return false; }
+    setHealthInfo(dd);
+    setActivePeriod(dd.export_period || period);
+    return true;
+  };
 
   const doUnlock = async (code, autoUnlock = false) => {
     setUnlocking(true); setErrMsg('');
@@ -369,18 +382,21 @@ function SharePage() {
         else { setErrMsg(d.error || 'Incorrect passcode.'); }
         setUnlocking(false); return;
       }
-      const dr = await fetch(`${API_BASE}/api/share/${shareToken}/data`, {
-        headers: { Authorization: `Bearer ${d.token}` },
-      });
-      const dd = await dr.json();
-      if (!dr.ok) { setErrMsg(dd.error || 'Failed to load data.'); setUnlocking(false); return; }
-      setHealthInfo(dd);
-      setPhase('data');
+      setShareJwt(d.token);
+      const ok = await fetchData(d.token, 'week');
+      if (ok) setPhase('data');
     } catch {
       setErrMsg('Error loading data.');
     } finally {
       setUnlocking(false);
     }
+  };
+
+  const changePeriod = async (period) => {
+    if (!shareJwt) return;
+    setPeriodLoading(true);
+    await fetchData(shareJwt, period);
+    setPeriodLoading(false);
   };
 
   if (phase === 'loading') return (
@@ -432,6 +448,15 @@ function SharePage() {
   const foodLog      = healthInfo?.food_log || [];
   const medications  = healthInfo?.medications || [];
   const periodLabel  = PERIOD_LABEL[healthInfo?.export_period] || healthInfo?.export_period;
+
+  // Total days in the view period — used for zero-filled calorie/macro rolling averages
+  const periodDays = (() => {
+    const s = healthInfo?.start;
+    const e = healthInfo?.end;
+    if (!s || !e) return null;
+    const diff = (new Date(e) - new Date(s)) / (1000 * 60 * 60 * 24);
+    return Math.round(diff) + 1;
+  })();
 
   // Build daily macro data from health maps
   const macroDays = (() => {
@@ -575,14 +600,29 @@ function SharePage() {
               return <div className="share-patient-weight">{w.toFixed(1)} {isKg ? 'kg' : 'lb'}</div>;
             })()}
           </div>
+          {/* Period selector — shown if user hasn't locked it */}
+          {!healthInfo.period_locked ? (
+            <div className="share-period-row">
+              {['week', 'two_weeks', 'month'].map(p => (
+                <button
+                  key={p}
+                  className={`share-period-btn${activePeriod === p ? ' share-period-btn--active' : ''}`}
+                  onClick={() => changePeriod(p)}
+                  disabled={periodLoading}
+                >
+                  {p === 'week' ? '1 week' : p === 'two_weeks' ? '2 weeks' : '1 month'}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="share-period">
-            Averages&nbsp;&middot;&nbsp;{periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}
+            {periodLoading ? 'Loading\u2026' : <>Rolling avg&nbsp;&middot;&nbsp;{periodLabel}&nbsp;&middot;&nbsp;{healthInfo.start}&nbsp;&ndash;&nbsp;{healthInfo.end}</>}
           </div>
           {(() => {
-            const avgCals    = maps['dietary_energy_kcal'] ? avgOf(maps['dietary_energy_kcal']) : null;
-            const avgProtein = maps['protein_g'] ? avgOf(maps['protein_g']) : null;
-            const avgCarbs   = maps['carbohydrates_g'] ? avgOf(maps['carbohydrates_g']) : null;
-            const avgFat     = maps['total_fat_g'] ? avgOf(maps['total_fat_g']) : null;
+            const avgCals    = avgOfPeriod(maps['dietary_energy_kcal'], periodDays);
+            const avgProtein = avgOfPeriod(maps['protein_g'], periodDays);
+            const avgCarbs   = avgOfPeriod(maps['carbohydrates_g'], periodDays);
+            const avgFat     = avgOfPeriod(maps['total_fat_g'], periodDays);
             if (avgCals == null && avgProtein == null && avgCarbs == null && avgFat == null) return null;
             return (
               <div className="share-patient-macros">

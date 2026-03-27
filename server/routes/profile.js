@@ -67,6 +67,7 @@ router.get('/', authenticate, async (req, res) => {
       share_food_log: !!profile.share_food_log,
       share_medications: !!profile.share_medications,
       share_journal: !!profile.share_journal,
+      share_period: profile.share_period || null,
       has_ingest_key: !!profile.ingest_key_hash,
       ingest_key_last_used_at: profile.ingest_key_last_used_at || null,
       health_auto_export_url: profile.health_auto_export_url || null,
@@ -98,6 +99,7 @@ router.put('/', authenticate, async (req, res) => {
       share_food_log,
       share_medications,
       share_journal,
+      share_period,
       regenerate_ingest_key,
       clear_ingest_key,
       health_auto_export_url,
@@ -189,6 +191,14 @@ router.put('/', authenticate, async (req, res) => {
 
     if (share_journal !== undefined) {
       updates.share_journal = !!share_journal;
+    }
+
+    if (share_period !== undefined) {
+      const VALID_SHARE_PERIODS = ['week', 'two_weeks', 'month', null];
+      if (!VALID_SHARE_PERIODS.includes(share_period)) {
+        return res.status(400).json({ error: 'invalid share_period' });
+      }
+      updates.share_period = share_period; // null = let doctor choose
     }
 
     if (regenerate_ingest_key) {
