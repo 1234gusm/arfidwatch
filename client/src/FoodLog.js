@@ -86,11 +86,25 @@ function FoodLog({ token }) {
       if (Object.keys(entry).length > 0) nextByDay[day] = entry;
     });
 
+    // Zero-fill every day in the selected range so gaps are visible
+    if (range !== 'all') {
+      const dayCount = parseInt(range, 10);
+      const today = new Date();
+      for (let i = 0; i <= dayCount; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!nextByDay[key]) {
+          nextByDay[key] = { _empty: true, dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
+        }
+      }
+    }
+
     return {
       byDay: nextByDay,
       days: Object.keys(nextByDay).sort((a, b) => (a < b ? 1 : -1)),
     };
-  }, [rows]);
+  }, [rows, range]);
 
   useEffect(() => {
     const validDays = new Set(days);
@@ -156,14 +170,15 @@ function FoodLog({ token }) {
       )}
 
       {!loading && days.map(day => {
-        const d    = byDay[day];
+        const d       = byDay[day];
+        const isEmpty = !!d._empty;
         const bar  = macroBar(d);
         const cals = d['dietary_energy_kcal'];
         const secondary = Object.entries(NUTRITION_META)
           .filter(([ct, m]) => !m.primary && d[ct] !== undefined);
 
         return (
-          <div key={day} className={`fl-day${isToday(day) ? ' fl-day--today' : ''}`}>
+          <div key={day} className={`fl-day${isToday(day) ? ' fl-day--today' : ''}${isEmpty ? ' fl-day--empty' : ''}`}>
             <button
               type="button"
               className="fl-day-header fl-day-header-btn"
@@ -175,13 +190,16 @@ function FoodLog({ token }) {
                 {isToday(day) && <span className="fl-today-badge">TODAY</span>}
                 {formatDay(day)}
               </span>
-              {cals !== undefined && (
-                <span className="fl-day-cals">{Math.round(cals).toLocaleString()} kcal</span>
-              )}
+              <span className="fl-day-cals">
+                {isEmpty ? <span className="fl-day-cals--zero">0 kcal</span> : `${Math.round(cals).toLocaleString()} kcal`}
+              </span>
             </button>
 
             {collapsedDays.has(day) ? null : (
               <>
+                {isEmpty && (
+                  <div className="fl-empty-day-note">No food logged — counted as 0 kcal</div>
+                )}
 
                 {/* Primary macro row */}
                 <div className="fl-macros">
@@ -189,7 +207,7 @@ function FoodLog({ token }) {
                     const meta = NUTRITION_META[ct];
                     const v    = d[ct];
                     return (
-                      <div key={ct} className={`fl-macro${v === undefined ? ' fl-macro--missing' : ''}`}>
+                      <div key={ct} className={`fl-macro${isEmpty ? ' fl-macro--zero' : ''}`}>
                         <strong>{v !== undefined ? fmtVal(v, meta) : '—'}</strong>
                         <span>{meta.label}</span>
                       </div>

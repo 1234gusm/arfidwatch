@@ -137,6 +137,11 @@
   border-left: 3px solid #3cdc50;
 }
 
+.fl-day--empty {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
 /* Day header */
 .fl-day-header {
   display: flex;
@@ -218,6 +223,23 @@
   opacity: 0.35;
 }
 .fl-macro--missing strong { color: #3a5570; }
+.fl-macro--zero {
+  opacity: 0.45;
+}
+.fl-macro--zero strong { color: #3a5570; }
+
+.fl-day-cals--zero {
+  color: #4a7a9a;
+  font-weight: 600;
+}
+
+.fl-empty-day-note {
+  font-size: 0.72rem;
+  color: #4a7a9a;
+  font-style: italic;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
 
 /* ── Macro split bar ──────────────────────────────────────────────────────── */
 .fl-bar-wrap {
