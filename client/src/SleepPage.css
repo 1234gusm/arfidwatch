@@ -153,6 +153,13 @@
   gap: 10px;
 }
 
+/* ── Divider ── */
+.sp-section-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin: 4px 0 16px;
+}
+
 /* ── Night Spotlight ── */
 .sp-spotlight {
   background: rgba(255,255,255,0.03);

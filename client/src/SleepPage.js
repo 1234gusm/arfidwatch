@@ -330,6 +330,8 @@ function SleepPage({ token }) {
             </div>
           </div>
 
+          <hr className="sp-section-divider" />
+
           {/* ── Night Spotlight ── */}
           <div className={`sp-spotlight${heroOffset !== 0 ? ' sp-spotlight--selected' : ''}`}>
             <div className="sp-spotlight-header">
