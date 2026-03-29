@@ -13,7 +13,14 @@ import './SleepPage.css';
 import API_BASE from './apiBase';
 
 /* ── Constants ── */
-const RANGE_OPTIONS = [7, 14, 30, 90, 180, 360];
+const RANGE_OPTS = [
+  { days: 7,   label: '1 Week'   },
+  { days: 14,  label: '2 Weeks'  },
+  { days: 30,  label: 'Month'    },
+  { days: 90,  label: '3 Months' },
+  { days: 360, label: 'Year'     },
+  { days: 0,   label: 'All'      },
+];
 const SCORE_COLORS  = { excellent: '#22c55e', good: '#3b82f6', fair: '#f59e0b', low: '#ef4444', na: '#475569' };
 const CHART_LINES   = [
   { key: 'total', dataKey: 'total_sleep_hr', name: 'Total',  color: '#60a5fa', width: 2.5 },
@@ -217,7 +224,7 @@ function SleepPage({ token }) {
       setFetchError('');
       try {
         const res = await fetch(
-          `${API_BASE}/api/health/sleep/daily?days=${rangeDays}&tzOffsetMinutes=${tzOffsetMinutes}`,
+          `${API_BASE}/api/health/sleep/daily?days=${rangeDays || 3650}&tzOffsetMinutes=${tzOffsetMinutes}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!res.ok) { setRows([]); setFetchError('Failed to load sleep data.'); return; }
@@ -275,13 +282,13 @@ function SleepPage({ token }) {
           <p className="sp-subtitle">Nightly trends · stages · quality score</p>
         </div>
         <div className="sp-range-row">
-          {RANGE_OPTIONS.map(d => (
+          {RANGE_OPTS.map(o => (
             <button
-              key={d}
+              key={o.days}
               type="button"
-              className={`sp-range-btn${d === rangeDays ? ' sp-range-btn--active' : ''}`}
-              onClick={() => setRangeDays(d)}
-            >{d}d</button>
+              className={`sp-range-btn${o.days === rangeDays ? ' sp-range-btn--active' : ''}`}
+              onClick={() => setRangeDays(o.days)}
+            >{o.label}</button>
           ))}
           <button type="button" className="sp-refresh-btn" title="Refresh"
             onClick={() => setRefreshTick(n => n + 1)}>↻</button>
@@ -298,7 +305,7 @@ function SleepPage({ token }) {
         <>
           {/* ── Averages bar ── */}
           <div className="sp-avg-bar">
-            <div className="sp-avg-bar-label">Averages · {rangeDays}d</div>
+            <div className="sp-avg-bar-label">Averages · {rangeDays ? `${rangeDays}d` : 'All time'}</div>
             <div className="sp-avg-bar-grid">
               <div className="sp-stat-card">
                 <span className="sp-stat-label">Period Avg</span>

@@ -4,11 +4,12 @@ import API_BASE from './apiBase';
 import { pad, toDateKey, formatDay } from './utils/dateUtils';
 
 const RANGE_OPTIONS = [
-  { id: '7', label: 'Last 7 days' },
-  { id: '14', label: 'Last 14 days' },
-  { id: '30', label: 'Last 30 days' },
-  { id: '90', label: 'Last 90 days' },
-  { id: 'all', label: 'All time' },
+  { id: '7',   label: '1 Week'   },
+  { id: '14',  label: '2 Weeks'  },
+  { id: '30',  label: 'Month'    },
+  { id: '90',  label: '3 Months' },
+  { id: '360', label: 'Year'     },
+  { id: 'all', label: 'All'      },
 ];
 
 const toLocalDateTimeInput = (d = new Date()) => (

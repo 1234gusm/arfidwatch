@@ -733,6 +733,7 @@ function HealthPage({ token }) {
 
   // ── Rolling overview card data ─────────────────────────────────────────────
   const overviewCutoffKey = (() => {
+    if (overviewPeriod === 0) return '2000-01-01';
     const d = new Date();
     d.setDate(d.getDate() - overviewPeriod + 1);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -747,7 +748,7 @@ function HealthPage({ token }) {
       if (!vals.length) return null;
       const byDay = {};
       vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
-      return Object.values(byDay).reduce((a, b) => a + b, 0) / overviewPeriod;
+      return Object.values(byDay).reduce((a, b) => a + b, 0) / (overviewPeriod || Object.keys(byDay).length || 1);
     };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
@@ -843,14 +844,12 @@ function HealthPage({ token }) {
             )}
           </div>
           <div className="hp-period-row">
-            {[7, 14, 30, 90].map(n => (
+            {[{n:7,l:'1 Week'},{n:14,l:'2 Weeks'},{n:30,l:'Month'},{n:90,l:'3 Months'},{n:360,l:'Year'},{n:0,l:'All'}].map(({n,l}) => (
               <button
                 key={n}
                 className={`hp-period-btn${overviewPeriod === n ? ' hp-period-btn--active' : ''}`}
                 onClick={() => setOverviewPeriod(n)}
-              >
-                {n === 7 ? '1 week' : n === 14 ? '2 weeks' : n === 30 ? '30 days' : '90 days'}
-              </button>
+              >{l}</button>
             ))}
           </div>
           <div className="hp-overview-period-label">{overviewCutoffKey} – {todayKey}</div>
