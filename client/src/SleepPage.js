@@ -13,7 +13,7 @@ import './SleepPage.css';
 import API_BASE from './apiBase';
 
 /* ── Constants ── */
-const RANGE_OPTIONS = [30, 90, 180, 365];
+const RANGE_OPTIONS = [7, 14, 30, 90, 180, 360];
 const SCORE_COLORS  = { excellent: '#22c55e', good: '#3b82f6', fair: '#f59e0b', low: '#ef4444', na: '#475569' };
 const CHART_LINES   = [
   { key: 'total', dataKey: 'total_sleep_hr', name: 'Total',  color: '#60a5fa', width: 2.5 },
@@ -145,7 +145,7 @@ const NightCard = ({ r, selected, onSelect }) => {
               <span className="sp-score-label">{label}</span>
             </div>
           )}
-          {selected && <span className="sp-night-card-pin" title="Viewing in overview">▲</span>}
+          {selected && <span className="sp-viewing-badge">VIEWING ▲</span>}
           <span className="sp-night-chevron">{open ? '▾' : '›'}</span>
         </div>
       </div>
@@ -296,33 +296,10 @@ function SleepPage({ token }) {
 
       {!loading && dailyRows.length > 0 && (
         <>
-          {/* ── Hero ── */}
-          <div className="sp-hero">
-            <div className="sp-hero-ring-col">
-              <div className="sp-ring-label-top">{heroOffset === 0 ? 'Latest Night' : 'Selected Night'}</div>
-              <ScoreRing score={viewedScore} />
-              <div className={`sp-band-chip sp-band-chip--${viewedKey}`}>{viewedLabel}</div>
-              <div className="sp-ring-date">{fmtDate(viewedNight?.day)}</div>
-              <div className="sp-ring-hrs">{fmtHr(viewedNight?.total_sleep_hr)}</div>
-              <div className="sp-ring-nav">
-                <button
-                  type="button"
-                  className="sp-ring-nav-btn"
-                  title="Previous night"
-                  disabled={heroOffset >= dailyRows.length - 1}
-                  onClick={() => setHeroOffset(o => Math.min(o + 1, dailyRows.length - 1))}
-                >‹</button>
-                <span className="sp-ring-nav-pos">{dailyRows.length - heroOffset} / {dailyRows.length}</span>
-                <button
-                  type="button"
-                  className="sp-ring-nav-btn"
-                  title="Next night"
-                  disabled={heroOffset === 0}
-                  onClick={() => setHeroOffset(o => Math.max(o - 1, 0))}
-                >›</button>
-              </div>
-            </div>
-            <div className="sp-hero-stats">
+          {/* ── Averages bar ── */}
+          <div className="sp-avg-bar">
+            <div className="sp-avg-bar-label">Averages · {rangeDays}d</div>
+            <div className="sp-avg-bar-grid">
               <div className="sp-stat-card">
                 <span className="sp-stat-label">Period Avg</span>
                 <span className="sp-stat-val">{fmtHr(avgTotal)}</span>
@@ -353,19 +330,74 @@ function SleepPage({ token }) {
             </div>
           </div>
 
-          {/* ── Selected night stages ── */}
-          {viewedNight && (viewedNight.deep_hr != null || viewedNight.rem_hr != null || viewedNight.core_hr != null) && (
-            <div className="sp-latest-stages">
-              <div className="sp-latest-stages-label">{heroOffset === 0 ? "Last night's stages" : `Stages · ${fmtDate(viewedNight.day)}`}</div>
-              <StageBar d={viewedNight} />
-              <div className="sp-stage-chips">
-                {viewedNight.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(viewedNight.deep_hr)}</span>}
-                {viewedNight.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(viewedNight.rem_hr)}</span>}
-                {viewedNight.core_hr  != null && <span className="sp-chip sp-chip--core"><span  className="sp-chip-dot" />Core {fmtHr(viewedNight.core_hr)}</span>}
-                {viewedNight.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(viewedNight.awake_hr)}</span>}
+          {/* ── Night Spotlight ── */}
+          <div className={`sp-spotlight${heroOffset !== 0 ? ' sp-spotlight--selected' : ''}`}>
+            <div className="sp-spotlight-header">
+              <button
+                type="button"
+                className="sp-ring-nav-btn"
+                title="Previous night"
+                disabled={heroOffset >= dailyRows.length - 1}
+                onClick={() => setHeroOffset(o => Math.min(o + 1, dailyRows.length - 1))}
+              >‹</button>
+              <div className="sp-spotlight-title">
+                {heroOffset !== 0
+                  ? <span className="sp-spotlight-badge sp-spotlight-badge--selected">Selected Night</span>
+                  : <span className="sp-spotlight-badge">Latest Night</span>
+                }
+                <span className="sp-spotlight-date">{fmtDate(viewedNight?.day)}</span>
+              </div>
+              <span className="sp-ring-nav-pos">{dailyRows.length - heroOffset} / {dailyRows.length}</span>
+              <button
+                type="button"
+                className="sp-ring-nav-btn"
+                title="Next night"
+                disabled={heroOffset === 0}
+                onClick={() => setHeroOffset(o => Math.max(o - 1, 0))}
+              >›</button>
+            </div>
+            <div className="sp-spotlight-body">
+              <div className="sp-spotlight-ring-col">
+                <ScoreRing score={viewedScore} />
+                <div className={`sp-band-chip sp-band-chip--${viewedKey}`}>{viewedLabel}</div>
+                <div className="sp-spotlight-hrs">{fmtHr(viewedNight?.total_sleep_hr)}</div>
+                {viewedNight?.in_bed_hr != null && <div className="sp-spotlight-inbed">In bed {fmtHr(viewedNight.in_bed_hr)}</div>}
+              </div>
+              <div className="sp-spotlight-detail">
+                {viewedNight && (viewedNight.deep_hr != null || viewedNight.rem_hr != null || viewedNight.core_hr != null) && (
+                  <>
+                    <StageBar d={viewedNight} />
+                    <div className="sp-stage-chips">
+                      {viewedNight.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(viewedNight.deep_hr)}</span>}
+                      {viewedNight.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(viewedNight.rem_hr)}</span>}
+                      {viewedNight.core_hr  != null && <span className="sp-chip sp-chip--core"><span  className="sp-chip-dot" />Core {fmtHr(viewedNight.core_hr)}</span>}
+                      {viewedNight.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(viewedNight.awake_hr)}</span>}
+                    </div>
+                  </>
+                )}
+                {viewedNight && (
+                  viewedNight.efficiency != null || viewedNight.quality_hr != null ||
+                  viewedNight.sleep_bpm != null || viewedNight.waking_bpm != null ||
+                  viewedNight.hrv != null || viewedNight.sleep_hrv != null ||
+                  viewedNight.spo2 != null || viewedNight.resp_rate != null ||
+                  viewedNight.fell_asleep_in != null || viewedNight.breath_dist != null
+                ) && (
+                  <div className="sp-spotlight-extras">
+                    {viewedNight.efficiency     != null && <div className="sp-extra-item"><small>Efficiency</small><strong>{viewedNight.efficiency.toFixed(1)}%</strong></div>}
+                    {viewedNight.quality_hr     != null && <div className="sp-extra-item"><small>Quality Sleep</small><strong>{fmtHr(viewedNight.quality_hr)}</strong></div>}
+                    {viewedNight.fell_asleep_in != null && <div className="sp-extra-item"><small>Fell Asleep In</small><strong>{fmtHr(viewedNight.fell_asleep_in)}</strong></div>}
+                    {viewedNight.sleep_bpm      != null && <div className="sp-extra-item"><small>Sleep HR</small><strong>{Math.round(viewedNight.sleep_bpm)} bpm</strong></div>}
+                    {viewedNight.waking_bpm     != null && <div className="sp-extra-item"><small>Waking HR</small><strong>{Math.round(viewedNight.waking_bpm)} bpm</strong></div>}
+                    {viewedNight.hrv            != null && <div className="sp-extra-item"><small>HRV</small><strong>{Math.round(viewedNight.hrv)} ms</strong></div>}
+                    {viewedNight.sleep_hrv      != null && <div className="sp-extra-item"><small>Sleep HRV</small><strong>{Math.round(viewedNight.sleep_hrv)} ms</strong></div>}
+                    {viewedNight.spo2           != null && <div className="sp-extra-item"><small>SpO₂</small><strong>{viewedNight.spo2.toFixed(1)}%</strong></div>}
+                    {viewedNight.resp_rate      != null && <div className="sp-extra-item"><small>Resp. Rate</small><strong>{viewedNight.resp_rate.toFixed(1)}/min</strong></div>}
+                    {viewedNight.breath_dist    != null && <div className="sp-extra-item"><small>Disturbances</small><strong>{viewedNight.breath_dist}</strong></div>}
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* ── Trend chart ── */}
           <div className="sp-chart-section">
