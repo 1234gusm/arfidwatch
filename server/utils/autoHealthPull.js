@@ -110,6 +110,80 @@ const HAE_TYPE_REMAP = {
 };
 
 // Flatten a HAE REST API metrics array into flat { type, value, timestamp } samples.
+
+// Map HKCategoryValueSleepAnalysis* suffix → canonical sleep type
+const HAE_SLEEP_STAGE_MAP = {
+  asleepcore:        'sleep_analysis_core_hr',
+  asleeprem:         'sleep_analysis_rem_hr',
+  asleepdeep:        'sleep_analysis_deep_hr',
+  asleep:            'sleep_analysis_total_sleep_hr',
+  asleepunspecified: 'sleep_analysis_total_sleep_hr',
+  awake:             'sleep_analysis_awake_hr',
+  inbed:             'sleep_analysis_in_bed_hr',
+};
+
+// Aggregate Apple Health sleep stage sessions (from HAE REST) into nightly
+// hour totals and push them onto `outSamples` tagged source:'hae_rest'.
+function aggregateHAESleepIntoSamples(stageData, outSamples) {
+  if (!Array.isArray(stageData)) return;
+  const nightMap = new Map(); // YYYY-MM-DD → Map<sleepType, totalHours>
+
+  for (const entry of stageData) {
+    const startStr = entry.startDate || entry.start_date || entry.startdate;
+    const endStr   = entry.endDate   || entry.end_date   || entry.enddate;
+    if (!startStr || !endStr) continue;
+
+    const start = new Date(startStr);
+    const end   = new Date(endStr);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) continue;
+
+    const durationHr = (end - start) / 3_600_000;
+
+    // Strip the HKCategoryValueSleepAnalysis prefix and normalise to a map key.
+    const normalized = String(entry.value || '')
+      .replace(/^HKCategoryValueSleepAnalysis/i, '')
+      .toLowerCase()
+      .replace(/[^a-z]/g, '');
+    const sleepType = HAE_SLEEP_STAGE_MAP[normalized];
+    if (!sleepType) continue;
+
+    // Sessions ending before noon local time still belong to "last night".
+    let nightDate = end.toISOString().slice(0, 10);
+    if (end.getHours() < 12) {
+      const d = new Date(end);
+      d.setDate(d.getDate() - 1);
+      nightDate = d.toISOString().slice(0, 10);
+    }
+
+    if (!nightMap.has(nightDate)) nightMap.set(nightDate, new Map());
+    const byType = nightMap.get(nightDate);
+    byType.set(sleepType, (byType.get(sleepType) || 0) + durationHr);
+  }
+
+  for (const [nightDate, byType] of nightMap) {
+    // Use T23:59 so that, in the dedup logic, these records have a clearly
+    // distinct timestamp from CSV records (which use noon local time).
+    const ts = `${nightDate}T23:59:00.000Z`;
+
+    // Derive total from named stages when not separately exported.
+    const stageTot = ['sleep_analysis_core_hr', 'sleep_analysis_rem_hr', 'sleep_analysis_deep_hr']
+      .reduce((s, t) => s + (byType.get(t) || 0), 0);
+    const unspec = byType.get('sleep_analysis_total_sleep_hr') || 0;
+    if (!byType.has('sleep_analysis_total_sleep_hr') && stageTot > 0) {
+      byType.set('sleep_analysis_total_sleep_hr', Math.round((stageTot + unspec) * 10000) / 10000);
+    }
+
+    for (const [sleepType, hours] of byType) {
+      outSamples.push({
+        type:      sleepType,
+        value:     Math.round(hours * 10000) / 10000,
+        timestamp: ts,
+        source:    'hae_rest', // consumed by the import route's sleep filter
+      });
+    }
+  }
+}
+
 function flattenHAEMetrics(metrics) {
   const samples = [];
   if (!Array.isArray(metrics)) return samples;
@@ -117,7 +191,11 @@ function flattenHAEMetrics(metrics) {
     if (!metric || !Array.isArray(metric.data)) continue;
     const rawName = String(metric.name || '');
     if (!rawName) continue;
-    if (/sleep_analysis|SleepAnalysis/i.test(rawName)) continue;
+    if (/sleep_analysis|SleepAnalysis/i.test(rawName)) {
+      // Aggregate stage sessions into nightly hour totals instead of skipping.
+      aggregateHAESleepIntoSamples(metric.data, samples);
+      continue;
+    }
     const baseName = hkNameToSnake(rawName);
     if (!baseName) continue;
     const unitSuffix = normalizeHAEUnit(metric.units || '');

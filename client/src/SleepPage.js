@@ -123,7 +123,9 @@ const NightCard = ({ r, selected, onSelect }) => {
   const { label, key } = scoreBand(score);
   const hasStages = r.deep_hr != null || r.rem_hr != null || r.core_hr != null;
   const hasExtras = r.sleep_bpm != null || r.hrv != null || r.spo2 != null ||
-    r.resp_rate != null || r.efficiency != null || r.asleep_hr != null;
+    r.resp_rate != null || r.efficiency != null || r.asleep_hr != null ||
+    r.quality_hr != null || r.waking_bpm != null || r.sleep_hrv != null ||
+    r.fell_asleep_in != null || r.breath_dist != null;
   const handleClick = () => { onSelect(); setOpen(v => !v); };
   return (
     <div
@@ -158,12 +160,17 @@ const NightCard = ({ r, selected, onSelect }) => {
       )}
       {open && hasExtras && (
         <div className="sp-night-extras">
-          {r.efficiency != null && <div className="sp-extra-item"><small>Efficiency</small><strong>{r.efficiency.toFixed(1)}%</strong></div>}
-          {r.asleep_hr  != null && <div className="sp-extra-item"><small>Asleep</small><strong>{fmtHr(r.asleep_hr)}</strong></div>}
-          {r.sleep_bpm  != null && <div className="sp-extra-item"><small>Sleep HR</small><strong>{Math.round(r.sleep_bpm)} bpm</strong></div>}
-          {r.hrv        != null && <div className="sp-extra-item"><small>HRV</small><strong>{Math.round(r.hrv)} ms</strong></div>}
-          {r.spo2       != null && <div className="sp-extra-item"><small>SpO₂</small><strong>{r.spo2.toFixed(1)}%</strong></div>}
-          {r.resp_rate  != null && <div className="sp-extra-item"><small>Resp. Rate</small><strong>{r.resp_rate.toFixed(1)}/min</strong></div>}
+          {r.efficiency    != null && <div className="sp-extra-item"><small>Efficiency</small><strong>{r.efficiency.toFixed(1)}%</strong></div>}
+          {r.asleep_hr     != null && <div className="sp-extra-item"><small>Asleep</small><strong>{fmtHr(r.asleep_hr)}</strong></div>}
+          {r.quality_hr    != null && <div className="sp-extra-item"><small>Quality Sleep</small><strong>{fmtHr(r.quality_hr)}</strong></div>}
+          {r.fell_asleep_in != null && <div className="sp-extra-item"><small>Fell Asleep In</small><strong>{fmtHr(r.fell_asleep_in)}</strong></div>}
+          {r.sleep_bpm     != null && <div className="sp-extra-item"><small>Sleep HR</small><strong>{Math.round(r.sleep_bpm)} bpm</strong></div>}
+          {r.waking_bpm    != null && <div className="sp-extra-item"><small>Waking HR</small><strong>{Math.round(r.waking_bpm)} bpm</strong></div>}
+          {r.hrv           != null && <div className="sp-extra-item"><small>HRV</small><strong>{Math.round(r.hrv)} ms</strong></div>}
+          {r.sleep_hrv     != null && <div className="sp-extra-item"><small>Sleep HRV</small><strong>{Math.round(r.sleep_hrv)} ms</strong></div>}
+          {r.spo2          != null && <div className="sp-extra-item"><small>SpO₂</small><strong>{r.spo2.toFixed(1)}%</strong></div>}
+          {r.resp_rate     != null && <div className="sp-extra-item"><small>Resp. Rate</small><strong>{r.resp_rate.toFixed(1)}/min</strong></div>}
+          {r.breath_dist   != null && <div className="sp-extra-item"><small>Disturbances</small><strong>{r.breath_dist}</strong></div>}
         </div>
       )}
     </div>

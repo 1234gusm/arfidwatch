@@ -249,6 +249,19 @@ const buildAutoSleepRecords = (rows, userId) => {
       if (!Number.isFinite(value)) return;
       out.push({ user_id: userId, type: m.type, value, timestamp: ts, raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }) });
     });
+
+    // Derive core (light) sleep = asleep − deep.
+    // AutoSleep exports total sleep (asleep) and deep sleep but not a separate
+    // core/light stage. Everything that isn't deep sleep is light/core sleep.
+    const asleepRaw = pickRowValue(row, h => h === 'asleep' || h.includes('total sleep') || h.includes('time asleep'));
+    const deepRaw   = pickRowValue(row, h => h === 'deep'   || h.includes('deep sleep'));
+    const asleepH   = parseDurationHours(asleepRaw);
+    const deepH     = parseDurationHours(deepRaw) ?? 0;
+    if (Number.isFinite(asleepH) && asleepH > 0) {
+      const coreH = Math.max(0, Math.round((asleepH - deepH) * 10000) / 10000);
+      out.push({ user_id: userId, type: 'sleep_analysis_core_hr', value: coreH, timestamp: ts,
+        raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, derived: true, formula: 'asleep - deep' }) });
+    }
   });
 
   return out;
@@ -349,12 +362,17 @@ const filterDuplicateStats = async (userId, inputRecords) => {
     if (ts > maxTs) maxTs = ts;
   }
 
+  // Expand to full calendar days so sleep records with different time-of-day
+  // (CSV uses noon local → ~17:00 UTC, REST uses T23:59 UTC) are all found.
+  const queryMinTs = `${minTs.slice(0, 10)}T00:00:00.000Z`;
+  const queryMaxTs  = `${maxTs.slice(0, 10)}T23:59:59.999Z`;
+
   const existing = await db('health_data')
-    .select('type', 'timestamp', 'value')
+    .select('type', 'timestamp', 'value', 'raw')
     .where({ user_id: userId })
     .whereIn('type', [...types])
-    .andWhere('timestamp', '>=', minTs)
-    .andWhere('timestamp', '<=', maxTs);
+    .andWhere('timestamp', '>=', queryMinTs)
+    .andWhere('timestamp', '<=', queryMaxTs);
 
   const existingKeyCounts = new Map();
   for (const row of existing) {
@@ -362,11 +380,19 @@ const filterDuplicateStats = async (userId, inputRecords) => {
     existingKeyCounts.set(key, (existingKeyCounts.get(key) || 0) + 1);
   }
 
-  const existingSleepNights = new Set();
+  // Track existing sleep night sources for CSV-over-REST priority.
+  // Maps "sleepType|YYYY-MM-DD" → source string ('autosleep_csv' | 'hae_rest' | 'unknown').
+  const existingSleepNightSources = new Map();
   for (const row of existing) {
     const sleepType = canonicalSleepType(row.type);
     if (!sleepType) continue;
-    existingSleepNights.add(`${sleepType}|${String(row.timestamp).slice(0, 10)}`);
+    const nightKey = `${sleepType}|${String(row.timestamp).slice(0, 10)}`;
+    let source = 'unknown';
+    try { source = JSON.parse(String(row.raw || '{}')).source || 'unknown'; } catch (_) {}
+    // CSV always wins: once a night+type is CSV-owned, mark it as such.
+    if (!existingSleepNightSources.has(nightKey) || source === 'autosleep_csv') {
+      existingSleepNightSources.set(nightKey, source);
+    }
   }
 
   const replacedSleepNights = new Set();
@@ -377,7 +403,16 @@ const filterDuplicateStats = async (userId, inputRecords) => {
     const sleepType = canonicalSleepType(rec.type);
     if (sleepType) {
       const nightKey = `${sleepType}|${String(rec.timestamp).slice(0, 10)}`;
-      if (existingSleepNights.has(nightKey)) {
+
+      // Priority: never let HAE REST data overwrite manually-imported CSV data.
+      let incomingSource = 'unknown';
+      try { incomingSource = JSON.parse(String(rec.raw || '{}')).source || 'unknown'; } catch (_) {}
+      const existingSource = existingSleepNightSources.get(nightKey);
+      if (existingSource === 'autosleep_csv' && incomingSource === 'hae_rest') {
+        continue; // skip — CSV data takes priority
+      }
+
+      if (existingSleepNightSources.has(nightKey)) {
         const deleteKey = `${sleepType}|${String(rec.timestamp).slice(0, 10)}`;
         if (!replacedSleepNights.has(deleteKey)) {
           const day = String(rec.timestamp).slice(0, 10);
@@ -442,8 +477,16 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
       value: s.value,
       timestamp: s.startDate || s.timestamp || s.date,
       raw: JSON.stringify(s),
-    })).filter(r => r.type && r.timestamp && r.value !== undefined && r.value !== null
-      && !/^sleep_analysis_/i.test(String(r.type)));
+    })).filter(r => {
+      if (!r.type || !r.timestamp || r.value === undefined || r.value === null) return false;
+      if (/^sleep_analysis_/i.test(String(r.type))) {
+        // Only let through pre-aggregated records produced by aggregateHAESleepIntoSamples
+        // (tagged source:'hae_rest'). Raw HK category sleep sessions are not hours
+        // and must not be stored directly.
+        try { return JSON.parse(r.raw || '{}').source === 'hae_rest'; } catch (_) { return false; }
+      }
+      return true;
+    });
     const deduped = await filterDuplicateStats(req.user.id, records);
 
     // HAE REST API push — serialise the flattened samples as a CSV file so the
