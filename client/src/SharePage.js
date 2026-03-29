@@ -768,36 +768,45 @@ function SharePage() {
         })()}
 
         {/* ── Medications tab ── */}
-        {activeTab === 'meds' && (
-          <div className="share-daily-tab">
-            {medications.length === 0 ? (
-              <p className="share-empty">No medications recorded for this period.</p>
-            ) : (
+        {activeTab === 'meds' && (() => {
+          const medByDate = {};
+          groupMedications(medications).forEach(g => { medByDate[g.date] = g.items; });
+          const medDays = allPeriodDates.map(date => ({
+            date,
+            empty: !medByDate[date],
+            items: medByDate[date] || [],
+          }));
+          return (
+            <div className="share-daily-tab">
               <div className="share-daily-list">
-                {groupMedications(medications).map(day => (
-                  <div key={day.date} className="share-daily-card share-med-card">
+                {medDays.map(day => (
+                  <div key={day.date} className={`share-daily-card share-med-card${day.empty ? ' share-med-card--empty' : ''}`}>
                     <div className="share-daily-header">
                       <span className="share-daily-date">{localDateStr(day.date)}</span>
-                      <span className="share-med-count">{day.items.length} {day.items.length === 1 ? 'entry' : 'entries'}</span>
+                      {!day.empty && <span className="share-med-count">{day.items.length} {day.items.length === 1 ? 'entry' : 'entries'}</span>}
                     </div>
-                    <div className="share-food-items">
-                      {day.items.map((item, i) => (
-                        <div key={i} className="share-food-row">
-                          <span className="share-food-name">{item.medication_name}</span>
-                          <span className="share-food-right">
-                            {item.dosage && <span className="share-food-qty">{item.dosage}</span>}
-                            {item.time && <span className="share-food-cals">{item.time}</span>}
-                            {item.notes && <span className="share-food-macros">{item.notes}</span>}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    {day.empty ? (
+                      <div className="share-med-empty-note">No medications recorded</div>
+                    ) : (
+                      <div className="share-food-items">
+                        {day.items.map((item, i) => (
+                          <div key={i} className="share-food-row">
+                            <span className="share-food-name">{item.medication_name}</span>
+                            <span className="share-food-right">
+                              {item.dosage && <span className="share-food-qty">{item.dosage}</span>}
+                              {item.time && <span className="share-food-cals">{item.time}</span>}
+                              {item.notes && <span className="share-food-macros">{item.notes}</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* ── Daily Nutrient Data tab ── */}
         {activeTab === 'daily' && (
