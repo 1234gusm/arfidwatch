@@ -274,7 +274,7 @@ const SECTIONS = [
 
 const MOOD_LABEL = { 1: 'Very Bad', 2: 'Bad', 3: 'Okay', 4: 'Good', 5: 'Great' };
 const MOOD_COLOR = { 1: '#c0392b', 2: '#e67e22', 3: '#f1c40f', 4: '#27ae60', 5: '#2ecc71' };
-const PERIOD_LABEL = { today: 'Today', week: 'Last 7 days', two_weeks: 'Last 14 days', month: 'Last 30 days', custom: 'Custom' };
+const PERIOD_LABEL = { today: 'Today', week: 'Last 7 days', two_weeks: 'Last 14 days', month: 'Last 30 days', ninety: 'Last 90 days', custom: 'Custom' };
 
 function groupFoodLog(entries) {
   const byDate = {};
@@ -608,14 +608,14 @@ function SharePage() {
           {/* Period selector — shown if user hasn't locked it */}
           {!healthInfo.period_locked ? (
             <div className="share-period-row">
-              {['week', 'two_weeks', 'month'].map(p => (
+              {['week', 'two_weeks', 'month', 'ninety'].map(p => (
                 <button
                   key={p}
                   className={`share-period-btn${activePeriod === p ? ' share-period-btn--active' : ''}`}
                   onClick={() => changePeriod(p)}
                   disabled={periodLoading}
                 >
-                  {p === 'week' ? '1 week' : p === 'two_weeks' ? '2 weeks' : '1 month'}
+                  {p === 'week' ? '1 week' : p === 'two_weeks' ? '2 weeks' : p === 'month' ? '30 days' : '90 days'}
                 </button>
               ))}
             </div>

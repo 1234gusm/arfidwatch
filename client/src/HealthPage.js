@@ -843,13 +843,13 @@ function HealthPage({ token }) {
             )}
           </div>
           <div className="hp-period-row">
-            {[7, 14, 30].map(n => (
+            {[7, 14, 30, 90].map(n => (
               <button
                 key={n}
                 className={`hp-period-btn${overviewPeriod === n ? ' hp-period-btn--active' : ''}`}
                 onClick={() => setOverviewPeriod(n)}
               >
-                {n === 7 ? '1 week' : n === 14 ? '2 weeks' : '1 month'}
+                {n === 7 ? '1 week' : n === 14 ? '2 weeks' : n === 30 ? '30 days' : '90 days'}
               </button>
             ))}
           </div>

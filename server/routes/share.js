@@ -26,7 +26,10 @@ function dateRangeForPeriod(period) {
   if (period === 'today') {
     start.setHours(0, 0, 0, 0);
   } else if (period === 'month') {
-    start.setMonth(start.getMonth() - 1);
+    start.setDate(start.getDate() - 30);
+    start.setHours(0, 0, 0, 0);
+  } else if (period === 'ninety') {
+    start.setDate(start.getDate() - 90);
     start.setHours(0, 0, 0, 0);
   } else if (period === 'two_weeks') {
     start.setDate(start.getDate() - 14);
@@ -95,7 +98,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
     const profile = await db('user_profiles').where({ user_id: userId }).first();
 
     // User-locked period takes priority; otherwise use doctor's ?period= param or default 'week'
-    const VALID_PERIODS = ['today', 'week', 'two_weeks', 'month'];
+    const VALID_PERIODS = ['today', 'week', 'two_weeks', 'month', 'ninety'];
     const lockedPeriod = profile?.share_period || null;
     const reqPeriod = req.query.period;
     const exportPeriod = lockedPeriod
