@@ -117,17 +117,18 @@ const StageBar = ({ d }) => {
 };
 
 /* ── NightCard ── */
-const NightCard = ({ r }) => {
+const NightCard = ({ r, selected, onSelect }) => {
   const [open, setOpen] = useState(false);
   const score = scoreNight(r);
   const { label, key } = scoreBand(score);
   const hasStages = r.deep_hr != null || r.rem_hr != null || r.core_hr != null;
   const hasExtras = r.sleep_bpm != null || r.hrv != null || r.spo2 != null ||
     r.resp_rate != null || r.efficiency != null || r.asleep_hr != null;
+  const handleClick = () => { onSelect(); setOpen(v => !v); };
   return (
     <div
-      className={`sp-night-card${open ? ' sp-night-card--open' : ''}`}
-      onClick={() => setOpen(v => !v)}
+      className={`sp-night-card${open ? ' sp-night-card--open' : ''}${selected ? ' sp-night-card--selected' : ''}`}
+      onClick={handleClick}
     >
       <div className="sp-night-main">
         <div className="sp-night-left">
@@ -142,6 +143,7 @@ const NightCard = ({ r }) => {
               <span className="sp-score-label">{label}</span>
             </div>
           )}
+          {selected && <span className="sp-night-card-pin" title="Viewing in overview">▲</span>}
           <span className="sp-night-chevron">{open ? '▾' : '›'}</span>
         </div>
       </div>
@@ -195,6 +197,7 @@ function SleepPage({ token }) {
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState('');
   const [visLines,    setVisLines]    = useState(new Set(['total', 'deep', 'rem', 'core']));
+  const [heroOffset,   setHeroOffset]  = useState(0);
 
   const tzOffsetMinutes = new Date().getTimezoneOffset();
 
@@ -213,6 +216,7 @@ function SleepPage({ token }) {
         if (!res.ok) { setRows([]); setFetchError('Failed to load sleep data.'); return; }
         const json = await res.json();
         setRows(Array.isArray(json.data) ? json.data : []);
+        setHeroOffset(0);
       } catch (_) {
         setRows([]); setFetchError('Failed to load sleep data.');
       } finally {
@@ -222,7 +226,7 @@ function SleepPage({ token }) {
     load();
   }, [token, rangeDays, refreshTick, tzOffsetMinutes]);
 
-  const { dailyRows, latestNight, avgTotal, consistency, latestScore, averageScore, goalHitRate, recentAvg7, bestNight } = useMemo(() => {
+  const { dailyRows, avgTotal, consistency, latestScore, averageScore, goalHitRate, recentAvg7, bestNight } = useMemo(() => {
     const sorted = [...rows].sort((a, b) => String(a.day).localeCompare(String(b.day)));
     const totals = sorted.map(d => d.total_sleep_hr).filter(v => Number.isFinite(v));
     const avg    = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : null;
@@ -236,12 +240,22 @@ function SleepPage({ token }) {
     for (const n of valid) { if (!best || n.total_sleep_hr > best.total_sleep_hr) best = n; }
     const last7 = [...valid].slice(-7).map(n => n.total_sleep_hr);
     const avg7  = last7.length ? last7.reduce((a, b) => a + b, 0) / last7.length : null;
-    return { dailyRows: sorted, latestNight: latest, avgTotal: avg, consistency: stdDev(totals),
+    return { dailyRows: sorted, avgTotal: avg, consistency: stdDev(totals),
       latestScore: scoreNight(latest), averageScore: avgScore, goalHitRate: rate, recentAvg7: avg7, bestNight: best };
   }, [rows]);
 
-  const { label: latestLabel, key: latestKey } = scoreBand(latestScore);
   const { label: avgLabel,    key: avgKey    }  = scoreBand(averageScore);
+
+  const handleSelectNight = (day) => {
+    const idx = dailyRows.findIndex(r => r.day === day);
+    if (idx !== -1) setHeroOffset(dailyRows.length - 1 - idx);
+  };
+
+  const viewedNight = dailyRows.length > 0
+    ? dailyRows[dailyRows.length - 1 - heroOffset]
+    : null;
+  const viewedScore = scoreNight(viewedNight);
+  const { label: viewedLabel, key: viewedKey } = scoreBand(viewedScore);
 
   if (!token) return <div className="sp-page"><p>Please log in.</p></div>;
 
@@ -278,11 +292,28 @@ function SleepPage({ token }) {
           {/* ── Hero ── */}
           <div className="sp-hero">
             <div className="sp-hero-ring-col">
-              <div className="sp-ring-label-top">Latest Night</div>
-              <ScoreRing score={latestScore} />
-              <div className={`sp-band-chip sp-band-chip--${latestKey}`}>{latestLabel}</div>
-              <div className="sp-ring-date">{fmtDate(latestNight?.day)}</div>
-              <div className="sp-ring-hrs">{fmtHr(latestNight?.total_sleep_hr)}</div>
+              <div className="sp-ring-label-top">{heroOffset === 0 ? 'Latest Night' : 'Selected Night'}</div>
+              <ScoreRing score={viewedScore} />
+              <div className={`sp-band-chip sp-band-chip--${viewedKey}`}>{viewedLabel}</div>
+              <div className="sp-ring-date">{fmtDate(viewedNight?.day)}</div>
+              <div className="sp-ring-hrs">{fmtHr(viewedNight?.total_sleep_hr)}</div>
+              <div className="sp-ring-nav">
+                <button
+                  type="button"
+                  className="sp-ring-nav-btn"
+                  title="Previous night"
+                  disabled={heroOffset >= dailyRows.length - 1}
+                  onClick={() => setHeroOffset(o => Math.min(o + 1, dailyRows.length - 1))}
+                >‹</button>
+                <span className="sp-ring-nav-pos">{dailyRows.length - heroOffset} / {dailyRows.length}</span>
+                <button
+                  type="button"
+                  className="sp-ring-nav-btn"
+                  title="Next night"
+                  disabled={heroOffset === 0}
+                  onClick={() => setHeroOffset(o => Math.max(o - 1, 0))}
+                >›</button>
+              </div>
             </div>
             <div className="sp-hero-stats">
               <div className="sp-stat-card">
@@ -315,16 +346,16 @@ function SleepPage({ token }) {
             </div>
           </div>
 
-          {/* ── Latest night stages ── */}
-          {latestNight && (latestNight.deep_hr != null || latestNight.rem_hr != null || latestNight.core_hr != null) && (
+          {/* ── Selected night stages ── */}
+          {viewedNight && (viewedNight.deep_hr != null || viewedNight.rem_hr != null || viewedNight.core_hr != null) && (
             <div className="sp-latest-stages">
-              <div className="sp-latest-stages-label">Last night's stages</div>
-              <StageBar d={latestNight} />
+              <div className="sp-latest-stages-label">{heroOffset === 0 ? "Last night's stages" : `Stages · ${fmtDate(viewedNight.day)}`}</div>
+              <StageBar d={viewedNight} />
               <div className="sp-stage-chips">
-                {latestNight.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(latestNight.deep_hr)}</span>}
-                {latestNight.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(latestNight.rem_hr)}</span>}
-                {latestNight.core_hr  != null && <span className="sp-chip sp-chip--core"><span  className="sp-chip-dot" />Core {fmtHr(latestNight.core_hr)}</span>}
-                {latestNight.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(latestNight.awake_hr)}</span>}
+                {viewedNight.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(viewedNight.deep_hr)}</span>}
+                {viewedNight.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(viewedNight.rem_hr)}</span>}
+                {viewedNight.core_hr  != null && <span className="sp-chip sp-chip--core"><span  className="sp-chip-dot" />Core {fmtHr(viewedNight.core_hr)}</span>}
+                {viewedNight.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(viewedNight.awake_hr)}</span>}
               </div>
             </div>
           )}
@@ -399,7 +430,12 @@ function SleepPage({ token }) {
             </div>
             <div className="sp-nights-list">
               {[...dailyRows].reverse().slice(0, 30).map(r => (
-                <NightCard key={r.day} r={r} />
+                <NightCard
+                  key={r.day}
+                  r={r}
+                  selected={viewedNight?.day === r.day}
+                  onSelect={() => handleSelectNight(r.day)}
+                />
               ))}
             </div>
           </div>
