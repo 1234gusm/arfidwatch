@@ -503,10 +503,8 @@ function SharePage() {
     'respiratory_rate_countmin', 'breathing_disturbances_count',
     'sleeping_wrist_temperature_degf',
   ];
-  const sleepDays = (() => {
-    const allDays = new Set();
-    SLEEP_KEYS.forEach(k => { if (maps[k]) Object.keys(maps[k]).forEach(d => allDays.add(d)); });
-    return [...allDays].sort().reverse().map(date => ({
+  const sleepDays = allPeriodDates.map(date => ({
+      empty: !SLEEP_KEYS.some(k => maps[k]?.[date] != null),
       date,
       total:        maps['sleep_analysis_total_sleep_hr']?.[date],
       asleep:       maps['sleep_analysis_asleep_hr']?.[date],
@@ -527,8 +525,7 @@ function SharePage() {
       respRate:     maps['respiratory_rate_countmin']?.[date],
       breathDist:   maps['breathing_disturbances_count']?.[date],
       wristTemp:    maps['sleeping_wrist_temperature_degf']?.[date],
-    }));
-  })();
+  }));
 
   const sleepStageBar = (d) => {
     const c = d.core || 0;
@@ -851,13 +848,17 @@ function SharePage() {
                 {sleepDays.map(d => {
                   const stages = sleepStageBar(d);
                   return (
-                    <div key={d.date} className="share-daily-card share-sleep-card">
+                    <div key={d.date} className={`share-daily-card share-sleep-card${d.empty ? ' share-sleep-card--empty' : ''}`}>
                       <div className="share-daily-header">
                         <span className="share-daily-date">{localDateStr(d.date)}</span>
                         {d.total != null && (
                           <span className="share-sleep-total">{d.total.toFixed(1)} hr total</span>
                         )}
                       </div>
+                      {d.empty ? (
+                        <div className="share-sleep-empty-note">No sleep recorded</div>
+                      ) : (
+                      <>
                       <div className="share-daily-chips">
                         {[
                           { val: d.total,  label: 'Total',  unit: 'hr' },
@@ -902,8 +903,10 @@ function SharePage() {
                           {d.spo2 != null && <span className="share-sleep-extra">SpO\u2082: <strong>{d.spo2.toFixed(1)}%</strong></span>}
                           {d.respRate != null && <span className="share-sleep-extra">Resp. Rate: <strong>{d.respRate.toFixed(1)}/min</strong></span>}
                           {d.breathDist != null && <span className="share-sleep-extra">Breathing Dist: <strong>{Math.round(d.breathDist)}</strong></span>}
-                          {d.wristTemp != null && <span className="share-sleep-extra">Wrist Temp: <strong>{d.wristTemp.toFixed(1)}\u00b0F</strong></span>}
+                          {d.wristTemp != null && <span className="share-sleep-extra">Wrist Temp: <strong>{d.wristTemp.toFixed(1)}°F</strong></span>}
                         </div>
+                      )}
+                      </>
                       )}
                     </div>
                   );

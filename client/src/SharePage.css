@@ -827,6 +827,18 @@
   font-weight: 700;
 }
 
+.share-sleep-card--empty {
+  opacity: 0.55;
+  border-style: dashed;
+  border-color: rgba(30, 100, 200, 0.18);
+}
+.share-sleep-empty-note {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: rgba(180, 210, 255, 0.35);
+  padding: 4px 0 2px;
+}
+
 @media (max-width: 600px) {
   .share-header {
     padding: 12px 14px;
