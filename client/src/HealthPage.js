@@ -28,6 +28,7 @@ function HealthPage({ token }) {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
   const [endDate, setEndDate] = useState(formatDate(new Date()));
+  const [overviewPeriod, setOverviewPeriod] = useState(7);
 
   const fetchData = async () => {
     const res = await fetch(`${API_BASE}/api/health`, {
@@ -730,6 +731,41 @@ function HealthPage({ token }) {
   })();
   const todayHasAnyFood = Object.values(todayNutrition).some(v => v !== null);
 
+  // ── Rolling overview card data ─────────────────────────────────────────────
+  const overviewCutoffKey = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - overviewPeriod + 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const overviewData = (() => {
+    const getRange = (ct) =>
+      data
+        .filter(r => canonical(r.type) === ct)
+        .map(r => ({ v: toNum(r.value), day: String(r.timestamp).slice(0, 10) }))
+        .filter(x => x.day >= overviewCutoffKey && x.day <= todayKey && Number.isFinite(x.v));
+    const avgZeroFill = (vals) => {
+      if (!vals.length) return null;
+      const byDay = {};
+      vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
+      return Object.values(byDay).reduce((a, b) => a + b, 0) / overviewPeriod;
+    };
+    const weightVals = data
+      .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
+      .map(r => ({ v: toNum(r.value), day: String(r.timestamp).slice(0, 10), unit: canonical(r.type) === 'weight_kg' ? 'kg' : 'lb' }))
+      .filter(x => Number.isFinite(x.v))
+      .sort((a, b) => b.day.localeCompare(a.day));
+    const hrVals = getRange('resting_heart_rate_countmin').sort((a, b) => b.day.localeCompare(a.day));
+    return {
+      weight:     weightVals.length ? weightVals[0].v    : null,
+      weightUnit: weightVals.length ? weightVals[0].unit : 'lb',
+      kcal:       avgZeroFill(getRange('dietary_energy_kcal')),
+      protein:    avgZeroFill(getRange('protein_g')),
+      carbs:      avgZeroFill(getRange('carbohydrates_g')),
+      fat:        avgZeroFill(getRange('total_fat_g')),
+      restingHR:  hrVals.length ? hrVals[0].v : null,
+    };
+  })();
+
   // Build the current display order of all visible types.
   // groupOrder always wins at the group level; within a group, saved drag positions are preserved.
   const orderedVisible = (() => {
@@ -796,6 +832,62 @@ function HealthPage({ token }) {
           <button className="add-metrics-btn" title="Add hidden metrics back" onClick={() => setAddPickerOpen(true)}>＋</button>
         </div>
       </div>
+
+      {/* ── Rolling overview card ── */}
+      {(overviewData.kcal !== null || overviewData.weight !== null) && (
+        <div className="hp-overview-card">
+          <div className="hp-overview-top">
+            <div className="hp-overview-title">Rolling Average</div>
+            {overviewData.weight != null && (
+              <div className="hp-weight-badge">{overviewData.weight.toFixed(1)} {overviewData.weightUnit}</div>
+            )}
+          </div>
+          <div className="hp-period-row">
+            {[7, 14, 30].map(n => (
+              <button
+                key={n}
+                className={`hp-period-btn${overviewPeriod === n ? ' hp-period-btn--active' : ''}`}
+                onClick={() => setOverviewPeriod(n)}
+              >
+                {n === 7 ? '1 week' : n === 14 ? '2 weeks' : '1 month'}
+              </button>
+            ))}
+          </div>
+          <div className="hp-overview-period-label">{overviewCutoffKey} – {todayKey}</div>
+          <div className="hp-overview-macros">
+            {overviewData.kcal !== null && (
+              <div className="hp-macro-chip">
+                <strong>{Math.round(overviewData.kcal).toLocaleString()}</strong>
+                <span>kcal/day</span>
+              </div>
+            )}
+            {overviewData.protein !== null && (
+              <div className="hp-macro-chip hp-macro--p">
+                <strong>{overviewData.protein.toFixed(1)}g</strong>
+                <span>Protein</span>
+              </div>
+            )}
+            {overviewData.carbs !== null && (
+              <div className="hp-macro-chip hp-macro--c">
+                <strong>{overviewData.carbs.toFixed(1)}g</strong>
+                <span>Carbs</span>
+              </div>
+            )}
+            {overviewData.fat !== null && (
+              <div className="hp-macro-chip hp-macro--f">
+                <strong>{overviewData.fat.toFixed(1)}g</strong>
+                <span>Fat</span>
+              </div>
+            )}
+            {overviewData.restingHR !== null && (
+              <div className="hp-macro-chip hp-macro--hr">
+                <strong>{Math.round(overviewData.restingHR)}</strong>
+                <span>bpm rHR</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Today's Eating banner ── */}
       <div className={`eating-banner${!todayHasAnyFood ? ' eating-banner--empty' : ''}`}>

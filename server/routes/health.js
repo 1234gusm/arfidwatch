@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../db');
 const multer = require('multer');
 const exceljs = require('exceljs');
-const { triggerAutoHealthPullNow, getAutoHealthPullStatus } = require('../utils/autoHealthPull');
+const { triggerAutoHealthPullNow, getAutoHealthPullStatus, flattenHAEMetrics } = require('../utils/autoHealthPull');
 const path = require('path');
 const { authenticate } = require('../middleware/auth');
 
@@ -418,13 +418,19 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
   // - array of samples
   // - { samples: [...] }
   // - { data: [...] } / { records: [...] }
-  const sampleArray = Array.isArray(req.body)
+  // - { data: { metrics: [...] } } or { metrics: [...] }  (HAE REST API direct push)
+  const _rawSamples = Array.isArray(req.body)
     ? req.body
     : (Array.isArray(jsonBody.samples)
       ? jsonBody.samples
       : (Array.isArray(jsonBody.data)
         ? jsonBody.data
         : (Array.isArray(jsonBody.records) ? jsonBody.records : null)));
+  const _haeMetrics = !_rawSamples && (
+    (jsonBody.data && Array.isArray(jsonBody.data.metrics)) ? jsonBody.data.metrics :
+    Array.isArray(jsonBody.metrics) ? jsonBody.metrics : null
+  );
+  const sampleArray = _rawSamples || (_haeMetrics ? flattenHAEMetrics(_haeMetrics) : null);
 
   // accept either samples array (from JSON) or csv string
   if (sampleArray) {
