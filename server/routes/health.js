@@ -4,6 +4,7 @@ const multer = require('multer');
 const exceljs = require('exceljs');
 const { triggerAutoHealthPullNow, getAutoHealthPullStatus, flattenHAEMetrics } = require('../utils/autoHealthPull');
 const path = require('path');
+const fs = require('fs');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -444,6 +445,59 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
     })).filter(r => r.type && r.timestamp && r.value !== undefined && r.value !== null
       && !/^sleep_analysis_/i.test(String(r.type)));
     const deduped = await filterDuplicateStats(req.user.id, records);
+
+    // HAE REST API push — serialise the flattened samples as a CSV file so the
+    // sync shows up in "Uploaded Files" with a timestamp-based display name.
+    if (_haeMetrics) {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dtLabel = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+      const displayFilename = `Auto Export (${dtLabel}).csv`;
+
+      // Build CSV: type,value,timestamp
+      const csvLines = ['type,value,timestamp'];
+      for (const s of samples) {
+        const t  = String(s.type  || '').replace(/"/g, '""');
+        const v  = String(s.value != null ? s.value : '').replace(/"/g, '""');
+        const ts = String(s.startDate || s.timestamp || s.date || '').replace(/"/g, '""');
+        csvLines.push(`"${t}","${v}","${ts}"`);
+      }
+      const csvText = csvLines.join('\n');
+      const csvHash = crypto.createHash('sha256').update(csvText).digest('hex');
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      try {
+        const diskPath = path.join(uploadsDir, csvHash);
+        if (!fs.existsSync(diskPath)) {
+          fs.writeFileSync(diskPath, csvText, 'utf8');
+        }
+      } catch (writeErr) {
+        console.warn('[hae-rest] could not save CSV file:', writeErr.message);
+      }
+
+      // Always create an import record (even if deduped.length === 0) so the
+      // sync timestamp is visible regardless of whether new rows were added.
+      const importRow = {
+        user_id: req.user.id,
+        filename: displayFilename,
+        source: 'health',
+        imported_at: now.toISOString(),
+        record_count: deduped.length,
+        file_hash: csvHash,
+      };
+      let importId;
+      try {
+        [importId] = await db('health_imports').insert(importRow);
+      } catch (e) {
+        delete importRow.file_hash;
+        [importId] = await db('health_imports').insert(importRow);
+      }
+      if (deduped.length > 0) {
+        const tagged = deduped.map(r => ({ ...r, import_id: importId }));
+        await insertInChunks('health_data', tagged);
+      }
+      return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length, source: 'hae_rest_api', filename: displayFilename });
+    }
+
     if (deduped.length) await insertInChunks('health_data', deduped);
     return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length });
   } else if (jsonBody.csv || rawBodyText) {
@@ -614,7 +668,6 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
 
 // upload macrofactor .xlsx or .csv
 const upload = multer({ dest: 'uploads/' });
-const fs = require('fs');
 
 const normalizeKey = k =>
   String(k).trim().toLowerCase()
