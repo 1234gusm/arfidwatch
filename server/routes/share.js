@@ -149,6 +149,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
       username: user.username,
       export_period: exportPeriod,
       period_locked: !!lockedPeriod,
+      share_medications: !!profile?.share_medications,
       start: startDate,
       end: endDate,
       data: healthData,

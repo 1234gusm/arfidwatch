@@ -839,6 +839,16 @@
   padding: 4px 0 2px;
 }
 
+/* ── Medications tab ── */
+.share-med-card {
+  border-left: 2px solid #a78bfa;
+}
+.share-med-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
 @media (max-width: 600px) {
   .share-header {
     padding: 12px 14px;

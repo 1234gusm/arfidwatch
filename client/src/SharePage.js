@@ -339,7 +339,6 @@ function SharePage() {
   const [unlocking,  setUnlocking]  = useState(false);
   const [activeTab,  setActiveTab]  = useState('overview');
   const [showJournal, setShowJournal] = useState(false);
-  const [showMeds,    setShowMeds]    = useState(false);
   const [shareJwt,    setShareJwt]    = useState(null);
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
@@ -659,6 +658,12 @@ function SharePage() {
             className={`share-tab${activeTab === 'log' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('log')}
           >Food Log</button>
+          {healthInfo.share_medications && (
+            <button
+              className={`share-tab${activeTab === 'meds' ? ' share-tab--active' : ''}`}
+              onClick={() => setActiveTab('meds')}
+            >Medications{medications.length > 0 ? ` (${medications.length})` : ''}</button>
+          )}
         </div>
         </div>
 
@@ -672,7 +677,6 @@ function SharePage() {
             ...allPeriodDates,
             ...foodLog.map(e => e.date),
             ...(showJournal ? journal.map(e => e.date) : []),
-            ...(showMeds    ? medications.map(e => e.date) : []),
           ]);
 
           const foodByDate = {};
@@ -680,9 +684,6 @@ function SharePage() {
 
           const journalByDate = {};
           journal.forEach(e => { journalByDate[e.date] = e; });
-
-          const medByDate = {};
-          groupMedications(medications).forEach(g => { medByDate[g.date] = g.items; });
 
           const sortedLogDays = [...logAllDays].sort().reverse();
 
@@ -701,18 +702,11 @@ function SharePage() {
                   </span>
                 </label>
               )}
-              <label className="share-toggle">
-                <span>Medications</span>
-                <span className={`share-toggle-track${showMeds ? ' share-toggle-track--on' : ''}`} onClick={() => setShowMeds(v => !v)}>
-                  <span className="share-toggle-thumb" />
-                </span>
-              </label>
             </div>
             <div className="share-combined-log">
               {sortedLogDays.map(date => {
                 const meals   = foodByDate[date];
                 const jEntry  = showJournal ? journalByDate[date] : null;
-                const meds    = showMeds    ? medByDate[date]     : null;
                 return (
                   <div key={date} className="share-combined-day">
                     <div className="share-combined-day-header">{localDateStr(date)}</div>
@@ -758,29 +752,13 @@ function SharePage() {
                           </div>
                         ))}
                       </div>
-                    ) : !jEntry && !meds ? (
+                    ) : !jEntry ? (
                       <div className="share-combined-section share-foodlog-empty-day">
                         <span>No food logged · 0 kcal</span>
                       </div>
                     ) : null}
 
-                    {meds && (
-                      <div className="share-combined-section">
-                        <div className="share-combined-section-label">Medications</div>
-                        <div className="share-food-items">
-                          {meds.map((item, i) => (
-                            <div key={i} className="share-food-row">
-                              <span className="share-food-name">{item.medication_name}</span>
-                              <span className="share-food-right">
-                                {item.dosage && <span className="share-food-qty">{item.dosage}</span>}
-                                {item.time && <span className="share-food-cals">{item.time}</span>}
-                                {item.notes && <span className="share-food-macros">{item.notes}</span>}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 );
               })}
@@ -788,6 +766,38 @@ function SharePage() {
             </>
           );
         })()}
+
+        {/* ── Medications tab ── */}
+        {activeTab === 'meds' && (
+          <div className="share-daily-tab">
+            {medications.length === 0 ? (
+              <p className="share-empty">No medications recorded for this period.</p>
+            ) : (
+              <div className="share-daily-list">
+                {groupMedications(medications).map(day => (
+                  <div key={day.date} className="share-daily-card share-med-card">
+                    <div className="share-daily-header">
+                      <span className="share-daily-date">{localDateStr(day.date)}</span>
+                      <span className="share-med-count">{day.items.length} {day.items.length === 1 ? 'entry' : 'entries'}</span>
+                    </div>
+                    <div className="share-food-items">
+                      {day.items.map((item, i) => (
+                        <div key={i} className="share-food-row">
+                          <span className="share-food-name">{item.medication_name}</span>
+                          <span className="share-food-right">
+                            {item.dosage && <span className="share-food-qty">{item.dosage}</span>}
+                            {item.time && <span className="share-food-cals">{item.time}</span>}
+                            {item.notes && <span className="share-food-macros">{item.notes}</span>}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Daily Nutrient Data tab ── */}
         {activeTab === 'daily' && (
