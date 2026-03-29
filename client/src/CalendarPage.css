@@ -787,18 +787,48 @@
     grid-template-columns: 1fr;
   }
   .jnl-history {
-    max-height: 340px;
+    max-height: 320px;
+    order: -1;
   }
 }
 
 @media (max-width: 600px) {
-  .jnl-page { padding: 12px 10px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-  .jnl-title { font-size: 1.3rem; }
-  .jnl-header { margin-bottom: 14px; }
-  .jnl-day-nav { padding: 12px 12px 10px; }
-  .jnl-form { margin: 4px 10px 12px; padding: 12px; }
-  .jnl-entries { padding: 10px 10px 6px; }
+  .jnl-page { padding: 10px 10px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .jnl-title { font-size: 1.25rem; }
+  .jnl-subtitle { font-size: 0.78rem; }
+
+  .jnl-header {
+    margin-bottom: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .jnl-header > div:first-child { flex: 1 1 100%; }
+  .jnl-header-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+  .jnl-header-actions button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .jnl-day-nav { padding: 10px 10px 9px; }
+  .jnl-nav-arrow { width: 36px; height: 36px; font-size: 1.3rem; }
+  .jnl-day-weekday { font-size: 0.92rem; }
+
+  .jnl-form { margin: 4px 0 12px; padding: 12px 11px; }
   .jnl-form-row { flex-direction: column; }
   .jnl-input--time { width: 100%; }
+  .jnl-entries { padding: 8px 8px 6px; }
   .jnl-cal-wrap { max-width: 100%; }
+
+  .jnl-entry-header { padding: 10px 12px; }
+  .jnl-entry-titletext { font-size: 0.85rem; }
+
+  .jnl-modal { padding: 18px 14px 16px; border-radius: 16px; }
+  .jnl-modal-mood { font-size: 2rem; }
+  .jnl-modal-title { font-size: 1rem; }
+  .jnl-modal-body { font-size: 0.88rem; }
 }

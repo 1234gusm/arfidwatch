@@ -887,3 +887,327 @@
   .share-metric-row { padding: 9px 14px; }
   .share-combined-section { padding: 8px 12px; }
 }
+
+/* ── Doctor Sleep Section (shs-*) ── */
+
+.shs-summary {
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.25);
+  border-top: 3px solid #3b7dd8;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.shs-summary-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shs-summary-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(180, 210, 255, 0.65);
+}
+
+.shs-summary-badge {
+  font-size: 0.7rem;
+  color: rgba(150, 185, 255, 0.5);
+  background: rgba(30, 80, 160, 0.25);
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.shs-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+}
+
+.shs-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: rgba(0, 20, 50, 0.5);
+  border: 1px solid rgba(30, 100, 200, 0.15);
+  border-radius: 8px;
+  padding: 9px 6px 7px;
+  gap: 2px;
+}
+
+.shs-stat-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #d8eaff;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.shs-stat-unit {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: rgba(150, 190, 255, 0.5);
+}
+
+.shs-stat-lbl {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: rgba(140, 175, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.shs-stat-hint {
+  font-size: 0.56rem;
+  color: rgba(120, 160, 210, 0.4);
+  font-style: italic;
+}
+
+.shs-stat-val--warn { color: #f59e0b; }
+.shs-stat-val--crit { color: #ef4444; }
+
+/* Alerts */
+.shs-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shs-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border: 1px solid;
+}
+
+.shs-alert--critical {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.shs-alert--warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
+.shs-alert--info {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+}
+
+.shs-alert-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Divider */
+.shs-divider {
+  border: none;
+  border-top: 1px solid rgba(30, 100, 200, 0.15);
+  margin: 4px 0;
+}
+
+/* Section header */
+.shs-nights-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(140, 175, 255, 0.5);
+  padding: 0 2px;
+}
+
+.shs-nights-badge {
+  background: rgba(30, 80, 160, 0.3);
+  color: rgba(150, 185, 255, 0.6);
+  font-size: 0.62rem;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.shs-nights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Night card */
+.shs-night-card {
+  background: #061e36;
+  border: 1px solid rgba(30, 100, 200, 0.2);
+  border-left: 3px solid rgba(96, 165, 250, 0.55);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shs-night-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.shs-night-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shs-night-date {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #d8eaff;
+}
+
+.shs-night-total {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #60a5fa;
+  line-height: 1.1;
+}
+
+.shs-night-inbed {
+  font-size: 0.7rem;
+  color: rgba(140, 175, 255, 0.45);
+}
+
+/* Efficiency badge */
+.shs-eff-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(150, 185, 255, 0.6);
+  background: rgba(30, 80, 160, 0.25);
+  border: 1px solid rgba(30, 100, 200, 0.2);
+  border-radius: 6px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.shs-eff-badge--high {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.shs-eff-badge--low {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* Stage bar */
+.shs-stage-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(0, 20, 50, 0.6);
+}
+
+.shs-seg--deep  { background: linear-gradient(90deg, #2c387e, #3d5afe); }
+.shs-seg--rem   { background: linear-gradient(90deg, #7c4dff, #9d7aff); }
+.shs-seg--core  { background: linear-gradient(90deg, #1565c0, #5b8fd9); }
+.shs-seg--awake { background: linear-gradient(90deg, #c84b2f, #e57150); }
+
+.shs-stage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.shs-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(175, 205, 255, 0.65);
+  background: rgba(0, 18, 45, 0.5);
+  border-radius: 6px;
+  padding: 3px 8px 3px 5px;
+}
+
+.shs-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.shs-chip--deep  .shs-chip-dot { background: #3d5afe; }
+.shs-chip--rem   .shs-chip-dot { background: #9d7aff; }
+.shs-chip--core  .shs-chip-dot { background: #5b8fd9; }
+.shs-chip--awake .shs-chip-dot { background: #e57150; }
+
+/* Per-night clinical metrics grid */
+.shs-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 5px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(30, 100, 200, 0.1);
+}
+
+.shs-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: rgba(0, 14, 34, 0.45);
+  border-radius: 6px;
+  padding: 6px 4px 5px;
+}
+
+.shs-metric strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #b0d0f0;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.shs-metric span {
+  font-size: 0.57rem;
+  color: rgba(120, 158, 205, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.shs-warn { color: #f59e0b !important; }
+.shs-crit { color: #ef4444 !important; }
+
+@media (max-width: 600px) {
+  .shs-stat-grid     { grid-template-columns: repeat(3, 1fr); }
+  .shs-metrics-grid  { grid-template-columns: repeat(3, 1fr); }
+  .shs-night-total   { font-size: 0.95rem; }
+  .shs-summary       { padding: 12px 14px; }
+}
+
+@media (max-width: 400px) {
+  .shs-stat-grid    { grid-template-columns: repeat(2, 1fr); }
+  .shs-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}

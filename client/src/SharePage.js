@@ -57,6 +57,20 @@ function buildMaps(rows) {
   return maps;
 }
 
+const stdDev = (nums) => {
+  if (!nums.length) return null;
+  const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+  const variance = nums.reduce((s, n) => s + (n - mean) ** 2, 0) / nums.length;
+  return Math.sqrt(variance);
+};
+
+const fmtSleepHr = (v) => {
+  if (v == null || !Number.isFinite(v)) return '–';
+  const h = Math.floor(v);
+  const m = Math.round((v - h) * 60);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+};
+
 function pick(maps, ...keys) {
   for (const k of keys) { if (maps[k]) return maps[k]; }
   return null;
@@ -521,6 +535,7 @@ function SharePage() {
       hrv:          maps['heart_rate_variability_ms']?.[date],
       sleepHRV:     maps['sleep_hrv_ms']?.[date],
       spo2:         maps['blood_oxygen_saturation__']?.[date],
+      minSpo2:      maps['blood_oxygen_min__']?.[date],
       respRate:     maps['respiratory_rate_countmin']?.[date],
       breathDist:   maps['breathing_disturbances_count']?.[date],
       wristTemp:    maps['sleeping_wrist_temperature_degf']?.[date],
@@ -858,82 +873,228 @@ function SharePage() {
           </div>
         )}
 
-        {activeTab === 'sleep' && (
-          <div className="share-daily-tab">
-            {sleepDays.length === 0 ? (
-              <p className="share-empty">No sleep data for this period.</p>
-            ) : (
-              <div className="share-daily-list">
-                {sleepDays.map(d => {
-                  const stages = sleepStageBar(d);
+        {activeTab === 'sleep' && (() => {
+          const validNights = sleepDays.filter(d => !d.empty && d.total != null);
+          if (validNights.length === 0) return <p className="share-empty">No sleep data for this period.</p>;
+
+          const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+          const totals      = validNights.map(d => d.total);
+          const avgTotal    = avg(totals);
+          const consistency = stdDev(totals);
+          const goalHits    = validNights.filter(d => d.total >= 7 && d.total <= 9).length;
+          const goalRate    = Math.round(goalHits / validNights.length * 100);
+
+          const effs        = validNights.map(d => d.efficiency).filter(v => v != null);
+          const avgEff      = avg(effs);
+
+          const spo2s       = validNights.map(d => d.spo2).filter(v => v != null);
+          const avgSpo2     = avg(spo2s);
+          const minSpo2s    = validNights.map(d => d.minSpo2).filter(v => v != null);
+          const loSpo2      = minSpo2s.length ? Math.min(...minSpo2s) : null;
+
+          const respRates   = validNights.map(d => d.respRate).filter(v => v != null);
+          const avgRespRate = avg(respRates);
+
+          const hrvs        = validNights.map(d => d.hrv ?? d.sleepHRV).filter(v => v != null);
+          const avgHRV      = hrvs.length ? Math.round(avg(hrvs)) : null;
+
+          const sleepHRs    = validNights.map(d => d.sleepHR).filter(v => v != null);
+          const avgSleepHR  = sleepHRs.length ? Math.round(avg(sleepHRs)) : null;
+
+          const wakingHRs   = validNights.map(d => d.wakingHR).filter(v => v != null);
+          const avgWakingHR = wakingHRs.length ? Math.round(avg(wakingHRs)) : null;
+
+          const latencies   = validNights.map(d => d.fellAsleepIn).filter(v => v != null);
+          const avgLatency  = latencies.length ? Math.round(avg(latencies) * 60) : null;
+
+          const bdists      = validNights.map(d => d.breathDist).filter(v => v != null);
+          const avgBDist    = bdists.length ? Math.round(avg(bdists)) : null;
+          const totalBDist  = bdists.length ? Math.round(bdists.reduce((a, b) => a + b, 0)) : null;
+
+          const alerts = [];
+          if (avgSpo2 != null && avgSpo2 < 93)
+            alerts.push({ type: 'critical', msg: `Avg SpO₂ ${avgSpo2.toFixed(1)}% — evaluate for hypoxemia or sleep-disordered breathing.` });
+          else if (avgSpo2 != null && avgSpo2 < 96)
+            alerts.push({ type: 'warning', msg: `Avg SpO₂ ${avgSpo2.toFixed(1)}% is below optimal — consider sleep apnea screening.` });
+          if (loSpo2 != null && loSpo2 < 90)
+            alerts.push({ type: 'critical', msg: `SpO₂ dipped to ${loSpo2.toFixed(1)}% — possible hypoxic episodes detected.` });
+          if (avgEff != null && avgEff < 75)
+            alerts.push({ type: 'warning', msg: `Sleep efficiency averaged ${avgEff.toFixed(0)}% — may indicate fragmented sleep or insomnia.` });
+          if (avgLatency != null && avgLatency > 30)
+            alerts.push({ type: 'info', msg: `Avg sleep onset latency ${avgLatency} min — elevated; consider insomnia evaluation.` });
+          if (avgBDist != null && avgBDist > 15)
+            alerts.push({ type: 'warning', msg: `Avg ${avgBDist} breathing disturbances/night — warrants investigation for sleep-disordered breathing.` });
+          if (avgTotal != null && avgTotal < 6)
+            alerts.push({ type: 'warning', msg: `Avg sleep ${fmtSleepHr(avgTotal)} is below the recommended 7–9 hours.` });
+
+          return (
+            <>
+              {/* ── Clinical Summary ── */}
+              <div className="shs-summary">
+                <div className="shs-summary-hdr">
+                  <span className="shs-summary-title">Clinical Sleep Summary</span>
+                  <span className="shs-summary-badge">{validNights.length} nights · {periodLabel}</span>
+                </div>
+                <div className="shs-stat-grid">
+                  <div className="shs-stat">
+                    <span className="shs-stat-val">{fmtSleepHr(avgTotal)}</span>
+                    <span className="shs-stat-lbl">Avg Sleep</span>
+                  </div>
+                  <div className="shs-stat">
+                    <span className="shs-stat-val">{fmtSleepHr(consistency)}</span>
+                    <span className="shs-stat-lbl">Consistency</span>
+                    <span className="shs-stat-hint">std dev</span>
+                  </div>
+                  <div className="shs-stat">
+                    <span className="shs-stat-val">{goalRate}<span className="shs-stat-unit">%</span></span>
+                    <span className="shs-stat-lbl">7–9h Nights</span>
+                  </div>
+                  {avgEff != null && (
+                    <div className="shs-stat">
+                      <span className={`shs-stat-val${avgEff < 75 ? ' shs-stat-val--warn' : ''}`}>
+                        {avgEff.toFixed(0)}<span className="shs-stat-unit">%</span>
+                      </span>
+                      <span className="shs-stat-lbl">Avg Efficiency</span>
+                    </div>
+                  )}
+                  {avgSpo2 != null && (
+                    <div className="shs-stat">
+                      <span className={`shs-stat-val${avgSpo2 < 96 ? ' shs-stat-val--warn' : ''}`}>
+                        {avgSpo2.toFixed(1)}<span className="shs-stat-unit">%</span>
+                      </span>
+                      <span className="shs-stat-lbl">Avg SpO₂</span>
+                    </div>
+                  )}
+                  {loSpo2 != null && (
+                    <div className="shs-stat">
+                      <span className={`shs-stat-val${loSpo2 < 90 ? ' shs-stat-val--crit' : loSpo2 < 94 ? ' shs-stat-val--warn' : ''}`}>
+                        {loSpo2.toFixed(1)}<span className="shs-stat-unit">%</span>
+                      </span>
+                      <span className="shs-stat-lbl">Lowest SpO₂</span>
+                    </div>
+                  )}
+                  {avgRespRate != null && (
+                    <div className="shs-stat">
+                      <span className="shs-stat-val">
+                        {avgRespRate.toFixed(1)}<span className="shs-stat-unit">/min</span>
+                      </span>
+                      <span className="shs-stat-lbl">Resp. Rate</span>
+                    </div>
+                  )}
+                  {avgHRV != null && (
+                    <div className="shs-stat">
+                      <span className="shs-stat-val">{avgHRV}<span className="shs-stat-unit"> ms</span></span>
+                      <span className="shs-stat-lbl">Avg HRV</span>
+                    </div>
+                  )}
+                  {avgSleepHR != null && (
+                    <div className="shs-stat">
+                      <span className="shs-stat-val">{avgSleepHR}<span className="shs-stat-unit"> bpm</span></span>
+                      <span className="shs-stat-lbl">Sleep HR</span>
+                    </div>
+                  )}
+                  {avgWakingHR != null && (
+                    <div className="shs-stat">
+                      <span className="shs-stat-val">{avgWakingHR}<span className="shs-stat-unit"> bpm</span></span>
+                      <span className="shs-stat-lbl">Waking HR</span>
+                    </div>
+                  )}
+                  {avgLatency != null && (
+                    <div className="shs-stat">
+                      <span className="shs-stat-val">{avgLatency}<span className="shs-stat-unit"> min</span></span>
+                      <span className="shs-stat-lbl">Onset Latency</span>
+                    </div>
+                  )}
+                  {totalBDist != null && (
+                    <div className="shs-stat">
+                      <span className={`shs-stat-val${avgBDist != null && avgBDist > 15 ? ' shs-stat-val--warn' : ''}`}>{totalBDist}</span>
+                      <span className="shs-stat-lbl">Total Dist.</span>
+                      {avgBDist != null && <span className="shs-stat-hint">{avgBDist}/night</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Clinical Alerts ── */}
+              {alerts.length > 0 && (
+                <div className="shs-alerts">
+                  {alerts.map((a, i) => (
+                    <div key={i} className={`shs-alert shs-alert--${a.type}`}>
+                      <span className="shs-alert-icon">{a.type === 'critical' ? '⚠' : a.type === 'warning' ? '◈' : 'ℹ'}</span>
+                      <span>{a.msg}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <hr className="shs-divider" />
+
+              {/* ── Nightly Detail ── */}
+              <div className="shs-nights-hdr">
+                Nightly Detail
+                <span className="shs-nights-badge">{validNights.length}</span>
+              </div>
+              <div className="shs-nights-list">
+                {sleepDays.filter(d => !d.empty && d.total != null).map(d => {
+                  const stg = sleepStageBar(d);
+                  const hasExtras = d.efficiency != null || d.quality != null || d.fellAsleepIn != null ||
+                    d.sleepHR != null || d.wakingHR != null || d.hrv != null || d.sleepHRV != null ||
+                    d.spo2 != null || d.minSpo2 != null || d.respRate != null ||
+                    d.breathDist != null || d.wristTemp != null;
                   return (
-                    <div key={d.date} className={`share-daily-card share-sleep-card${d.empty ? ' share-sleep-card--empty' : ''}`}>
-                      <div className="share-daily-header">
-                        <span className="share-daily-date">{localDateStr(d.date)}</span>
-                        {d.total != null && (
-                          <span className="share-sleep-total">{d.total.toFixed(1)} hr total</span>
+                    <div key={d.date} className="shs-night-card">
+                      <div className="shs-night-hdr">
+                        <div className="shs-night-left">
+                          <span className="shs-night-date">{localDateStr(d.date)}</span>
+                          <span className="shs-night-total">{fmtSleepHr(d.total)}</span>
+                          {d.inBed != null && <span className="shs-night-inbed">In bed {fmtSleepHr(d.inBed)}</span>}
+                        </div>
+                        {d.efficiency != null && (
+                          <span className={`shs-eff-badge${d.efficiency < 75 ? ' shs-eff-badge--low' : d.efficiency >= 85 ? ' shs-eff-badge--high' : ''}`}>
+                            {d.efficiency.toFixed(0)}% eff
+                          </span>
                         )}
                       </div>
-                      {d.empty ? (
-                        <div className="share-sleep-empty-note">No sleep recorded</div>
-                      ) : (
-                      <>
-                      <div className="share-daily-chips">
-                        {[
-                          { val: d.total,  label: 'Total',  unit: 'hr' },
-                          { val: d.inBed,  label: 'In Bed', unit: 'hr' },
-                          { val: d.core,   label: 'Core',   unit: 'hr' },
-                          { val: d.rem,    label: 'REM',    unit: 'hr' },
-                          { val: d.deep,   label: 'Deep',   unit: 'hr' },
-                          { val: d.awake,  label: 'Awake',  unit: 'hr' },
-                        ].map(m => (
-                          <div key={m.label} className={`share-daily-chip share-sleep-chip${m.val == null ? ' share-daily-chip--empty' : ''}`}>
-                            <strong>{m.val != null ? m.val.toFixed(1) + ' ' + m.unit : '\u2014'}</strong>
-                            <span>{m.label}</span>
+                      {stg && (
+                        <>
+                          <div className="shs-stage-bar">
+                            <div className="shs-seg shs-seg--deep"  style={{ width: stg.deep  + '%' }} />
+                            <div className="shs-seg shs-seg--rem"   style={{ width: stg.rem   + '%' }} />
+                            <div className="shs-seg shs-seg--core"  style={{ width: stg.core  + '%' }} />
+                            <div className="shs-seg shs-seg--awake" style={{ width: stg.awake + '%' }} />
                           </div>
-                        ))}
-                      </div>
-                      {stages && (
-                        <div className="share-daily-bar-wrap">
-                          <div className="share-daily-bar share-sleep-bar">
-                            <div className="share-sleep-bar-core" style={{ width: stages.core + '%' }} />
-                            <div className="share-sleep-bar-rem" style={{ width: stages.rem + '%' }} />
-                            <div className="share-sleep-bar-deep" style={{ width: stages.deep + '%' }} />
-                            <div className="share-sleep-bar-awake" style={{ width: stages.awake + '%' }} />
+                          <div className="shs-stage-chips">
+                            {d.deep  != null && <span className="shs-chip shs-chip--deep"><span  className="shs-chip-dot" />Deep {fmtSleepHr(d.deep)}</span>}
+                            {d.rem   != null && <span className="shs-chip shs-chip--rem"><span   className="shs-chip-dot" />REM {fmtSleepHr(d.rem)}</span>}
+                            {d.core  != null && <span className="shs-chip shs-chip--core"><span  className="shs-chip-dot" />Core {fmtSleepHr(d.core)}</span>}
+                            {d.awake != null && <span className="shs-chip shs-chip--awake"><span className="shs-chip-dot" />Awake {fmtSleepHr(d.awake)}</span>}
                           </div>
-                          <span className="share-daily-bar-legend">
-                            <em style={{ color: '#5b8fd9' }}>Core {stages.core}%</em>
-                            <em style={{ color: '#7c4dff' }}>REM {stages.rem}%</em>
-                            <em style={{ color: '#1a237e' }}>Deep {stages.deep}%</em>
-                            <em style={{ color: '#ff8a65' }}>Awake {stages.awake}%</em>
-                          </span>
-                        </div>
+                        </>
                       )}
-                      {(d.efficiency != null || d.quality != null || d.fellAsleepIn != null || d.sessions != null || d.sleepHR != null || d.wakingHR != null || d.hrv != null || d.sleepHRV != null || d.spo2 != null || d.respRate != null || d.breathDist != null || d.wristTemp != null) && (
-                        <div className="share-sleep-extras">
-                          {d.efficiency != null && <span className="share-sleep-extra">Efficiency: <strong>{d.efficiency.toFixed(1)}%</strong></span>}
-                          {d.quality != null && <span className="share-sleep-extra">Quality: <strong>{d.quality.toFixed(1)} hr</strong></span>}
-                          {d.fellAsleepIn != null && <span className="share-sleep-extra">Fell Asleep In: <strong>{(d.fellAsleepIn * 60).toFixed(0)} min</strong></span>}
-                          {d.sessions != null && <span className="share-sleep-extra">Sessions: <strong>{Math.round(d.sessions)}</strong></span>}
-                          {d.sleepHR != null && <span className="share-sleep-extra">Sleep HR: <strong>{Math.round(d.sleepHR)} bpm</strong></span>}
-                          {d.wakingHR != null && <span className="share-sleep-extra">Waking HR: <strong>{Math.round(d.wakingHR)} bpm</strong></span>}
-                          {d.hrv != null && <span className="share-sleep-extra">HRV: <strong>{Math.round(d.hrv)} ms</strong></span>}
-                          {d.sleepHRV != null && <span className="share-sleep-extra">Sleep HRV: <strong>{Math.round(d.sleepHRV)} ms</strong></span>}
-                          {d.spo2 != null && <span className="share-sleep-extra">SpO\u2082: <strong>{d.spo2.toFixed(1)}%</strong></span>}
-                          {d.respRate != null && <span className="share-sleep-extra">Resp. Rate: <strong>{d.respRate.toFixed(1)}/min</strong></span>}
-                          {d.breathDist != null && <span className="share-sleep-extra">Breathing Dist: <strong>{Math.round(d.breathDist)}</strong></span>}
-                          {d.wristTemp != null && <span className="share-sleep-extra">Wrist Temp: <strong>{d.wristTemp.toFixed(1)}°F</strong></span>}
+                      {hasExtras && (
+                        <div className="shs-metrics-grid">
+                          {d.spo2       != null && <div className="shs-metric"><strong className={d.spo2 < 96 ? 'shs-warn' : undefined}>{d.spo2.toFixed(1)}%</strong><span>SpO₂</span></div>}
+                          {d.minSpo2    != null && <div className="shs-metric"><strong className={d.minSpo2 < 90 ? 'shs-crit' : d.minSpo2 < 94 ? 'shs-warn' : undefined}>{d.minSpo2.toFixed(1)}%</strong><span>Min SpO₂</span></div>}
+                          {d.respRate   != null && <div className="shs-metric"><strong>{d.respRate.toFixed(1)}</strong><span>Resp /min</span></div>}
+                          {d.breathDist != null && <div className="shs-metric"><strong className={d.breathDist > 15 ? 'shs-warn' : undefined}>{Math.round(d.breathDist)}</strong><span>Disturbances</span></div>}
+                          {d.hrv        != null && <div className="shs-metric"><strong>{Math.round(d.hrv)} ms</strong><span>HRV</span></div>}
+                          {d.sleepHRV   != null && <div className="shs-metric"><strong>{Math.round(d.sleepHRV)} ms</strong><span>Sleep HRV</span></div>}
+                          {d.sleepHR    != null && <div className="shs-metric"><strong>{Math.round(d.sleepHR)} bpm</strong><span>Sleep HR</span></div>}
+                          {d.wakingHR   != null && <div className="shs-metric"><strong>{Math.round(d.wakingHR)} bpm</strong><span>Waking HR</span></div>}
+                          {d.efficiency != null && <div className="shs-metric"><strong className={d.efficiency < 75 ? 'shs-warn' : undefined}>{d.efficiency.toFixed(0)}%</strong><span>Efficiency</span></div>}
+                          {d.fellAsleepIn != null && <div className="shs-metric"><strong>{Math.round(d.fellAsleepIn * 60)} min</strong><span>Onset Latency</span></div>}
+                          {d.quality    != null && <div className="shs-metric"><strong>{fmtSleepHr(d.quality)}</strong><span>Quality Sleep</span></div>}
+                          {d.wristTemp  != null && <div className="shs-metric"><strong>{d.wristTemp.toFixed(1)}°F</strong><span>Wrist Temp</span></div>}
                         </div>
-                      )}
-                      </>
                       )}
                     </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-        )}
+            </>
+          );
+        })()}
 
         <p className="share-footer">
           ArfidWatch &mdash; read-only view &mdash; {periodLabel.toLowerCase()}

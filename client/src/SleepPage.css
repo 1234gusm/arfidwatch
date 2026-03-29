@@ -36,8 +36,13 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
 }
+.sp-range-row::-webkit-scrollbar { display: none; }
 
 .sp-range-btn {
   padding: 6px 14px;
@@ -49,6 +54,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .sp-range-btn:hover { background: rgba(255,255,255,0.1); }
 .sp-range-btn--active {
@@ -548,17 +555,30 @@
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .sp-page { padding: 14px 12px 32px; }
-  .sp-header { gap: 10px; margin-bottom: 14px; }
-  .sp-range-row { width: 100%; }
-  .sp-range-btn { flex: 1; min-width: 0; }
-  .sp-avg-bar-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sp-spotlight-body { gap: 14px; }
-  .sp-spotlight-ring-col { min-width: 90px; }
-  .sp-ring { width: 80px; height: 80px; }
-  .sp-ring-inner { width: 62px; height: 62px; }
-  .sp-ring-num { font-size: 1.25rem; }
+  .sp-page { padding: 12px 10px 32px; }
+  .sp-header { gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .sp-header-left { flex: 1 1 100%; }
+  .sp-range-row { width: 100%; padding-bottom: 4px; }
+  .sp-avg-bar-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sp-spotlight { padding: 12px; }
+  .sp-spotlight-body { gap: 12px; }
+  .sp-spotlight-ring-col { min-width: 86px; }
+  .sp-ring { width: 76px; height: 76px; }
+  .sp-ring-inner { width: 58px; height: 58px; }
+  .sp-ring-num { font-size: 1.2rem; }
+  .sp-spotlight-hrs { font-size: 1rem; }
+  .sp-chart-section { padding: 12px; }
   .sp-chart-header { flex-direction: column; align-items: flex-start; }
-  .sp-line-toggles { gap: 5px; }
+  .sp-line-toggles { gap: 5px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; scrollbar-width: none; }
+  .sp-line-toggles::-webkit-scrollbar { display: none; }
+  .sp-line-btn { flex-shrink: 0; }
+  .sp-nights-section { margin-top: 0; }
+  .sp-night-card { padding: 10px 12px; }
+  .sp-stat-val { font-size: 0.95rem; }
+}
+@media (max-width: 400px) {
+  .sp-avg-bar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-spotlight-body { flex-direction: column; align-items: flex-start; }
+  .sp-spotlight-ring-col { flex-direction: row; min-width: unset; gap: 10px; align-items: center; }
 }
 
