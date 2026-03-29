@@ -7,22 +7,23 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import './SleepPage.css';
 import API_BASE from './apiBase';
 
-const SLEEP_COLORS = {
-  sleep_analysis_total_sleep_hr: '#1d4ed8',
-  sleep_analysis_asleep_hr: '#0ea5e9',
-  sleep_analysis_in_bed_hr: '#64748b',
-  sleep_analysis_core_hr: '#8b5cf6',
-  sleep_analysis_rem_hr: '#ec4899',
-  sleep_analysis_deep_hr: '#4338ca',
-  sleep_analysis_awake_hr: '#f59e0b',
-};
-
+/* ── Constants ── */
 const RANGE_OPTIONS = [30, 90, 180, 365];
+const SCORE_COLORS  = { excellent: '#22c55e', good: '#3b82f6', fair: '#f59e0b', low: '#ef4444', na: '#475569' };
+const CHART_LINES   = [
+  { key: 'total', dataKey: 'total_sleep_hr', name: 'Total',  color: '#60a5fa', width: 2.5 },
+  { key: 'deep',  dataKey: 'deep_hr',        name: 'Deep',   color: '#818cf8', width: 1.5 },
+  { key: 'rem',   dataKey: 'rem_hr',         name: 'REM',    color: '#c084fc', width: 1.5 },
+  { key: 'core',  dataKey: 'core_hr',        name: 'Core',   color: '#38bdf8', width: 1.5 },
+  { key: 'awake', dataKey: 'awake_hr',       name: 'Awake',  color: '#fb923c', width: 1.5 },
+];
 
+/* ── Helpers ── */
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 
 const stdDev = (nums) => {
@@ -36,81 +37,169 @@ const scoreNight = (night) => {
   if (!night) return null;
   const total = Number(night.total_sleep_hr);
   if (!Number.isFinite(total) || total <= 0) return null;
-
-  // Duration target around 8h, with graceful falloff.
-  const durationPenalty = Math.abs(total - 8) * 8;
-  const durationScore = clamp(100 - durationPenalty, 0, 100);
-
-  // Efficiency: use AutoSleep-provided value if available, else compute from in-bed time.
+  const durationScore = clamp(100 - Math.abs(total - 8) * 8, 0, 100);
   let efficiencyScore = 80;
   const apiEfficiency = Number(night.efficiency);
   if (Number.isFinite(apiEfficiency)) {
     efficiencyScore = clamp(100 * ((apiEfficiency / 100 - 0.7) / 0.25), 0, 100);
   } else {
     const inBed = Number(night.in_bed_hr);
-    if (Number.isFinite(inBed) && inBed > 0) {
-      const efficiency = clamp(total / inBed, 0, 1);
-      efficiencyScore = clamp(100 * ((efficiency - 0.7) / 0.25), 0, 100);
-    }
+    if (Number.isFinite(inBed) && inBed > 0)
+      efficiencyScore = clamp(100 * ((clamp(total / inBed, 0, 1) - 0.7) / 0.25), 0, 100);
   }
-
-  // Stage balance reward (REM + Deep share of total).
-  const rem = Number(night.rem_hr) || 0;
-  const deep = Number(night.deep_hr) || 0;
-  const remPct = rem / total;
-  const deepPct = deep / total;
-  const remScore = clamp(100 - Math.abs(remPct - 0.22) * 600, 0, 100);
-  const deepScore = clamp(100 - Math.abs(deepPct - 0.16) * 700, 0, 100);
-  const stageScore = (remScore + deepScore) / 2;
-
-  // Awake time penalty (if provided).
-  let awakeScore = 85;
+  const rem   = Number(night.rem_hr)  || 0;
+  const deep  = Number(night.deep_hr) || 0;
+  const stageScore = (
+    clamp(100 - Math.abs(rem  / total - 0.22) * 600, 0, 100) +
+    clamp(100 - Math.abs(deep / total - 0.16) * 700, 0, 100)
+  ) / 2;
   const awake = Number(night.awake_hr);
-  if (Number.isFinite(awake) && awake >= 0) {
-    awakeScore = clamp(100 - (awake * 40), 0, 100);
-  }
-
-  const score = Math.round(
-    (durationScore * 0.45) +
-    (efficiencyScore * 0.25) +
-    (stageScore * 0.20) +
-    (awakeScore * 0.10)
-  );
-
-  return clamp(score, 0, 100);
+  const awakeScore = Number.isFinite(awake) ? clamp(100 - awake * 40, 0, 100) : 85;
+  return clamp(Math.round(durationScore * 0.45 + efficiencyScore * 0.25 + stageScore * 0.20 + awakeScore * 0.10), 0, 100);
 };
 
 const scoreBand = (score) => {
-  if (!Number.isFinite(score)) return { label: 'N/A', className: 'sleep-score-badge sleep-score-badge--na' };
-  if (score >= 85) return { label: 'Excellent', className: 'sleep-score-badge sleep-score-badge--excellent' };
-  if (score >= 70) return { label: 'Good', className: 'sleep-score-badge sleep-score-badge--good' };
-  if (score >= 55) return { label: 'Fair', className: 'sleep-score-badge sleep-score-badge--fair' };
-  return { label: 'Needs Work', className: 'sleep-score-badge sleep-score-badge--low' };
+  if (!Number.isFinite(score)) return { label: 'N/A',       key: 'na' };
+  if (score >= 85)              return { label: 'Excellent', key: 'excellent' };
+  if (score >= 70)              return { label: 'Good',      key: 'good' };
+  if (score >= 55)              return { label: 'Fair',      key: 'fair' };
+  return                               { label: 'Poor',      key: 'low' };
 };
 
-const fmtHours = (value) => (Number.isFinite(value) ? `${value.toFixed(2)} hr` : 'N/A');
+const fmtHr = (v) => {
+  if (!Number.isFinite(v)) return '–';
+  const h = Math.floor(v);
+  const m = Math.round((v - h) * 60);
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+};
 
 const fmtDate = (dayKey) => {
-  if (!dayKey) return '-';
+  if (!dayKey) return '–';
   const d = new Date(`${dayKey}T12:00:00`);
   if (Number.isNaN(d.getTime())) return dayKey;
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
+/* ── ScoreRing ── */
+const ScoreRing = ({ score }) => {
+  const { key } = scoreBand(score);
+  const color = SCORE_COLORS[key];
+  const deg   = score != null ? Math.round((score / 100) * 360) : 0;
+  return (
+    <div
+      className="sp-ring"
+      style={{ background: `conic-gradient(${color} ${deg}deg, rgba(255,255,255,0.07) ${deg}deg)` }}
+    >
+      <div className="sp-ring-inner">
+        <span className="sp-ring-num">{score != null ? score : '–'}</span>
+        <span className="sp-ring-sub">/ 100</span>
+      </div>
+    </div>
+  );
+};
+
+/* ── StageBar ── */
+const StageBar = ({ d }) => {
+  const core  = d.core_hr  || 0;
+  const rem   = d.rem_hr   || 0;
+  const deep  = d.deep_hr  || 0;
+  const awake = d.awake_hr || 0;
+  const tot   = core + rem + deep + awake;
+  if (!tot) return null;
+  return (
+    <div className="sp-stage-bar">
+      <div className="sp-seg sp-seg--deep"  style={{ width: `${(deep  / tot) * 100}%` }} />
+      <div className="sp-seg sp-seg--rem"   style={{ width: `${(rem   / tot) * 100}%` }} />
+      <div className="sp-seg sp-seg--core"  style={{ width: `${(core  / tot) * 100}%` }} />
+      <div className="sp-seg sp-seg--awake" style={{ width: `${(awake / tot) * 100}%` }} />
+    </div>
+  );
+};
+
+/* ── NightCard ── */
+const NightCard = ({ r }) => {
+  const [open, setOpen] = useState(false);
+  const score = scoreNight(r);
+  const { label, key } = scoreBand(score);
+  const hasStages = r.deep_hr != null || r.rem_hr != null || r.core_hr != null;
+  const hasExtras = r.sleep_bpm != null || r.hrv != null || r.spo2 != null ||
+    r.resp_rate != null || r.efficiency != null || r.asleep_hr != null;
+  return (
+    <div
+      className={`sp-night-card${open ? ' sp-night-card--open' : ''}`}
+      onClick={() => setOpen(v => !v)}
+    >
+      <div className="sp-night-main">
+        <div className="sp-night-left">
+          <span className="sp-night-date">{fmtDate(r.day)}</span>
+          <span className="sp-night-total">{fmtHr(r.total_sleep_hr)}</span>
+          {r.in_bed_hr != null && <span className="sp-night-inbed">In bed {fmtHr(r.in_bed_hr)}</span>}
+        </div>
+        <div className="sp-night-right">
+          {score != null && (
+            <div className={`sp-score-badge sp-score-badge--${key}`}>
+              <span className="sp-score-num">{score}</span>
+              <span className="sp-score-label">{label}</span>
+            </div>
+          )}
+          <span className="sp-night-chevron">{open ? '▾' : '›'}</span>
+        </div>
+      </div>
+      {hasStages && <StageBar d={r} />}
+      {hasStages && (
+        <div className="sp-stage-chips">
+          {r.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(r.deep_hr)}</span>}
+          {r.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(r.rem_hr)}</span>}
+          {r.core_hr  != null && <span className="sp-chip sp-chip--core"><span  className="sp-chip-dot" />Core {fmtHr(r.core_hr)}</span>}
+          {r.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(r.awake_hr)}</span>}
+        </div>
+      )}
+      {open && hasExtras && (
+        <div className="sp-night-extras">
+          {r.efficiency != null && <div className="sp-extra-item"><small>Efficiency</small><strong>{r.efficiency.toFixed(1)}%</strong></div>}
+          {r.asleep_hr  != null && <div className="sp-extra-item"><small>Asleep</small><strong>{fmtHr(r.asleep_hr)}</strong></div>}
+          {r.sleep_bpm  != null && <div className="sp-extra-item"><small>Sleep HR</small><strong>{Math.round(r.sleep_bpm)} bpm</strong></div>}
+          {r.hrv        != null && <div className="sp-extra-item"><small>HRV</small><strong>{Math.round(r.hrv)} ms</strong></div>}
+          {r.spo2       != null && <div className="sp-extra-item"><small>SpO₂</small><strong>{r.spo2.toFixed(1)}%</strong></div>}
+          {r.resp_rate  != null && <div className="sp-extra-item"><small>Resp. Rate</small><strong>{r.resp_rate.toFixed(1)}/min</strong></div>}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Chart Tooltip ── */
+const ChartTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const d = new Date(`${label}T12:00:00`);
+  const dateStr = Number.isNaN(d.getTime()) ? label
+    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return (
+    <div className="sp-tooltip">
+      <div className="sp-tooltip-date">{dateStr}</div>
+      {payload.map(p => (
+        <div key={p.dataKey} className="sp-tooltip-row">
+          <span className="sp-tooltip-dot" style={{ background: p.color }} />
+          <span className="sp-tooltip-name">{p.name}</span>
+          <span className="sp-tooltip-val">{p.value != null ? fmtHr(p.value) : '–'}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 function SleepPage({ token }) {
-  const [rows, setRows] = useState([]);
-  const [rangeDays, setRangeDays] = useState(90);
+  const [rows,        setRows]        = useState([]);
+  const [rangeDays,   setRangeDays]   = useState(90);
   const [refreshTick, setRefreshTick] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState('');
-  const [showDeep, setShowDeep] = useState(true);
-  const [showRem, setShowRem] = useState(true);
-  const [showCore, setShowCore] = useState(true);
-  const [showAwake, setShowAwake] = useState(false);
-  const [tableVisible, setTableVisible] = useState(true);
-  const [expandedSleepRow, setExpandedSleepRow] = useState(null);
+  const [loading,     setLoading]     = useState(true);
+  const [fetchError,  setFetchError]  = useState('');
+  const [visLines,    setVisLines]    = useState(new Set(['total', 'deep', 'rem', 'core']));
 
   const tzOffsetMinutes = new Date().getTimezoneOffset();
+
+  const toggleLine = (key) =>
+    setVisLines(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
   useEffect(() => {
     const load = async () => {
@@ -119,20 +208,13 @@ function SleepPage({ token }) {
       try {
         const res = await fetch(
           `${API_BASE}/api/health/sleep/daily?days=${rangeDays}&tzOffsetMinutes=${tzOffsetMinutes}`,
-          {
-          headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-        if (!res.ok) {
-          setRows([]);
-          setFetchError('Failed to load sleep data.');
-          return;
-        }
+        if (!res.ok) { setRows([]); setFetchError('Failed to load sleep data.'); return; }
         const json = await res.json();
         setRows(Array.isArray(json.data) ? json.data : []);
       } catch (_) {
-        setRows([]);
-        setFetchError('Failed to load sleep data.');
+        setRows([]); setFetchError('Failed to load sleep data.');
       } finally {
         setLoading(false);
       }
@@ -140,246 +222,189 @@ function SleepPage({ token }) {
     load();
   }, [token, rangeDays, refreshTick, tzOffsetMinutes]);
 
-  const { dailyRows, latestNight, avgTotal, consistency, latestScore, averageScore } = useMemo(() => {
+  const { dailyRows, latestNight, avgTotal, consistency, latestScore, averageScore, goalHitRate, recentAvg7, bestNight } = useMemo(() => {
     const sorted = [...rows].sort((a, b) => String(a.day).localeCompare(String(b.day)));
-    const totals = sorted.map((d) => d.total_sleep_hr).filter((v) => Number.isFinite(v));
-    const avg = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : null;
-    const scores = sorted.map(scoreNight).filter((v) => Number.isFinite(v));
-    const avgScore = scores.length
-      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-      : null;
+    const totals = sorted.map(d => d.total_sleep_hr).filter(v => Number.isFinite(v));
+    const avg    = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : null;
+    const scores = sorted.map(scoreNight).filter(v => Number.isFinite(v));
+    const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
     const latest = sorted.length ? sorted[sorted.length - 1] : null;
-    return {
-      dailyRows: sorted,
-      latestNight: latest,
-      avgTotal: avg,
-      consistency: stdDev(totals),
-      latestScore: scoreNight(latest),
-      averageScore: avgScore,
-    };
+    const valid  = sorted.filter(n => Number.isFinite(n.total_sleep_hr));
+    const hits   = valid.filter(n => n.total_sleep_hr >= 7 && n.total_sleep_hr <= 9).length;
+    const rate   = valid.length ? Math.round(hits / valid.length * 100) : null;
+    let best = null;
+    for (const n of valid) { if (!best || n.total_sleep_hr > best.total_sleep_hr) best = n; }
+    const last7 = [...valid].slice(-7).map(n => n.total_sleep_hr);
+    const avg7  = last7.length ? last7.reduce((a, b) => a + b, 0) / last7.length : null;
+    return { dailyRows: sorted, latestNight: latest, avgTotal: avg, consistency: stdDev(totals),
+      latestScore: scoreNight(latest), averageScore: avgScore, goalHitRate: rate, recentAvg7: avg7, bestNight: best };
   }, [rows]);
 
-  const latestScoreBand = scoreBand(latestScore);
-  const averageScoreBand = scoreBand(averageScore);
+  const { label: latestLabel, key: latestKey } = scoreBand(latestScore);
+  const { label: avgLabel,    key: avgKey    }  = scoreBand(averageScore);
 
-  const { goalHitRate, bestNight, worstNight, recentAvg7 } = useMemo(() => {
-    const validNights = dailyRows.filter((n) => Number.isFinite(n.total_sleep_hr));
-    const hits = validNights.filter((n) => n.total_sleep_hr >= 7 && n.total_sleep_hr <= 9).length;
-    const rate = validNights.length ? Math.round((hits / validNights.length) * 100) : null;
-
-    let best = null;
-    let worst = null;
-    for (const n of validNights) {
-      if (!best || n.total_sleep_hr > best.total_sleep_hr) best = n;
-      if (!worst || n.total_sleep_hr < worst.total_sleep_hr) worst = n;
-    }
-
-    const last7 = [...validNights].slice(-7).map((n) => n.total_sleep_hr);
-    const avg7 = last7.length ? (last7.reduce((a, b) => a + b, 0) / last7.length) : null;
-
-    return {
-      goalHitRate: rate,
-      bestNight: best,
-      worstNight: worst,
-      recentAvg7: avg7,
-    };
-  }, [dailyRows]);
-
-  if (!token) return <div className="sleep-page"><p>Please log in.</p></div>;
+  if (!token) return <div className="sp-page"><p>Please log in.</p></div>;
 
   return (
-    <div className="sleep-page">
-      <div className="sleep-header">
-        <div>
-          <h2>Sleep</h2>
-          <p className="sleep-subtitle">Nightly trends with normalized sleep stages and quality scoring.</p>
+    <div className="sp-page">
+      {/* ── Header ── */}
+      <div className="sp-header">
+        <div className="sp-header-left">
+          <h2 className="sp-title">Sleep</h2>
+          <p className="sp-subtitle">Nightly trends · stages · quality score</p>
         </div>
-        <p className="sleep-note">Night date reflects the sleep period ending that morning.</p>
-      </div>
-
-      <div className="sleep-toolbar">
-        <div className="sleep-range-buttons">
-          {RANGE_OPTIONS.map((d) => (
+        <div className="sp-range-row">
+          {RANGE_OPTIONS.map(d => (
             <button
               key={d}
               type="button"
+              className={`sp-range-btn${d === rangeDays ? ' sp-range-btn--active' : ''}`}
               onClick={() => setRangeDays(d)}
-              className={d === rangeDays ? 'sleep-range-btn sleep-range-btn--active' : 'sleep-range-btn'}
-            >
-              {d}d
-            </button>
+            >{d}d</button>
           ))}
+          <button type="button" className="sp-refresh-btn" title="Refresh"
+            onClick={() => setRefreshTick(n => n + 1)}>↻</button>
         </div>
-        <button type="button" onClick={() => setRefreshTick((n) => n + 1)}>Refresh</button>
       </div>
 
-      {loading ? <p>Loading sleep data...</p> : null}
-      {fetchError ? <p className="sleep-error">{fetchError}</p> : null}
-      {!loading && dailyRows.length === 0 ? <p>No sleep data found yet.</p> : null}
+      {loading && <div className="sp-loading"><div className="sp-spinner" /><span>Loading…</span></div>}
+      {fetchError && <p className="sp-error">{fetchError}</p>}
+      {!loading && !fetchError && dailyRows.length === 0 && (
+        <p className="sp-empty">No sleep data found. Sync some data to get started.</p>
+      )}
 
-      {latestNight ? (
-        <div className="sleep-cards">
-          <div className="sleep-card sleep-card--primary">
-            <small>Latest Night</small>
-            <strong>{fmtDate(latestNight.day)}</strong>
-            <span>{fmtHours(latestNight.total_sleep_hr)}</span>
-          </div>
-          <div className="sleep-card">
-            <small>Range Average</small>
-            <strong>{fmtHours(avgTotal)}</strong>
-          </div>
-          <div className="sleep-card">
-            <small>Consistency (Std Dev)</small>
-            <strong>{fmtHours(consistency)}</strong>
-          </div>
-          <div className="sleep-card">
-            <small>7-9h Goal Hit Rate</small>
-            <strong>{goalHitRate != null ? `${goalHitRate}%` : 'N/A'}</strong>
-          </div>
-          <div className="sleep-card">
-            <small>Last 7 Nights Avg</small>
-            <strong>{fmtHours(recentAvg7)}</strong>
-          </div>
-          <div className="sleep-card">
-            <small>Latest Quality Score</small>
-            <strong>{latestScore != null ? `${latestScore}/100` : 'N/A'}</strong>
-            <span className={latestScoreBand.className}>{latestScoreBand.label}</span>
-          </div>
-          <div className="sleep-card">
-            <small>Average Quality Score</small>
-            <strong>{averageScore != null ? `${averageScore}/100` : 'N/A'}</strong>
-            <span className={averageScoreBand.className}>{averageScoreBand.label}</span>
-          </div>
-          <div className="sleep-card">
-            <small>Longest Night</small>
-            <strong>{bestNight ? fmtDate(bestNight.day) : 'N/A'}</strong>
-            <span>{bestNight ? fmtHours(bestNight.total_sleep_hr) : ''}</span>
-          </div>
-          <div className="sleep-card">
-            <small>Shortest Night</small>
-            <strong>{worstNight ? fmtDate(worstNight.day) : 'N/A'}</strong>
-            <span>{worstNight ? fmtHours(worstNight.total_sleep_hr) : ''}</span>
-          </div>
-        </div>
-      ) : null}
-
-      {dailyRows.length > 0 ? (
+      {!loading && dailyRows.length > 0 && (
         <>
-          <div className="sleep-toggles" role="group" aria-label="Sleep chart metrics">
-            <label className="sleep-toggle-item">
-              <input type="checkbox" checked={showDeep} onChange={(e) => setShowDeep(e.target.checked)} />
-              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_deep_hr }} />
-              Deep
-            </label>
-            <label className="sleep-toggle-item">
-              <input type="checkbox" checked={showRem} onChange={(e) => setShowRem(e.target.checked)} />
-              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_rem_hr }} />
-              REM
-            </label>
-            <label className="sleep-toggle-item">
-              <input type="checkbox" checked={showCore} onChange={(e) => setShowCore(e.target.checked)} />
-              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_core_hr }} />
-              Core
-            </label>
-            <label className="sleep-toggle-item">
-              <input type="checkbox" checked={showAwake} onChange={(e) => setShowAwake(e.target.checked)} />
-              <span className="sleep-dot" style={{ background: SLEEP_COLORS.sleep_analysis_awake_hr }} />
-              Awake
-            </label>
+          {/* ── Hero ── */}
+          <div className="sp-hero">
+            <div className="sp-hero-ring-col">
+              <div className="sp-ring-label-top">Latest Night</div>
+              <ScoreRing score={latestScore} />
+              <div className={`sp-band-chip sp-band-chip--${latestKey}`}>{latestLabel}</div>
+              <div className="sp-ring-date">{fmtDate(latestNight?.day)}</div>
+              <div className="sp-ring-hrs">{fmtHr(latestNight?.total_sleep_hr)}</div>
+            </div>
+            <div className="sp-hero-stats">
+              <div className="sp-stat-card">
+                <span className="sp-stat-label">Period Avg</span>
+                <span className="sp-stat-val">{fmtHr(avgTotal)}</span>
+              </div>
+              <div className="sp-stat-card">
+                <span className="sp-stat-label">7-Night Avg</span>
+                <span className="sp-stat-val">{fmtHr(recentAvg7)}</span>
+              </div>
+              <div className="sp-stat-card">
+                <span className="sp-stat-label">Avg Score</span>
+                <span className="sp-stat-val">{averageScore != null ? averageScore : '–'}<span className="sp-stat-small"> /100</span></span>
+                <span className={`sp-band-chip sp-band-chip--${avgKey} sp-band-chip--sm`}>{avgLabel}</span>
+              </div>
+              <div className="sp-stat-card">
+                <span className="sp-stat-label">7–9h Goal</span>
+                <span className="sp-stat-val">{goalHitRate != null ? `${goalHitRate}%` : '–'}</span>
+              </div>
+              <div className="sp-stat-card">
+                <span className="sp-stat-label">Consistency</span>
+                <span className="sp-stat-val">{consistency != null ? fmtHr(consistency) : '–'}</span>
+                <span className="sp-stat-hint">std dev</span>
+              </div>
+              <div className="sp-stat-card">
+                <span className="sp-stat-label">Best Night</span>
+                <span className="sp-stat-val sp-stat-val--sm">{bestNight ? fmtDate(bestNight.day) : '–'}</span>
+                {bestNight && <span className="sp-stat-hint">{fmtHr(bestNight.total_sleep_hr)}</span>}
+              </div>
+            </div>
           </div>
-        <div className="sleep-chart-wrap">
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={dailyRows} margin={{ top: 8, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis unit=" hr" />
-              <Tooltip formatter={(v) => (v == null ? 'N/A' : `${Number(v).toFixed(2)} hr`)} />
-              <Line type="monotone" dataKey="total_sleep_hr" name="Total Sleep" stroke={SLEEP_COLORS.sleep_analysis_total_sleep_hr} strokeWidth={2.5} dot={false} />
-              {showDeep ? <Line type="monotone" dataKey="deep_hr" name="Deep" stroke={SLEEP_COLORS.sleep_analysis_deep_hr} dot={false} /> : null}
-              {showRem ? <Line type="monotone" dataKey="rem_hr" name="REM" stroke={SLEEP_COLORS.sleep_analysis_rem_hr} dot={false} /> : null}
-              {showCore ? <Line type="monotone" dataKey="core_hr" name="Core" stroke={SLEEP_COLORS.sleep_analysis_core_hr} dot={false} /> : null}
-              {showAwake ? <Line type="monotone" dataKey="awake_hr" name="Awake" stroke={SLEEP_COLORS.sleep_analysis_awake_hr} dot={false} /> : null}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        </>
-      ) : null}
 
-      {dailyRows.length > 0 ? (
-        <div className="sleep-table-wrap">
-          <div className="sleep-table-title-row">
-            <span className="sleep-table-title">Last 30 Nights</span>
-            <button
-              type="button"
-              className="sleep-table-toggle"
-              onClick={() => setTableVisible(v => !v)}
-            >
-              {tableVisible ? 'Hide ▴' : 'Show ▾'}
-            </button>
-          </div>
-          {tableVisible && (
-            <table className="sleep-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Total</th>
-                  <th>Quality</th>
-                  <th>Deep</th>
-                  <th>REM</th>
-                  <th>Core</th>
-                  <th>Awake</th>
-                  <th className="sleep-th-expand" />
-                </tr>
-              </thead>
-              <tbody>
-                {[...dailyRows].reverse().slice(0, 30).map((r) => {
-                  const score = scoreNight(r);
-                  const band = scoreBand(score);
-                  const isExpanded = expandedSleepRow === r.day;
-                  return (
-                    <React.Fragment key={r.day}>
-                      <tr
-                        className={`sleep-tr${isExpanded ? ' sleep-tr--open' : ''}`}
-                        onClick={() => setExpandedSleepRow(isExpanded ? null : r.day)}
-                      >
-                        <td className="sleep-td-sticky">{fmtDate(r.day)}</td>
-                        <td>{r.total_sleep_hr != null ? r.total_sleep_hr.toFixed(2) : '–'}</td>
-                        <td>
-                          <span className={band.className.replace('sleep-score-badge', 'sleep-quality-chip')}>
-                            {score != null ? score : '–'}
-                            {score != null && <span className="sleep-quality-label"> {band.label}</span>}
-                          </span>
-                        </td>
-                        <td>{r.deep_hr != null ? r.deep_hr.toFixed(2) : '–'}</td>
-                        <td>{r.rem_hr != null ? r.rem_hr.toFixed(2) : '–'}</td>
-                        <td>{r.core_hr != null ? r.core_hr.toFixed(2) : '–'}</td>
-                        <td>{r.awake_hr != null ? r.awake_hr.toFixed(2) : '–'}</td>
-                        <td className="sleep-td-chevron">{isExpanded ? '▾' : '›'}</td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="sleep-tr-detail">
-                          <td colSpan="8">
-                            <div className="sleep-detail-grid">
-                              <div className="sleep-detail-item"><small>Score</small><strong>{score != null ? `${score}/100` : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>Asleep</small><strong>{r.asleep_hr != null ? r.asleep_hr.toFixed(2) + ' hr' : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>In Bed</small><strong>{r.in_bed_hr != null ? r.in_bed_hr.toFixed(2) + ' hr' : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>Efficiency</small><strong>{r.efficiency != null ? r.efficiency.toFixed(1) + '%' : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>Sleep HR</small><strong>{r.sleep_bpm != null ? Math.round(r.sleep_bpm) + ' bpm' : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>HRV</small><strong>{r.hrv != null ? Math.round(r.hrv) + ' ms' : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>SpO₂</small><strong>{r.spo2 != null ? r.spo2.toFixed(1) + '%' : '–'}</strong></div>
-                              <div className="sleep-detail-item"><small>Resp Rate</small><strong>{r.resp_rate != null ? r.resp_rate.toFixed(1) + ' /min' : '–'}</strong></div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* ── Latest night stages ── */}
+          {latestNight && (latestNight.deep_hr != null || latestNight.rem_hr != null || latestNight.core_hr != null) && (
+            <div className="sp-latest-stages">
+              <div className="sp-latest-stages-label">Last night's stages</div>
+              <StageBar d={latestNight} />
+              <div className="sp-stage-chips">
+                {latestNight.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(latestNight.deep_hr)}</span>}
+                {latestNight.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(latestNight.rem_hr)}</span>}
+                {latestNight.core_hr  != null && <span className="sp-chip sp-chip--core"><span  className="sp-chip-dot" />Core {fmtHr(latestNight.core_hr)}</span>}
+                {latestNight.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(latestNight.awake_hr)}</span>}
+              </div>
+            </div>
           )}
-        </div>
-      ) : null}
+
+          {/* ── Trend chart ── */}
+          <div className="sp-chart-section">
+            <div className="sp-chart-header">
+              <span className="sp-section-title">Trends</span>
+              <div className="sp-line-toggles">
+                {CHART_LINES.map(l => (
+                  <button
+                    key={l.key}
+                    type="button"
+                    className={`sp-line-btn${visLines.has(l.key) ? ' sp-line-btn--on' : ''}`}
+                    style={visLines.has(l.key) ? { borderColor: l.color, color: l.color } : {}}
+                    onClick={() => toggleLine(l.key)}
+                  >
+                    <span
+                      className="sp-line-dot"
+                      style={visLines.has(l.key)
+                        ? { background: l.color, borderColor: l.color }
+                        : { background: 'transparent', borderColor: 'rgba(160,210,255,0.3)' }}
+                    />
+                    {l.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="sp-chart-wrap">
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={dailyRows} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis
+                    dataKey="day"
+                    tick={{ fill: 'rgba(180,210,255,0.4)', fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={v => {
+                      const d = new Date(`${v}T12:00:00`);
+                      return isNaN(d) ? v : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }}
+                  />
+                  <YAxis
+                    unit="h"
+                    tick={{ fill: 'rgba(180,210,255,0.4)', fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={v => v.toFixed(0)}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <ReferenceLine
+                    y={8}
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeDasharray="6 4"
+                    label={{ value: '8h goal', position: 'insideTopRight', fill: 'rgba(255,255,255,0.2)', fontSize: 10 }}
+                  />
+                  {CHART_LINES.map(l =>
+                    visLines.has(l.key) ? (
+                      <Line key={l.key} type="monotone" dataKey={l.dataKey} name={l.name}
+                        stroke={l.color} strokeWidth={l.width} dot={false} connectNulls />
+                    ) : null
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* ── Recent nights ── */}
+          <div className="sp-nights-section">
+            <div className="sp-section-title">
+              Recent Nights <span className="sp-section-count">{Math.min(dailyRows.length, 30)}</span>
+            </div>
+            <div className="sp-nights-list">
+              {[...dailyRows].reverse().slice(0, 30).map(r => (
+                <NightCard key={r.day} r={r} />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
