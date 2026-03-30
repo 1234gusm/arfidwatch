@@ -27,8 +27,13 @@
 .med-range-row {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
 }
+.med-range-row::-webkit-scrollbar { display: none; }
 
 .med-range-btn {
   border: 1px solid #cfd7e3;
@@ -40,6 +45,8 @@
   cursor: pointer;
   min-height: 36px;
   touch-action: manipulation;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .med-range-btn.active {

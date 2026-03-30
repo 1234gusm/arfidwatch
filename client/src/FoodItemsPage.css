@@ -36,7 +36,16 @@
 }
 .fi-toggle-all-btn:hover { background: rgba(0,160,255,0.14); color: #aadeff; }
 
-.fi-range-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.fi-range-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.fi-range-row::-webkit-scrollbar { display: none; }
 .fi-range-btn {
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.04);
@@ -45,6 +54,8 @@
   padding: 5px 12px;
   font-size: 0.8rem;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .fi-range-btn.active {
   color: #6ee7ff;

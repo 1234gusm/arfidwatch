@@ -57,8 +57,13 @@
 .fl-range-row {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
 }
+.fl-range-row::-webkit-scrollbar { display: none; }
 .fl-range-btn {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
@@ -72,6 +77,8 @@
   display: inline-flex;
   align-items: center;
   touch-action: manipulation;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .fl-range-btn:hover { background: rgba(0,160,255,0.12); color: #aadeff; }
 .fl-range-btn.active {
