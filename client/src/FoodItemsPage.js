@@ -6,7 +6,7 @@ import { toDateKey, formatDay } from './utils/dateUtils';
 const RANGE_OPTIONS = [
   { id: '7',   label: '1 Week'   },
   { id: '14',  label: '2 Weeks'  },
-  { id: '30',  label: 'Month'    },
+  { id: '30',  label: 'One Month' },
   { id: '90',  label: '3 Months' },
   { id: '360', label: 'Year'     },
   { id: 'all', label: 'All'      },

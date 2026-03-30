@@ -16,7 +16,7 @@ import API_BASE from './apiBase';
 const RANGE_OPTS = [
   { days: 7,   label: '1 Week'   },
   { days: 14,  label: '2 Weeks'  },
-  { days: 30,  label: 'Month'    },
+  { days: 30,  label: 'One Month' },
   { days: 90,  label: '3 Months' },
   { days: 360, label: 'Year'     },
   { days: 0,   label: 'All'      },

@@ -844,7 +844,7 @@ function HealthPage({ token }) {
             )}
           </div>
           <div className="hp-period-row">
-            {[{n:7,l:'1 Week'},{n:14,l:'2 Weeks'},{n:30,l:'Month'},{n:90,l:'3 Months'},{n:360,l:'Year'},{n:0,l:'All'}].map(({n,l}) => (
+            {[{n:7,l:'1 Week'},{n:14,l:'2 Weeks'},{n:30,l:'One Month'},{n:90,l:'3 Months'},{n:360,l:'Year'},{n:0,l:'All'}].map(({n,l}) => (
               <button
                 key={n}
                 className={`hp-period-btn${overviewPeriod === n ? ' hp-period-btn--active' : ''}`}
