@@ -22,8 +22,9 @@ function HealthPage({ token }) {
   const dragSrc = useRef(null);
   const uploadInputRef = useRef(null);
 
-  // date range for charts (YYYY-MM-DD)
-  const formatDate = d => d.toISOString().slice(0,10);
+  // date range for charts (YYYY-MM-DD) — local time, NOT UTC
+  const formatDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const toLocalDate = (ts) => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : formatDate(d); };
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
@@ -244,16 +245,17 @@ function HealthPage({ token }) {
     return Number.isFinite(parsed) ? parsed : NaN;
   };
 
+  const rd = (n) => Math.round(n * 100) / 100;
   const groupStats = (items) => {
     const vals = items.map(i => toNum(i.value)).filter(n => !Number.isNaN(n));
     if (vals.length === 0) return null;
     const sum = vals.reduce((a, b) => a + b, 0);
     return {
       count: vals.length,
-      avg: sum / vals.length,
-      min: Math.min(...vals),
-      max: Math.max(...vals),
-      latest: vals[vals.length - 1],
+      avg: rd(sum / vals.length),
+      min: rd(Math.min(...vals)),
+      max: rd(Math.max(...vals)),
+      latest: rd(vals[vals.length - 1]),
     };
   };
 
@@ -665,12 +667,13 @@ function HealthPage({ token }) {
       .forEach(d => {
         const v = toNum(d.value);
         if (!Number.isFinite(v)) return;
-        const dateKey = new Date(d.timestamp).toISOString().slice(0, 10);
+        const dateKey = toLocalDate(d.timestamp);
+        if (!dateKey) return;
         if (byDate[dateKey] === undefined || v > byDate[dateKey].value) {
           byDate[dateKey] = {
             date: new Date(d.timestamp),
             dateLabel: dateKey,
-            value: v,
+            value: rd(v),
           };
         }
       });
@@ -685,7 +688,7 @@ function HealthPage({ token }) {
     const cur = new Date(start + 'T12:00:00');
     const endD = new Date(end + 'T12:00:00');
     while (cur <= endD) {
-      const key = cur.toISOString().slice(0, 10);
+      const key = formatDate(cur);
       result.push({ dateLabel: key, value: byDate[key] ?? null });
       cur.setDate(cur.getDate() + 1);
     }
@@ -711,7 +714,7 @@ function HealthPage({ token }) {
   }
 
   // ── Today's nutrition summary ──────────────────────────────────────────
-  const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  const todayKey = formatDate(new Date());
   const todayNutrition = (() => {
     const NUTRITION_KEYS = [
       { canonical: 'dietary_energy_kcal', label: 'Calories', unit: 'kcal', key: 'calories' },
@@ -723,7 +726,7 @@ function HealthPage({ token }) {
     NUTRITION_KEYS.forEach(({ canonical: ct, key }) => {
       const vals = data
         .filter(d => canonical(d.type) === ct)
-        .map(d => ({ v: toNum(d.value), day: String(d.timestamp).slice(0,10) }))
+        .map(d => ({ v: toNum(d.value), day: toLocalDate(d.timestamp) }))
         .filter(x => x.day === todayKey && Number.isFinite(x.v));
       result[key] = vals.length ? Math.max(...vals.map(x => x.v)) : null;
     });
@@ -736,13 +739,13 @@ function HealthPage({ token }) {
     if (overviewPeriod === 0) return '2000-01-01';
     const d = new Date();
     d.setDate(d.getDate() - overviewPeriod + 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return formatDate(d);
   })();
   const overviewData = (() => {
     const getRange = (ct) =>
       data
         .filter(r => canonical(r.type) === ct)
-        .map(r => ({ v: toNum(r.value), day: String(r.timestamp).slice(0, 10) }))
+        .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp) }))
         .filter(x => x.day >= overviewCutoffKey && x.day <= todayKey && Number.isFinite(x.v));
     const avgZeroFill = (vals) => {
       if (!vals.length) return null;
@@ -752,7 +755,7 @@ function HealthPage({ token }) {
     };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
-      .map(r => ({ v: toNum(r.value), day: String(r.timestamp).slice(0, 10), unit: canonical(r.type) === 'weight_kg' ? 'kg' : 'lb' }))
+      .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp), unit: canonical(r.type) === 'weight_kg' ? 'kg' : 'lb' }))
       .filter(x => Number.isFinite(x.v))
       .sort((a, b) => b.day.localeCompare(a.day));
     const hrVals = getRange('resting_heart_rate_countmin').sort((a, b) => b.day.localeCompare(a.day));
@@ -1025,7 +1028,7 @@ function HealthPage({ token }) {
                   <LineChart data={rangeData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
                     <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} />
-                    <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} />
+                    <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
                     <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(2) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
                     <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} />
                   </LineChart>
