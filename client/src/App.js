@@ -230,7 +230,7 @@ function App() {
     <div className="App">
       <nav>
         <div className="nav-left-group">
-          <span className="nav-brand">📊 ArfidWatch</span>
+          <span className="nav-brand"><img src="/logo32.png" alt="" className="nav-brand-logo" />ArfidWatch</span>
           <button
             type="button"
             className={`nav-burger${mobileMenuOpen ? ' nav-burger--open' : ''}`}

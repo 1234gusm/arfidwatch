@@ -44,7 +44,7 @@ function LoginPage({ setToken }) {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div className="auth-logo">📊</div>
+        <div className="auth-logo"><img src="/logo192.png" alt="ArfidWatch" style={{ width: 64, height: 64, borderRadius: 12 }} /></div>
         <p className="auth-tagline">Your personal health companion</p>
         <h2>Welcome back</h2>
         {error && <div className="error-msg">{error}</div>}
