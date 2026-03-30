@@ -47,7 +47,7 @@ function RegisterPage({ setToken }) {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div className="auth-logo"><img src="/logo192.png" alt="ArfidWatch" style={{ width: 64, height: 64, borderRadius: 12 }} /></div>
+        <div className="auth-logo"><img src={process.env.PUBLIC_URL + '/logo192.png'} alt="ArfidWatch" style={{ width: 64, height: 64, borderRadius: 12 }} /></div>
         <p className="auth-tagline">Your personal health companion</p>
         <h2>Create your account</h2>
         <p style={{ color: '#5a7a99', fontSize: '0.87rem', textAlign: 'center', marginTop: -8, marginBottom: 18 }}>
