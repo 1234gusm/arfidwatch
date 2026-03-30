@@ -13,6 +13,14 @@ const { startAutoHealthPull } = require('./utils/autoHealthPull');
 const { initVapid } = require('./utils/vapid');
 const { startPushScheduler } = require('./utils/pushScheduler');
 
+/* ── Process-level crash catchers ─────────────────────────── */
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled rejection:', reason);
+});
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -39,10 +47,25 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
+// Global error handler – keeps the server alive on route errors
+app.use((err, _req, res, _next) => {
+  console.error('[EXPRESS]', err.stack || err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   try { await initVapid(); } catch (e) { console.error('VAPID init error:', e.message); }
   startPushScheduler();
   startAutoHealthPull({ port: PORT });
 });
+
+/* ── Graceful shutdown ──────────────────────────────────── */
+function shutdown(signal) {
+  console.log(`\n${signal} received – shutting down gracefully`);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 5000);
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

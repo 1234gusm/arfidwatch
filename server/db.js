@@ -19,17 +19,29 @@ function ensureWritableDbPath(dbPath) {
   fs.accessSync(dbDirPath, fs.constants.W_OK);
 }
 
+// Try the configured path first, then fall back gracefully instead of crashing.
+let usingEphemeral = false;
 try {
   ensureWritableDbPath(activeDbPath);
 } catch (err) {
-  if (isProduction && process.env.SQLITE_ALLOW_EPHEMERAL !== 'true') {
-    throw new Error(
-      `SQLite path is not writable at ${activeDbPath}. In production attach a persistent disk at /var/data or set SQLITE_PATH to a writable persistent location.`
-    );
+  console.warn(`[DB] Cannot write to ${activeDbPath}: ${err.message}`);
+  // Try the default production path as a second attempt
+  if (activeDbPath !== defaultDbPath) {
+    try {
+      activeDbPath = defaultDbPath;
+      ensureWritableDbPath(activeDbPath);
+      console.warn(`[DB] Fell back to ${activeDbPath}`);
+    } catch {
+      // Last resort: in-memory (ephemeral) so the server can still start
+      activeDbPath = ':memory:';
+      usingEphemeral = true;
+      console.warn('[DB] Disk not writable anywhere \u2014 using ephemeral in-memory database. Data will NOT persist across restarts.');
+    }
+  } else {
+    activeDbPath = ':memory:';
+    usingEphemeral = true;
+    console.warn('[DB] Disk not writable \u2014 using ephemeral in-memory database. Data will NOT persist across restarts.');
   }
-  console.warn(`SQLite path not writable at ${activeDbPath}. Falling back to ${defaultDbPath}.`);
-  activeDbPath = defaultDbPath;
-  ensureWritableDbPath(activeDbPath);
 }
 
 const db = knex({
@@ -40,10 +52,11 @@ const db = knex({
   useNullAsDefault: true,
 });
 
-console.log(`SQLite DB path: ${activeDbPath}`);
+console.log(`SQLite DB path: ${activeDbPath}${usingEphemeral ? ' (EPHEMERAL)' : ''}`);
 
-// ensure tables exist
+// Wrap setup() so a migration failure doesn't crash the server
 async function setup() {
+  try {
   await db.schema.hasTable('users').then(exists => {
     if (!exists) {
       return db.schema.createTable('users', table => {
@@ -272,6 +285,9 @@ async function setup() {
       });
     }
   });
+  } catch (e) {
+    console.error('[DB] Migration/setup error (server stays up):', e.message);
+  }
 }
 
 setup();
