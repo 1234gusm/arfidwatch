@@ -14,6 +14,7 @@ import API_BASE from './apiBase';
 function HealthPage({ token }) {
   const [data, setData] = useState([]);
   const [imports, setImports] = useState([]);
+  const [todayFood, setTodayFood] = useState(null);
   const [hiddenTypes, setHiddenTypes] = useState(new Set());
   const [expandedType, setExpandedType] = useState(null);
   const [addPickerOpen, setAddPickerOpen] = useState(false);
@@ -45,6 +46,19 @@ function HealthPage({ token }) {
     });
     const json = await res.json();
     setImports(json.imports || []);
+  };
+
+  const fetchTodayFood = async () => {
+    try {
+      const today = formatDate(new Date());
+      const params = new URLSearchParams({ start: today, end: today });
+      const res = await fetch(`${API_BASE}/api/food-log/daily?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      const row = (json.data || []).find(r => r.date === today);
+      setTodayFood(row || null);
+    } catch (_) { /* best-effort */ }
   };
 
   const persistDashboardPrefs = async (nextHiddenTypes, nextStatOrder) => {
@@ -156,7 +170,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor file');
@@ -188,7 +202,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'health records' }));
-        fetchData(); fetchImports();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('CSV import error:', err);
         alert('Error importing CSV');
@@ -207,7 +221,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import AutoSleep CSV: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'sleep records' }));
-        fetchData(); fetchImports();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('AutoSleep CSV import error:', err);
         alert('Error importing AutoSleep CSV');
@@ -230,7 +244,7 @@ function HealthPage({ token }) {
       const r = await res.json();
       const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
       alert(buildImportAlertMessage({ ...r, label }));
-      fetchData(); fetchImports();
+      fetchData(); fetchImports(); fetchTodayFood();
     } catch (err) {
       console.error('MacroFactor import error:', err);
       alert('Error importing MacroFactor CSV');
@@ -704,7 +718,7 @@ function HealthPage({ token }) {
 
   // All hooks must be called at top level before any conditional returns
   useEffect(() => {
-    if (token) { fetchData(); fetchImports(); }
+    if (token) { fetchData(); fetchImports(); fetchTodayFood(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -713,24 +727,17 @@ function HealthPage({ token }) {
     return <div style={{padding: '20px', textAlign:'center'}}>Please log in</div>;
   }
 
-  // ── Today's nutrition summary ──────────────────────────────────────────
+  // ── Today's nutrition summary (from food_log_entries) ─────────────────
   const todayKey = formatDate(new Date());
   const todayNutrition = (() => {
-    const NUTRITION_KEYS = [
-      { canonical: 'dietary_energy_kcal', label: 'Calories', unit: 'kcal', key: 'calories' },
-      { canonical: 'protein_g',           label: 'Protein',  unit: 'g',    key: 'protein'  },
-      { canonical: 'carbohydrates_g',     label: 'Carbs',    unit: 'g',    key: 'carbs'    },
-      { canonical: 'total_fat_g',         label: 'Fat',      unit: 'g',    key: 'fat'      },
-    ];
-    const result = {};
-    NUTRITION_KEYS.forEach(({ canonical: ct, key }) => {
-      const vals = data
-        .filter(d => canonical(d.type) === ct)
-        .map(d => ({ v: toNum(d.value), day: toLocalDate(d.timestamp) }))
-        .filter(x => x.day === todayKey && Number.isFinite(x.v));
-      result[key] = vals.length ? Math.max(...vals.map(x => x.v)) : null;
-    });
-    return result;
+    if (!todayFood) return { calories: null, protein: null, carbs: null, fat: null };
+    const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+    return {
+      calories: num(todayFood.dietary_energy_kcal),
+      protein:  num(todayFood.protein_g),
+      carbs:    num(todayFood.carbohydrates_g),
+      fat:      num(todayFood.total_fat_g),
+    };
   })();
   const todayHasAnyFood = Object.values(todayNutrition).some(v => v !== null);
 
