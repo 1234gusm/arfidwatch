@@ -161,7 +161,7 @@ router.get('/', authenticate, async (req, res) => {
     if (req.query.start) query = query.where('date', '>=', req.query.start.slice(0, 10));
     if (req.query.end) query = query.where('date', '<=', req.query.end.slice(0, 10));
 
-    const dataRaw = await query;
+    const dataRaw = await query.limit(50000);
     const data = dataRaw.map(r => ({
       ...r,
       medication_name: canonicalMedicationName(r.medication_name),

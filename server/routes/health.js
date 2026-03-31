@@ -710,14 +710,22 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
 });
 
 // upload macrofactor .xlsx or .csv
+const allowedMimeTypes = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel', // .xls
+  'text/csv',
+  'application/json',
+  'application/octet-stream', // some clients send this for .xlsx/.csv
+]);
 const upload = multer({
-  dest: 'uploads/',
+  dest: path.join(__dirname, '..', 'uploads'),
   limits: { fileSize: 10 * 1024 * 1024 },  // 10 MB
   fileFilter: (_req, file, cb) => {
     const allowed = ['.xlsx', '.xls', '.csv', '.json'];
     const ext = path.extname(file.originalname || '').toLowerCase();
-    if (allowed.includes(ext)) return cb(null, true);
-    cb(new Error('Only .xlsx, .xls, .csv, and .json files are allowed'));
+    if (!allowed.includes(ext)) return cb(new Error('Only .xlsx, .xls, .csv, and .json files are allowed'));
+    if (!allowedMimeTypes.has(file.mimetype)) return cb(new Error('Invalid file type'));
+    cb(null, true);
   },
 });
 
@@ -1171,7 +1179,7 @@ router.get('/', authenticate, async (req, res) => {
   let query = db('health_data').where('user_id', req.user.id);
   if (start) query = query.where('timestamp', '>=', start);
   if (end) query = query.where('timestamp', '<=', end);
-  const rows = await query.orderBy('timestamp', 'asc');
+  const rows = await query.orderBy('timestamp', 'asc').limit(50000);
 
   // Merge supplement/vitamin entries from the medication log as synthetic rows.
   try {
@@ -1181,7 +1189,7 @@ router.get('/', authenticate, async (req, res) => {
       .select('id', 'date', 'time', 'medication_name', 'dosage', 'taken_at');
     if (start) medQuery = medQuery.where('date', '>=', start.slice(0, 10));
     if (end)   medQuery = medQuery.where('date', '<=', end.slice(0, 10));
-    const medEntries = await medQuery;
+    const medEntries = await medQuery.limit(50000);
     const suppRows = medEntries
       .map(e => medicationEntryToHealthRow(e))
       .filter(Boolean);

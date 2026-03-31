@@ -23,7 +23,7 @@ const authLimiter = rateLimit({
 
 const forgotPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,  // 1 hour
-  max: 5,                     // 5 attempts per hour
+  max: 3,                     // 3 attempts per hour per IP
   message: { error: 'Too many password reset requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -36,6 +36,15 @@ function validatePassword(password) {
   }
   if (password.length > 128) {
     return 'Password must be 128 characters or fewer.';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'Password must contain at least one lowercase letter.';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter.';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one digit.';
   }
   return null;
 }

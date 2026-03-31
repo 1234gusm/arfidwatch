@@ -19,7 +19,7 @@ router.get('/daily', authenticate, async (req, res) => {
       .orderBy('date', 'asc');
     if (req.query.start) query = query.where('date', '>=', req.query.start.slice(0, 10));
     if (req.query.end)   query = query.where('date', '<=', req.query.end.slice(0, 10));
-    const rows = await query;
+    const rows = await query.limit(50000);
     res.json({ data: rows });
   } catch (err) {
     console.error('food log daily error:', err);
@@ -40,7 +40,7 @@ router.get('/items', authenticate, async (req, res) => {
     if (req.query.start) query = query.where('date', '>=', req.query.start.slice(0, 10));
     if (req.query.end)   query = query.where('date', '<=', req.query.end.slice(0, 10));
 
-    const rows = await query;
+    const rows = await query.limit(50000);
     res.json({ data: rows });
   } catch (err) {
     console.error('food log items error:', err);

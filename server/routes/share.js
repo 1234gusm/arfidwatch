@@ -8,8 +8,8 @@ const { SECRET } = require('../middleware/auth');
 const router = express.Router();
 
 const shareUnlockLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: 60 * 60 * 1000,  // 1 hour
+  max: 5,                     // 5 attempts per window per key
   message: { error: 'Too many attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,

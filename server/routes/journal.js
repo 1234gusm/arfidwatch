@@ -56,7 +56,7 @@ router.get('/', authenticate, async (req, res) => {
     let query = db('journal_entries').where({ user_id: req.user.id });
     if (start) query = query.where('date', '>=', start);
     if (end) query = query.where('date', '<=', end);
-    const entries = await query.orderBy('id', 'desc');
+    const entries = await query.orderBy('id', 'desc').limit(50000);
     res.json({ entries });
   } catch (err) {
     console.error('Get entries error:', err);
