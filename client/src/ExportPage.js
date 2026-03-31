@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import './ExportPage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { localToday, localOffset, localMonthAgo } from './utils/dateUtils';
 import { avgOf, latestOf, totalOf, minOf, maxOf, daysOf, fmt } from './utils/metricUtils';
 
@@ -169,7 +170,7 @@ function ExportPage({ token }) {
 
   // Load the user's default export period from their profile
   useEffect(() => {
-    fetch(`${API_BASE}/api/profile`, {
+    authFetch(`${API_BASE}/api/profile`, {
       credentials: 'include',
     })
       .then(r => r.ok ? r.json() : null)
@@ -188,11 +189,11 @@ function ExportPage({ token }) {
     const { start, end } = getRange();
     try {
       const [jRes, hRes, heroRes, flRes, flDailyRes] = await Promise.all([
-        fetch(`${API_BASE}/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { credentials: 'include' }),
-        fetch(`${API_BASE}/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { credentials: 'include' }),
-        fetch(`${API_BASE}/api/health/hero`, { credentials: 'include' }),
-        fetch(`${API_BASE}/api/food-log/items?start=${start}&end=${end}`, { credentials: 'include' }),
-        fetch(`${API_BASE}/api/food-log/daily?start=${start}T00:00:00&end=${end}T23:59:59`, { credentials: 'include' }),
+        authFetch(`${API_BASE}/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { credentials: 'include' }),
+        authFetch(`${API_BASE}/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { credentials: 'include' }),
+        authFetch(`${API_BASE}/api/health/hero`, { credentials: 'include' }),
+        authFetch(`${API_BASE}/api/food-log/items?start=${start}&end=${end}`, { credentials: 'include' }),
+        authFetch(`${API_BASE}/api/food-log/daily?start=${start}T00:00:00&end=${end}T23:59:59`, { credentials: 'include' }),
       ]);
       const jData      = await jRes.json();
       const hData      = await hRes.json();
@@ -217,7 +218,7 @@ function ExportPage({ token }) {
     const { start, end } = getRange();
     const params = new URLSearchParams({ start, end, includeJournal: includeJournal ? '1' : '0', quick: quickExport ? '1' : '0' });
     try {
-      const res = await fetch(`${API_BASE}/api/journal/export?${params}`, {
+      const res = await authFetch(`${API_BASE}/api/journal/export?${params}`, {
         credentials: 'include',
       });
       if (!res.ok) { setError('Export failed \u2014 check server logs.'); return; }

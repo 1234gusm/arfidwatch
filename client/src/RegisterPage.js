@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API_BASE from './apiBase';
+import { setAuthToken } from './auth';
 
 function RegisterPage({ setToken }) {
   const [username, setUsername] = useState('');
@@ -21,6 +22,7 @@ function RegisterPage({ setToken }) {
       let data = {};
       try { data = await res.json(); } catch (_) { data = { error: 'Server returned an unexpected response.' }; }
       if (res.ok && data.ok) {
+        if (data.token) setAuthToken(data.token);
         setToken('authenticated');
         navigate('/');
       } else {

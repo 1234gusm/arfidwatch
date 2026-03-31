@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ProfilePage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { localToday, localOffset, localMonthAgo } from './utils/dateUtils';
 import RemindersCard from './RemindersCard';
 
@@ -78,7 +79,7 @@ function ProfilePage({ token }) {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/profile`, {
+    authFetch(`${API_BASE}/api/profile`, {
       credentials: 'include',
     })
       .then(r => r.json())
@@ -86,14 +87,14 @@ function ProfilePage({ token }) {
       .catch(() => setError('Failed to load profile'))
       .finally(() => setLoading(false));
 
-    fetch(`${API_BASE}/api/food-log/status`, {
+    authFetch(`${API_BASE}/api/food-log/status`, {
       credentials: 'include',
     })
       .then(r => r.json())
       .then(d => setFoodLogStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
       .catch(() => {});
 
-    fetch(`${API_BASE}/api/medications/status`, {
+    authFetch(`${API_BASE}/api/medications/status`, {
       credentials: 'include',
     })
       .then(r => r.json())
@@ -146,7 +147,7 @@ function ProfilePage({ token }) {
     if (newPw !== confirmPw) { setError('New passwords do not match.'); return; }
     if (newPw.length < 6) { setError('New password must be at least 6 characters.'); return; }
     try {
-      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+      const res = await authFetch(`${API_BASE}/api/auth/change-password`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -167,7 +168,7 @@ function ProfilePage({ token }) {
     setError(null);
     setResetBusy(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+      const res = await authFetch(`${API_BASE}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email }),
@@ -212,7 +213,7 @@ function ProfilePage({ token }) {
     setError(null);
     setResetBusy(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+      const res = await authFetch(`${API_BASE}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -243,7 +244,7 @@ function ProfilePage({ token }) {
 
   const callPut = async body => {
     setError(null);
-    const res = await fetch(`${API_BASE}/api/profile`, {
+    const res = await authFetch(`${API_BASE}/api/profile`, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -324,7 +325,7 @@ function ProfilePage({ token }) {
   const handleClearFoodLog = async () => {
     if (!window.confirm('Remove all food log entries?')) return;
     try {
-      await fetch(`${API_BASE}/api/food-log/clear`, {
+      await authFetch(`${API_BASE}/api/food-log/clear`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -405,7 +406,7 @@ function ProfilePage({ token }) {
     }
     const params = new URLSearchParams({ start, end, includeJournal: includeJournal ? '1' : '0', quick: quickExport ? '1' : '0' });
     try {
-      const res = await fetch(`${API_BASE}/api/journal/export?${params}`, {
+      const res = await authFetch(`${API_BASE}/api/journal/export?${params}`, {
         credentials: 'include',
       });
       if (!res.ok) { setExportError('Export failed — check server logs.'); return; }

@@ -20,6 +20,7 @@ import SharePage from './SharePage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import API_BASE from './apiBase';
+import { authFetch, checkSession, clearAuthToken } from './auth';
 
 const TAB_DEFS = [
   { id: 'health', label: 'Health', to: '/' },
@@ -57,13 +58,12 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /* V-2: Restore session from httpOnly cookie on mount */
+  /* V-2: Restore session from httpOnly cookie or in-memory token on mount */
   useEffect(() => {
     let active = true;
-    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (active && data?.authenticated) setToken('authenticated'); })
-      .catch(() => {});
+    checkSession().then(data => {
+      if (active && data) setToken('authenticated');
+    });
     /* Migrate: clear any leftover localStorage token from old versions */
     localStorage.removeItem('token');
     return () => { active = false; };
@@ -74,7 +74,7 @@ function App() {
     setTabPrefs(safe);
     if (!token) return;
     try {
-      await fetch(`${API_BASE}/api/profile`, {
+      await authFetch(`${API_BASE}/api/profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -119,7 +119,7 @@ function App() {
 
     const loadProfileApiUrl = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/profile`, {
+        const response = await authFetch(`${API_BASE}/api/profile`, {
           credentials: 'include',
         });
         if (response.status === 401) {
@@ -147,7 +147,8 @@ function App() {
   }, [token]);
 
   const handleLogout = async () => {
-    try { await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }); } catch (_) {}
+    try { await authFetch(`${API_BASE}/api/auth/logout`, { method: 'POST' }); } catch (_) {}
+    clearAuthToken();
     setToken(null);
     setMobileMenuOpen(false);
     navigate('/login');
@@ -174,7 +175,7 @@ function App() {
           payload = { csv: text };
         }
 
-        await fetch(`${API_BASE}/api/health/import`, {
+        await authFetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
           credentials: 'include',
           headers: {

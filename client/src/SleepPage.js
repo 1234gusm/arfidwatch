@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import './SleepPage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 
 /* ── Constants ── */
 const RANGE_OPTS = [
@@ -223,9 +224,8 @@ function SleepPage({ token }) {
       setLoading(true);
       setFetchError('');
       try {
-        const res = await fetch(
-          `${API_BASE}/api/health/sleep/daily?days=${rangeDays || 3650}&tzOffsetMinutes=${tzOffsetMinutes}`,
-          { credentials: 'include' }
+        const res = await authFetch(
+          `${API_BASE}/api/health/sleep/daily?days=${rangeDays || 3650}&tzOffsetMinutes=${tzOffsetMinutes}`
         );
         if (!res.ok) { setRows([]); setFetchError('Failed to load sleep data.'); return; }
         const json = await res.json();

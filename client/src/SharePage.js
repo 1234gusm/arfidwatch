@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import './SharePage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
@@ -358,7 +359,7 @@ function SharePage() {
   const [periodLoading, setPeriodLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/share/${shareToken}`)
+    authFetch(`${API_BASE}/api/share/${shareToken}`)
       .then(r => r.json())
       .then(d => {
         if (d.error) { setErrMsg(d.error); setPhase('error'); return; }
@@ -383,7 +384,7 @@ function SharePage() {
   const doUnlock = async (code, autoUnlock = false) => {
     setUnlocking(true); setErrMsg('');
     try {
-      const res = await fetch(`${API_BASE}/api/share/${shareToken}/unlock`, {
+      const res = await authFetch(`${API_BASE}/api/share/${shareToken}/unlock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode: code }),

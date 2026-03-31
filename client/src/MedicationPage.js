@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './MedicationPage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { pad, toDateKey, formatDay } from './utils/dateUtils';
 
 const RANGE_OPTIONS = [
@@ -62,7 +63,7 @@ function MedicationPage({ token }) {
 
     const loadEntryColors = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/profile`, {
+        const res = await authFetch(`${API_BASE}/api/profile`, {
           credentials: 'include',
         });
         if (!res.ok) return;
@@ -84,7 +85,7 @@ function MedicationPage({ token }) {
   const handleEntryColorChange = (id, color) => {
     const next = { ...entryColors, [id]: color };
     setEntryColors(next);
-    fetch(`${API_BASE}/api/profile`, {
+    authFetch(`${API_BASE}/api/profile`, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -130,7 +131,7 @@ function MedicationPage({ token }) {
         params.set('start', start);
         params.set('end', end);
       }
-      const res = await fetch(`${API_BASE}/api/medications?${params.toString()}`, {
+      const res = await authFetch(`${API_BASE}/api/medications?${params.toString()}`, {
         credentials: 'include',
       });
       const json = await res.json();
@@ -148,7 +149,7 @@ function MedicationPage({ token }) {
   const loadQuickButtons = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/api/medications/quick-buttons`, {
+      const res = await authFetch(`${API_BASE}/api/medications/quick-buttons`, {
         credentials: 'include',
       });
       const json = await res.json();
@@ -165,7 +166,7 @@ function MedicationPage({ token }) {
     if (!token) return;
     const params = new URLSearchParams();
     if (name.trim()) params.set('q', name.trim());
-    fetch(`${API_BASE}/api/medications/names?${params.toString()}`, {
+    authFetch(`${API_BASE}/api/medications/names?${params.toString()}`, {
       credentials: 'include',
     })
       .then(r => r.json())
@@ -214,7 +215,7 @@ function MedicationPage({ token }) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/medications`, {
+      const res = await authFetch(`${API_BASE}/api/medications`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -242,7 +243,7 @@ function MedicationPage({ token }) {
   const handleDelete = async id => {
     if (!window.confirm('Delete this medication log entry?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/medications/${id}`, {
+      const res = await authFetch(`${API_BASE}/api/medications/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -257,7 +258,7 @@ function MedicationPage({ token }) {
   const handleCreateQuickButton = async () => {
     if (!name.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/api/medications/quick-buttons`, {
+      const res = await authFetch(`${API_BASE}/api/medications/quick-buttons`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -277,7 +278,7 @@ function MedicationPage({ token }) {
 
   const handleQuickLog = async (button) => {
     try {
-      const res = await fetch(`${API_BASE}/api/medications`, {
+      const res = await authFetch(`${API_BASE}/api/medications`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -299,7 +300,7 @@ function MedicationPage({ token }) {
   const handleDeleteQuickButton = async (id) => {
     if (!window.confirm('Delete this quick medication button?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
+      const res = await authFetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -330,7 +331,7 @@ function MedicationPage({ token }) {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
+      const res = await authFetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -367,7 +368,7 @@ function MedicationPage({ token }) {
   const handleColorChange = async (id, color) => {
     setQuickButtons(prev => prev.map(b => b.id === id ? { ...b, color } : b));
     try {
-      const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
+      const res = await authFetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -383,7 +384,7 @@ function MedicationPage({ token }) {
 
   const persistQuickButtonOrder = async (buttons) => {
     const ids = buttons.map(b => b.id);
-    const res = await fetch(`${API_BASE}/api/medications/quick-buttons/reorder`, {
+    const res = await authFetch(`${API_BASE}/api/medications/quick-buttons/reorder`, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

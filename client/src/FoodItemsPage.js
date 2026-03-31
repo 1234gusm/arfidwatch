@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './FoodItemsPage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { toDateKey, formatDay } from './utils/dateUtils';
 
 const RANGE_OPTIONS = [
@@ -37,7 +38,7 @@ function FoodItemsPage({ token }) {
       const { start, end } = getRange();
       const params = new URLSearchParams();
       if (start) { params.set('start', start); params.set('end', end); }
-      const res = await fetch(`${API_BASE}/api/food-log/items?${params}`, {
+      const res = await authFetch(`${API_BASE}/api/food-log/items?${params}`, {
         credentials: 'include',
       });
       const json = await res.json();

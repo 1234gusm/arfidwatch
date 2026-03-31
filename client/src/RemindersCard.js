@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 
 const REMINDER_TYPES = [
   { id: 'upload_files',    label: 'Upload health files',  icon: '📁' },
@@ -19,7 +20,7 @@ function urlBase64ToUint8Array(base64String) {
 async function registerPushSubscription() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
-    const keyResp = await fetch(`${API_BASE}/api/push/vapid-key`);
+    const keyResp = await authFetch(`${API_BASE}/api/push/vapid-key`);
     if (!keyResp.ok) return;
     const { publicKey } = await keyResp.json();
     const reg = await navigator.serviceWorker.ready;
@@ -28,7 +29,7 @@ async function registerPushSubscription() {
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
     const subJson = sub.toJSON();
-    await fetch(`${API_BASE}/api/push/subscribe`, {
+    await authFetch(`${API_BASE}/api/push/subscribe`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -40,7 +41,7 @@ async function registerPushSubscription() {
 async function syncRemindersToServer(list) {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-    await fetch(`${API_BASE}/api/push/reminders`, {
+    await authFetch(`${API_BASE}/api/push/reminders`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -120,7 +121,7 @@ export default function RemindersCard() {
     setTestStatus('sending…');
     try {
       await registerPushSubscription();
-      const resp = await fetch(`${API_BASE}/api/push/test`, {
+      const resp = await authFetch(`${API_BASE}/api/push/test`, {
         method: 'POST',
         credentials: 'include',
       });

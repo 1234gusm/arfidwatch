@@ -3,6 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './CalendarPage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { toDateKey } from './utils/dateUtils';
 
 const MOODS = [
@@ -46,7 +47,7 @@ function CalendarPage({ token }) {
   const fetchEntries = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/journal?start=1970-01-01`, {
+      const res = await authFetch(`${API_BASE}/api/journal?start=1970-01-01`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -88,7 +89,7 @@ function CalendarPage({ token }) {
     const [h, m] = time.split(':');
     base.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
     const iso = `${toDateKey(base)}T${String(base.getHours()).padStart(2, '0')}:${String(base.getMinutes()).padStart(2, '0')}:00`;
-    const res = await fetch(`${API_BASE}/api/journal`, {
+    const res = await authFetch(`${API_BASE}/api/journal`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -112,7 +113,7 @@ function CalendarPage({ token }) {
   const handleDelete = async (entryId) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/journal/${entryId}`, {
+      const res = await authFetch(`${API_BASE}/api/journal/${entryId}`, {
         method: 'DELETE',
         credentials: 'include',
       });

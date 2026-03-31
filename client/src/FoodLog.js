@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './FoodLog.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 import { formatDay, isToday } from './utils/dateUtils';
 
 const NUTRITION_META = {
@@ -60,7 +61,7 @@ function FoodLog({ token }) {
       const { start, end } = buildDates();
       const params = new URLSearchParams();
       if (start) { params.set('start', start); params.set('end', end); }
-      const res  = await fetch(`${API_BASE}/api/food-log/daily?${params}`, {
+      const res  = await authFetch(`${API_BASE}/api/food-log/daily?${params}`, {
         credentials: 'include',
       });
       const json = await res.json();

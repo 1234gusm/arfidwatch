@@ -88,7 +88,7 @@ router.post('/register', authLimiter, async (req, res) => {
   const [id] = await db('users').insert({ username, password: hash, email: normalizedEmail });
   const token = jwt.sign({ id, username }, SECRET, { expiresIn: '7d' });
   res.cookie(COOKIE_NAME, token, cookieOptions());
-  res.json({ ok: true, has_email: !!normalizedEmail });
+  res.json({ ok: true, has_email: !!normalizedEmail, token });
 });
 
 // login — accept username OR email
@@ -110,7 +110,7 @@ router.post('/login', authLimiter, async (req, res) => {
   }
   const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '7d' });
   res.cookie(COOKIE_NAME, token, cookieOptions());
-  res.json({ ok: true });
+  res.json({ ok: true, token });
 });
 
 // forgot-password — verify username + email match, send a reset code via email

@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import './HealthPage.css';
 import API_BASE from './apiBase';
+import { authFetch } from './auth';
 
 function HealthPage({ token }) {
   const [data, setData] = useState([]);
@@ -33,7 +34,7 @@ function HealthPage({ token }) {
   const [overviewPeriod, setOverviewPeriod] = useState(7);
 
   const fetchData = async () => {
-    const res = await fetch(`${API_BASE}/api/health`, {
+    const res = await authFetch(`${API_BASE}/api/health`, {
       credentials: 'include',
     });
     const json = await res.json();
@@ -41,7 +42,7 @@ function HealthPage({ token }) {
   };
 
   const fetchImports = async () => {
-    const res = await fetch(`${API_BASE}/api/health/imports`, {
+    const res = await authFetch(`${API_BASE}/api/health/imports`, {
       credentials: 'include',
     });
     const json = await res.json();
@@ -52,7 +53,7 @@ function HealthPage({ token }) {
     try {
       const today = formatDate(new Date());
       const params = new URLSearchParams({ start: today, end: today });
-      const res = await fetch(`${API_BASE}/api/food-log/daily?${params}`, {
+      const res = await authFetch(`${API_BASE}/api/food-log/daily?${params}`, {
         credentials: 'include',
       });
       const json = await res.json();
@@ -63,7 +64,7 @@ function HealthPage({ token }) {
 
   const persistDashboardPrefs = async (nextHiddenTypes, nextStatOrder) => {
     try {
-      await fetch(`${API_BASE}/api/profile`, {
+      await authFetch(`${API_BASE}/api/profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -83,7 +84,7 @@ function HealthPage({ token }) {
 
     const loadDashboardPrefs = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/profile`, {
+        const res = await authFetch(`${API_BASE}/api/profile`, {
           credentials: 'include',
         });
         if (!res.ok) return;
@@ -106,7 +107,7 @@ function HealthPage({ token }) {
 
   const deleteImport = async (id) => {
     if (!window.confirm('Delete this import and all its data?')) return;
-    await fetch(`${API_BASE}/api/health/imports/${id}`, {
+    await authFetch(`${API_BASE}/api/health/imports/${id}`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -115,7 +116,7 @@ function HealthPage({ token }) {
   };
 
   const deleteAllImports = async () => {
-    await fetch(`${API_BASE}/api/health/imports`, {
+    await authFetch(`${API_BASE}/api/health/imports`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -162,7 +163,7 @@ function HealthPage({ token }) {
       const form = new FormData();
       form.append('file', file);
       try {
-        const res = await fetch(`${API_BASE}/api/health/macro/import`, {
+        const res = await authFetch(`${API_BASE}/api/health/macro/import`, {
           method: 'POST',
           credentials: 'include',
           body: form,
@@ -195,7 +196,7 @@ function HealthPage({ token }) {
     if (isHealthAutoExport) {
       // Health Auto Export CSV
       try {
-        const res = await fetch(`${API_BASE}/api/health/import`, {
+        const res = await authFetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -215,7 +216,7 @@ function HealthPage({ token }) {
     if (isAutoSleepCsv) {
       // AutoSleep CSV maps into canonical sleep metrics server-side.
       try {
-        const res = await fetch(`${API_BASE}/api/health/import`, {
+        const res = await authFetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
