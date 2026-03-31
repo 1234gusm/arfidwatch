@@ -1045,6 +1045,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
       const foodCol    = findH(/^food name$/i, /^food$/i);
       const mealCol    = findH(/^meal$/i);
+      const timeCol    = findH(/^time$/i);
       const calCol     = findH(/calorie|kcal|energy/i);
       const proteinCol = findH(/^protein/i);
       const carbsCol   = findH(/carb/i);
@@ -1054,14 +1055,11 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
       if (foodCol) {
         isFoodLogFile = true;
-        // Purge previous same-file food-log entries before re-inserting
-        if (sameHashImportIds.length > 0) {
-          await db('food_log_entries').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
-          await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
-          await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
-          sameHashImportIds = []; // already cleaned up
-        }
-        await db('food_log_entries').where({ user_id: req.user.id }).whereNull('import_id').delete();
+        // MacroFactor CSV is always a complete export, so replace all food-log
+        // entries for this user to avoid stale / schema-mismatched duplicates.
+        await db('food_log_entries').where({ user_id: req.user.id }).delete();
+        // Also clean up the corresponding import tracking rows
+        await db('health_imports').where({ user_id: req.user.id, source: 'foodlog' }).delete();
 
         const foodEntries = parsedRowsForFoodLog.map(row => {
           const datePart = dateCol ? row[dateCol] : (row.Date || row.date);
@@ -1072,7 +1070,9 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
             user_id: req.user.id,
             import_id: null, // will be filled below
             date: dateStr,
-            meal: mealCol ? String(row[mealCol] || '').trim() : '',
+            meal: mealCol ? String(row[mealCol] || '').trim()
+                : timeCol ? String(row[timeCol] || '').trim()
+                : '',
             food_name: foodName,
             quantity: amtCol ? String(row[amtCol] || '').trim() : '',
             calories: calCol ? numOrNullFL(row[calCol]) : null,
@@ -1082,41 +1082,20 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           };
         }).filter(Boolean);
 
-        const foodEntryKey = (e) => {
-          const norm = (v) => String(v == null ? '' : v).trim().toLowerCase();
-          const num = (v) => (v == null || v === '') ? '' : Number(v).toString();
-          return [
-            norm(e.date),
-            norm(e.meal),
-            norm(e.food_name),
-            norm(e.quantity),
-            num(e.calories),
-            num(e.protein_g),
-            num(e.carbs_g),
-            num(e.fat_g),
-          ].join('|');
-        };
-
-        // Deduplicate by normalized full food-log row fingerprint across uploads.
-        const existingItems = await db('food_log_entries')
-          .where({ user_id: req.user.id })
-          .select('date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g');
-        const existingKeys = new Set(existingItems.map(foodEntryKey));
-        const newFoodEntries = foodEntries.filter(e => !existingKeys.has(foodEntryKey(e)));
-
-        if (newFoodEntries.length > 0) {
-          // Create a dedicated 'foodlog' import record — separate from the stats import
+        // Full replace — all existing entries were already cleared above, so
+        // just insert everything from the file directly.
+        if (foodEntries.length > 0) {
           const [foodlogImportId] = await db('health_imports').insert({
             user_id: req.user.id,
             filename: uploadFilename,
             source: 'foodlog',
             file_hash: fileHash,
             imported_at: new Date().toISOString(),
-            record_count: newFoodEntries.length,
+            record_count: foodEntries.length,
           });
-          const taggedFood = newFoodEntries.map(e => ({ ...e, import_id: foodlogImportId }));
+          const taggedFood = foodEntries.map(e => ({ ...e, import_id: foodlogImportId }));
           await insertInChunks('food_log_entries', taggedFood);
-          foodLogInserted = newFoodEntries.length;
+          foodLogInserted = foodEntries.length;
         }
       }
     }
