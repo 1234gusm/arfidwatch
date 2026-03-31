@@ -208,6 +208,12 @@ async function setup() {
   await db.schema.hasColumn('user_profiles', 'med_entry_colors').then(exists => {
     if (!exists) return db.schema.table('user_profiles', t => t.text('med_entry_colors').nullable());
   });
+  await db.schema.hasColumn('food_log_entries', 'note').then(exists => {
+    if (!exists) return db.schema.table('food_log_entries', t => t.text('note').nullable());
+  });
+  await db.schema.hasColumn('user_profiles', 'share_food_notes').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_food_notes').defaultTo(false));
+  });
 
   await db.schema.hasTable('medication_entries').then(exists => {
     if (!exists) {

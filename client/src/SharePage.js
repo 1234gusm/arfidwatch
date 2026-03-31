@@ -354,6 +354,7 @@ function SharePage() {
   const [unlocking,  setUnlocking]  = useState(false);
   const [activeTab,  setActiveTab]  = useState('overview');
   const [showJournal, setShowJournal] = useState(false);
+  const [showFoodNotes, setShowFoodNotes] = useState(false);
   const [shareJwt,    setShareJwt]    = useState(null);
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
@@ -718,6 +719,14 @@ function SharePage() {
                   </span>
                 </label>
               )}
+              {foodLog.some(e => e.note) && (
+                <label className="share-toggle">
+                  <span>Food Notes</span>
+                  <span className={`share-toggle-track${showFoodNotes ? ' share-toggle-track--on' : ''}`} onClick={() => setShowFoodNotes(v => !v)}>
+                    <span className="share-toggle-thumb" />
+                  </span>
+                </label>
+              )}
             </div>
             <div className="share-combined-log">
               {sortedLogDays.map(date => {
@@ -762,6 +771,9 @@ function SharePage() {
                                       ].filter(Boolean).join(' \u00b7 ')}
                                     </span>
                                   </span>
+                                  {showFoodNotes && item.note && (
+                                    <div className="share-food-note">{item.note}</div>
+                                  )}
                                 </div>
                               ))}
                             </div>

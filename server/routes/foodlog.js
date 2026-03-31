@@ -33,7 +33,7 @@ router.get('/items', authenticate, async (req, res) => {
     const userId = req.user.id;
     let query = db('food_log_entries')
       .where({ user_id: userId })
-      .select('id', 'date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g')
+      .select('id', 'date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g', 'note')
       .orderBy('date', 'desc')
       .orderBy('id', 'desc');
 
@@ -71,6 +71,24 @@ router.delete('/clear', authenticate, async (req, res) => {
     await db('food_log_entries').where({ user_id: req.user.id }).delete();
     res.json({ ok: true });
   } catch (err) {
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// PUT /api/food-log/items/:id/note — update note on a food log entry
+router.put('/items/:id/note', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const entryId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId)) return res.status(400).json({ error: 'invalid id' });
+    const note = req.body.note !== undefined ? String(req.body.note || '').trim() || null : null;
+    const updated = await db('food_log_entries')
+      .where({ id: entryId, user_id: userId })
+      .update({ note });
+    if (!updated) return res.status(404).json({ error: 'entry not found' });
+    res.json({ ok: true, id: entryId, note });
+  } catch (err) {
+    console.error('food log note update error:', err);
     res.status(500).json({ error: 'server error' });
   }
 });

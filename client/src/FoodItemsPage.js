@@ -19,6 +19,9 @@ function FoodItemsPage({ token }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [collapsedDays, setCollapsedDays] = useState(new Set());
+  const [editingNote, setEditingNote] = useState(null);   // entry id being edited
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
   const getRange = useCallback(() => {
     if (range === 'all') return {};
@@ -70,6 +73,8 @@ function FoodItemsPage({ token }) {
         protein: valNum(r.protein_g),
         carbs: valNum(r.carbs_g),
         fat: valNum(r.fat_g),
+        note: r.note || null,
+        id: r.id,
         fallback: false,
         order: idx,
       };
@@ -92,6 +97,23 @@ function FoodItemsPage({ token }) {
 
   const allDayKeys = dayGroups.map(d => d.dayKey);
   const allCollapsed = allDayKeys.length > 0 && allDayKeys.every(k => collapsedDays.has(k));
+
+  const handleSaveNote = async (entryId) => {
+    setSavingNote(true);
+    try {
+      const res = await authFetch(`${API_BASE}/api/food-log/items/${entryId}/note`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: noteText }),
+      });
+      if (res.ok) {
+        setRows(prev => prev.map(r => r.id === entryId ? { ...r, note: noteText.trim() || null } : r));
+        setEditingNote(null);
+        setNoteText('');
+      }
+    } catch { /* ignore */ } finally { setSavingNote(false); }
+  };
 
   const toggleDay = (dayKey) => {
     setCollapsedDays(prev => {
@@ -178,6 +200,34 @@ function FoodItemsPage({ token }) {
                       {e.carbs !== null && <span>C {e.carbs.toFixed(1)}g</span>}
                       {e.fat !== null && <span>F {e.fat.toFixed(1)}g</span>}
                     </div>
+                    {editingNote === e.id ? (
+                      <div className="fi-note-edit">
+                        <textarea
+                          className="fi-note-textarea"
+                          placeholder="Texture, taste, aversion notes…"
+                          value={noteText}
+                          onChange={ev => setNoteText(ev.target.value)}
+                          rows={2}
+                          autoFocus
+                        />
+                        <div className="fi-note-actions">
+                          <button className="fi-note-save" onClick={() => handleSaveNote(e.id)} disabled={savingNote}>
+                            {savingNote ? 'Saving…' : 'Save'}
+                          </button>
+                          <button className="fi-note-cancel" onClick={() => { setEditingNote(null); setNoteText(''); }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="fi-note-row">
+                        {e.note && <span className="fi-note-text">{e.note}</span>}
+                        <button
+                          className="fi-note-btn"
+                          onClick={() => { setEditingNote(e.id); setNoteText(e.note || ''); }}
+                        >
+                          {e.note ? '✏️ Edit note' : '📝 Add note'}
+                        </button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

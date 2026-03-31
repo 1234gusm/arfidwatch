@@ -96,6 +96,7 @@ router.get('/', authenticate, async (req, res) => {
       share_token: profile.share_token || null,
       has_passcode: !!profile.share_passcode_hash,
       share_food_log: !!profile.share_food_log,
+      share_food_notes: !!profile.share_food_notes,
       share_medications: !!profile.share_medications,
       share_journal: !!profile.share_journal,
       share_period: profile.share_period || null,
@@ -128,6 +129,7 @@ router.put('/', authenticate, async (req, res) => {
       regenerate_share,
       clear_share,
       share_food_log,
+      share_food_notes,
       share_medications,
       share_journal,
       share_period,
@@ -222,6 +224,10 @@ router.put('/', authenticate, async (req, res) => {
 
     if (share_journal !== undefined) {
       updates.share_journal = !!share_journal;
+    }
+
+    if (share_food_notes !== undefined) {
+      updates.share_food_notes = !!share_food_notes;
     }
 
     if (share_period !== undefined) {
@@ -332,6 +338,7 @@ router.put('/', authenticate, async (req, res) => {
       share_token: profile?.share_token || null,
       has_passcode: !!(profile?.share_passcode_hash),
       share_food_log: !!(profile?.share_food_log),
+      share_food_notes: !!(profile?.share_food_notes),
       share_medications: !!(profile?.share_medications),
       share_journal: !!(profile?.share_journal),
       has_ingest_key: !!(profile?.ingest_key_hash),

@@ -44,6 +44,7 @@ function ProfilePage({ token }) {
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
   const [shareMeds,       setShareMeds]       = useState(false);
   const [shareJournal,    setShareJournal]    = useState(false);
+  const [shareFoodNotes,  setShareFoodNotes]  = useState(false);
   const [sharePeriod,     setSharePeriod]     = useState(null);
   const [hasIngestKey,    setHasIngestKey]    = useState(false);
   const [ingestKey,       setIngestKey]       = useState('');
@@ -73,6 +74,7 @@ function ProfilePage({ token }) {
     if (d.share_food_log !== undefined) setShareFoodLog(!!d.share_food_log);
     if (d.share_medications !== undefined) setShareMeds(!!d.share_medications);
     if (d.share_journal !== undefined) setShareJournal(!!d.share_journal);
+    if (d.share_food_notes !== undefined) setShareFoodNotes(!!d.share_food_notes);
     if (d.share_period !== undefined) setSharePeriod(d.share_period || null);
     if (d.has_ingest_key !== undefined) setHasIngestKey(!!d.has_ingest_key);
     if (d.ingest_key_last_used_at !== undefined) setIngestLastUsed(d.ingest_key_last_used_at || null);
@@ -357,6 +359,13 @@ function ProfilePage({ token }) {
       setShareJournal(val);
       await callPut({ share_journal: val });
     } catch { setError('Failed to update'); setShareJournal(!val); }
+  };
+
+  const handleToggleFoodNotesShare = async (val) => {
+    try {
+      setShareFoodNotes(val);
+      await callPut({ share_food_notes: val });
+    } catch { setError('Failed to update'); setShareFoodNotes(!val); }
   };
 
   const handleGenerateIngestKey = async () => {
@@ -841,6 +850,29 @@ function ProfilePage({ token }) {
             onClick={() => handleToggleJournalShare(!shareJournal)}
             role="switch"
             aria-checked={shareJournal}
+          >
+            <span className="profile-toggle-knob" />
+          </button>
+        </div>
+      </div>
+
+      <div className="profile-card">
+        <div className="profile-section-title">Doctor Share — Food Notes</div>
+        <p className="profile-hint">
+          When enabled, texture and taste notes you add to food log entries will be visible to your doctor on the share page.
+        </p>
+        <div className="profile-toggle-row">
+          <div className="profile-toggle-info">
+            <span className="profile-toggle-label">Share food notes with doctor</span>
+            <span className="profile-toggle-sub">
+              {shareFoodNotes ? 'Food notes visible on share page' : 'Food notes hidden from share page'}
+            </span>
+          </div>
+          <button
+            className={`profile-toggle-switch${shareFoodNotes ? ' profile-toggle-switch--on' : ''}`}
+            onClick={() => handleToggleFoodNotesShare(!shareFoodNotes)}
+            role="switch"
+            aria-checked={shareFoodNotes}
           >
             <span className="profile-toggle-knob" />
           </button>

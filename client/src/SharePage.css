@@ -534,11 +534,22 @@
 .share-food-row {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 6px 0;
   border-bottom: 1px solid rgba(139, 92, 246, 0.05);
 }
 .share-food-row:last-child { border-bottom: none; }
+
+.share-food-note {
+  width: 100%;
+  font-size: 0.82rem;
+  color: #a78bfa;
+  font-style: italic;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid rgba(139, 92, 246, 0.3);
+  line-height: 1.35;
+}
 
 .share-food-name {
   flex: 1;
