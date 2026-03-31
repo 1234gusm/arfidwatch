@@ -1,8 +1,8 @@
 .share-page {
   min-height: 100vh;
-  background: #001428;
+  background: #080b16;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  color: #c8dcff;
+  color: #cbd5e1;
 }
 
 .share-page--centered {
@@ -14,10 +14,10 @@
 
 /* ── Header ── */
 .share-header {
-  background: linear-gradient(180deg, #001f4d 0%, #001428 100%);
+  background: linear-gradient(180deg, #0f172a 0%, #080b16 100%);
   padding: 14px 20px;
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
-  border-bottom: 1px solid rgba(30, 100, 200, 0.2);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
 }
 
 .share-header-inner {
@@ -31,13 +31,13 @@
 .share-logo {
   font-size: 1rem;
   font-weight: 700;
-  color: #e8f0ff;
+  color: #f1f5f9;
   letter-spacing: 0.04em;
 }
 
 .share-tagline {
   font-size: 0.75rem;
-  color: rgba(200, 220, 255, 0.45);
+  color: rgba(148, 163, 184, 0.5);
 }
 
 /* ── Body ── */
@@ -54,10 +54,12 @@
 
 /* ── Patient card ── */
 .share-patient-card {
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.25);
-  border-top: 2px solid #3b7dd8;
-  border-radius: 12px;
+  background: rgba(15,23,42,0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  border-top: 2px solid var(--primary, #8b5cf6);
+  border-radius: 14px;
   padding: 18px 20px;
 }
 
@@ -71,7 +73,7 @@
 .share-patient-name {
   font-size: 1.3rem;
   font-weight: 800;
-  color: #e8f0ff;
+  color: #f1f5f9;
   letter-spacing: -0.01em;
 }
 
@@ -87,7 +89,7 @@
 
 .share-period {
   font-size: 0.78rem;
-  color: rgba(180, 210, 255, 0.5);
+  color: rgba(148, 163, 184, 0.5);
   font-weight: 500;
   margin-bottom: 14px;
 }
@@ -100,10 +102,10 @@
 }
 
 .share-period-btn {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 20px;
-  color: rgba(180,210,255,0.7);
+  color: rgba(148,163,184,0.7);
   font-size: 0.75rem;
   font-weight: 600;
   padding: 5px 14px;
@@ -112,15 +114,15 @@
 }
 
 .share-period-btn:hover:not(:disabled) {
-  background: rgba(96, 165, 250, 0.18);
-  border-color: rgba(96,165,250,0.4);
-  color: #bfdbfe;
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139,92,246,0.35);
+  color: #ddd6fe;
 }
 
 .share-period-btn--active {
-  background: rgba(96,165,250,0.22);
-  border-color: rgba(96,165,250,0.55);
-  color: #93c5fd;
+  background: rgba(139,92,246,0.18);
+  border-color: rgba(139,92,246,0.5);
+  color: #c4b5fd;
 }
 
 .share-period-btn:disabled {
@@ -136,15 +138,15 @@
 
 .share-pm-chip {
   font-size: 0.8rem;
-  color: rgba(180, 210, 255, 0.65);
-  background: rgba(0, 100, 200, 0.12);
-  border: 1px solid rgba(30, 100, 200, 0.2);
+  color: rgba(148, 163, 184, 0.65);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 8px;
   padding: 5px 12px;
 }
 .share-pm-chip strong {
   font-weight: 700;
-  color: #c8dcff;
+  color: #cbd5e1;
 }
 .share-pm--p { border-bottom: 2px solid #16a085; }
 .share-pm--c { border-bottom: 2px solid #3b7dd8; }
@@ -161,8 +163,8 @@
 .share-tabs {
   display: flex;
   gap: 4px;
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.25);
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139, 92, 246, 0.18);
   border-radius: 12px;
   padding: 4px;
   min-width: max-content;
@@ -177,25 +179,25 @@
   background: none;
   border: none;
   border-radius: 8px;
-  color: rgba(180, 210, 255, 0.5);
+  color: rgba(148, 163, 184, 0.5);
   transition: color 0.15s, background 0.15s;
   white-space: nowrap;
   min-height: 44px;
 }
 .share-tab:hover {
-  color: #c8dcff;
-  background: rgba(59, 125, 216, 0.12);
+  color: #cbd5e1;
+  background: rgba(139, 92, 246, 0.1);
 }
 .share-tab--active {
   color: #fff;
-  background: #2462b8;
-  box-shadow: 0 1px 6px rgba(36, 98, 184, 0.4);
+  background: var(--primary, #8b5cf6);
+  box-shadow: 0 1px 6px rgba(139, 92, 246, 0.4);
 }
 
 /* ── Metric groups ── */
 .share-group {
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.2);
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -205,31 +207,31 @@
   align-items: center;
   width: 100%;
   padding: 13px 18px;
-  background: #071f38;
+  background: rgba(15,23,42,0.6);
   border: none;
-  border-bottom: 1px solid rgba(30, 100, 200, 0.15);
-  border-left: 3px solid #2462b8;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  border-left: 3px solid var(--primary, #8b5cf6);
   cursor: pointer;
   text-align: left;
   transition: background 0.15s;
   min-height: 48px;
 }
-.share-group-header:hover { background: #0a2844; }
-.share-group-header:active { background: #0d2f50; }
+.share-group-header:hover { background: rgba(139,92,246,0.06); }
+.share-group-header:active { background: rgba(139,92,246,0.1); }
 
 .share-group-title {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(180, 210, 255, 0.75);
+  color: rgba(148, 163, 184, 0.75);
   flex: 1;
 }
 
 .share-group-badge {
   font-size: 0.67rem;
-  background: rgba(36, 98, 184, 0.35);
-  color: rgba(180, 210, 255, 0.7);
+  background: rgba(139, 92, 246, 0.2);
+  color: rgba(165, 180, 252, 0.7);
   border-radius: 10px;
   padding: 2px 8px;
   margin-right: 10px;
@@ -238,7 +240,7 @@
 
 .share-group-arrow {
   font-size: 0.78rem;
-  color: rgba(150, 190, 255, 0.4);
+  color: rgba(148, 163, 184, 0.4);
   transition: transform 0.15s;
 }
 
@@ -257,17 +259,17 @@
   display: flex;
   align-items: center;
   padding: 10px 18px;
-  border-bottom: 1px solid rgba(30, 100, 200, 0.08);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.06);
   gap: 12px;
   transition: background 0.12s;
 }
 .share-metric-row:last-child { border-bottom: none; }
-.share-metric-row:hover { background: rgba(59, 125, 216, 0.06); }
+.share-metric-row:hover { background: rgba(139, 92, 246, 0.05); }
 
 .share-metric-name {
   flex: 1;
   font-size: 0.86rem;
-  color: rgba(180, 210, 255, 0.7);
+  color: rgba(148, 163, 184, 0.7);
   min-width: 0;
 }
 
@@ -281,19 +283,19 @@
 .share-metric-value {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #d8eaff;
+  color: #e2e8f0;
   white-space: nowrap;
 }
 
 .share-metric-unit {
   font-size: 0.72rem;
   font-weight: 400;
-  color: rgba(150, 190, 255, 0.45);
+  color: rgba(148, 163, 184, 0.45);
 }
 
 .share-metric-range {
   font-size: 0.68rem;
-  color: rgba(130, 170, 255, 0.35);
+  color: rgba(148, 163, 184, 0.35);
   white-space: nowrap;
 }
 
@@ -302,15 +304,17 @@
   font-size: 2.4rem;
   line-height: 1;
   margin-bottom: 2px;
-  filter: drop-shadow(0 0 12px rgba(59, 125, 216, 0.4));
+  filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4));
 }
 
 .share-unlock-card {
   width: 100%;
   max-width: 380px;
   margin: 0 auto;
-  background: #061e36;
-  border: 1px solid rgba(59, 125, 216, 0.3);
+  background: rgba(15,23,42,0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 16px;
   padding: 40px 32px;
   display: flex;
@@ -318,58 +322,58 @@
   align-items: center;
   gap: 14px;
   text-align: center;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 125, 216, 0.1);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 92, 246, 0.1);
 }
 
 /* ── Logo mark (lock + error screens) ── */
 .share-logo-mark {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #d8eaff;
+  color: #f1f5f9;
   letter-spacing: 0.04em;
 }
 
 .share-unlock-card h2 {
   font-size: 1.2rem;
-  color: #e8f0ff;
+  color: #f1f5f9;
   margin: 0;
   font-weight: 700;
 }
 
 .share-unlock-sub {
   font-size: 0.85rem;
-  color: rgba(180, 210, 255, 0.6);
+  color: rgba(148, 163, 184, 0.6);
   margin: 0;
   line-height: 1.55;
 }
-.share-unlock-sub strong { color: #c8dcff; }
+.share-unlock-sub strong { color: #cbd5e1; }
 
 .share-passcode-input {
   width: 100%;
   padding: 13px 16px;
-  border: 1px solid rgba(59, 125, 216, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
   font-size: 1.05rem;
   text-align: center;
   letter-spacing: 0.2em;
-  background: #040f1f;
-  color: #e8f0ff;
+  background: rgba(255,255,255,0.04);
+  color: #e2e8f0;
   box-sizing: border-box;
 }
 .share-passcode-input:focus {
   outline: none;
-  border-color: #3b7dd8;
-  box-shadow: 0 0 0 3px rgba(59, 125, 216, 0.2);
+  border-color: var(--primary, #8b5cf6);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
 }
 .share-passcode-input::placeholder {
-  color: rgba(150, 190, 255, 0.3);
+  color: rgba(148, 163, 184, 0.3);
   letter-spacing: 0.02em;
 }
 
 .share-unlock-btn {
   width: 100%;
   padding: 14px;
-  background: #2462b8;
+  background: var(--primary, #8b5cf6);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -379,8 +383,8 @@
   transition: background 0.15s, transform 0.1s;
   min-height: 48px;
 }
-.share-unlock-btn:hover:not(:disabled) { background: #2d6ec8; }
-.share-unlock-btn:active:not(:disabled) { transform: scale(0.98); }
+.share-unlock-btn:hover:not(:disabled) { background: #7c3aed; }
+.share-unlock-btn:active:not(:disabled) { transform: scale(0.97); }
 .share-unlock-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Not found / error ── */
@@ -392,7 +396,7 @@
   text-align: center;
   max-width: 340px;
   margin: 0 auto;
-  color: rgba(180, 210, 255, 0.6);
+  color: rgba(148, 163, 184, 0.6);
   padding: 40px 24px;
 }
 .share-not-found p {
@@ -407,15 +411,15 @@
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  color: rgba(180, 210, 255, 0.5);
+  color: rgba(148, 163, 184, 0.5);
   font-size: 0.88rem;
 }
 
 .share-spinner-ring {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(59, 125, 216, 0.15);
-  border-top-color: #3b7dd8;
+  border: 3px solid rgba(139, 92, 246, 0.15);
+  border-top-color: var(--primary, #8b5cf6);
   border-radius: 50%;
   animation: sp-spin 0.8s linear infinite;
 }
@@ -439,7 +443,7 @@
 .share-empty {
   padding: 18px;
   font-size: 0.86rem;
-  color: rgba(130, 170, 255, 0.35);
+  color: rgba(148, 163, 184, 0.35);
   margin: 0;
   text-align: center;
 }
@@ -447,7 +451,7 @@
 /* ── Disclaimer ── */
 .share-disclaimer {
   font-size: 0.73rem;
-  color: rgba(130, 170, 255, 0.3);
+  color: rgba(148, 163, 184, 0.3);
   font-style: italic;
 }
 
@@ -460,7 +464,7 @@
 
 .share-journal-entry {
   padding: 12px 18px;
-  border-bottom: 1px solid rgba(30, 100, 200, 0.08);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.06);
 }
 .share-journal-entry:last-child { border-bottom: none; }
 
@@ -474,7 +478,7 @@
 .share-journal-date {
   font-size: 0.78rem;
   font-weight: 700;
-  color: rgba(180, 210, 255, 0.55);
+  color: rgba(148, 163, 184, 0.55);
 }
 
 .share-journal-mood {
@@ -486,13 +490,13 @@
 .share-journal-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #c8dcff;
+  color: #cbd5e1;
   margin-bottom: 4px;
 }
 
 .share-journal-text {
   font-size: 0.86rem;
-  color: rgba(180, 210, 255, 0.55);
+  color: rgba(148, 163, 184, 0.55);
   line-height: 1.55;
   white-space: pre-wrap;
 }
@@ -500,11 +504,11 @@
 /* ── Footer ── */
 .share-footer {
   font-size: 0.73rem;
-  color: rgba(130, 170, 255, 0.25);
+  color: rgba(148, 163, 184, 0.25);
   text-align: center;
   margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid rgba(30, 100, 200, 0.12);
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
 }
 
 /* ── Food Log ── */
@@ -532,14 +536,14 @@
   align-items: flex-start;
   gap: 10px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(30, 100, 200, 0.07);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.05);
 }
 .share-food-row:last-child { border-bottom: none; }
 
 .share-food-name {
   flex: 1;
   font-size: 0.87rem;
-  color: #bdd5ff;
+  color: #ddd6fe;
   min-width: 0;
   word-break: break-word;
   line-height: 1.35;
@@ -557,19 +561,19 @@
 
 .share-food-qty {
   font-size: 0.76rem;
-  color: rgba(160, 190, 255, 0.45);
+  color: rgba(148, 163, 184, 0.45);
 }
 
 .share-food-cals {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #c8dcff;
+  color: #cbd5e1;
   white-space: nowrap;
 }
 
 .share-food-macros {
   font-size: 0.7rem;
-  color: rgba(160, 190, 255, 0.4);
+  color: rgba(148, 163, 184, 0.4);
   white-space: nowrap;
 }
 
@@ -587,7 +591,7 @@
   gap: 8px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: rgba(180, 210, 255, 0.55);
+  color: rgba(148, 163, 184, 0.55);
   cursor: pointer;
   user-select: none;
 }
@@ -597,7 +601,7 @@
   display: inline-block;
   width: 38px;
   height: 22px;
-  background: rgba(30, 100, 200, 0.2);
+  background: rgba(139, 92, 246, 0.15);
   border-radius: 11px;
   transition: background 0.2s;
   cursor: pointer;
@@ -605,7 +609,7 @@
 }
 
 .share-toggle-track--on {
-  background: #2462b8;
+  background: var(--primary, #8b5cf6);
 }
 
 .share-toggle-thumb {
@@ -631,8 +635,8 @@
 }
 
 .share-combined-day {
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.2);
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -642,15 +646,15 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(180, 210, 255, 0.5);
-  background: rgba(0, 30, 60, 0.5);
+  color: rgba(148, 163, 184, 0.5);
+  background: rgba(15,23,42,0.6);
   padding: 7px 14px;
-  border-bottom: 1px solid rgba(30, 100, 200, 0.15);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
 }
 
 .share-combined-section {
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(30, 100, 200, 0.08);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.06);
 }
 .share-combined-section:last-child { border-bottom: none; }
 
@@ -659,7 +663,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(130, 170, 255, 0.35);
+  color: rgba(148, 163, 184, 0.35);
   margin-bottom: 6px;
 }
 
@@ -668,8 +672,8 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(180, 210, 255, 0.5);
-  border-bottom: 1px solid rgba(30, 100, 200, 0.12);
+  color: rgba(148, 163, 184, 0.5);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
   padding-bottom: 4px;
 }
 
@@ -681,7 +685,7 @@
 
 .share-foodlog-empty-day {
   font-size: 0.75rem;
-  color: #3a6070;
+  color: #475569;
   font-style: italic;
   padding: 4px 0 2px;
   border-top: 1px dashed rgba(255,255,255,0.06);
@@ -691,7 +695,7 @@
 .share-foodlog-meal-name {
   font-size: 0.7rem;
   font-weight: 600;
-  color: rgba(160, 190, 255, 0.4);
+  color: rgba(148, 163, 184, 0.4);
   text-transform: capitalize;
   padding: 4px 0 2px;
 }
@@ -708,8 +712,8 @@
   gap: 10px;
 }
 .share-daily-card {
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.2);
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139, 92, 246, 0.15);
   border-radius: 12px;
   padding: 14px 16px;
 }
@@ -722,7 +726,7 @@
 .share-daily-date {
   font-size: 0.84rem;
   font-weight: 700;
-  color: #d8eaff;
+  color: #e2e8f0;
 }
 .share-daily-cals {
   font-size: 0.8rem;
@@ -740,8 +744,8 @@
   flex-direction: column;
   align-items: center;
   padding: 8px 12px 6px;
-  background: rgba(0, 30, 60, 0.5);
-  border: 1px solid rgba(30, 100, 200, 0.2);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.12);
   border-radius: 8px;
   min-width: 68px;
   flex: 1;
@@ -749,12 +753,12 @@
 .share-daily-chip strong {
   font-size: 0.88rem;
   font-weight: 700;
-  color: #d8eaff;
+  color: #e2e8f0;
   line-height: 1.2;
 }
 .share-daily-chip span {
   font-size: 0.63rem;
-  color: rgba(160, 190, 255, 0.45);
+  color: rgba(148, 163, 184, 0.45);
   margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -762,10 +766,10 @@
 }
 .share-daily-chip--empty { opacity: 0.3; }
 .share-daily-chip--zero  { opacity: 0.38; }
-.share-daily-chip--zero strong { color: #4a6a8a; }
+.share-daily-chip--zero strong { color: #475569; }
 
 .share-daily-cals--zero {
-  color: #3a6070;
+  color: #475569;
   font-weight: 600;
 }
 
@@ -780,7 +784,7 @@
   height: 8px;
   border-radius: 4px;
   overflow: hidden;
-  background: rgba(0, 20, 50, 0.6);
+  background: rgba(15, 23, 42, 0.7);
 }
 .share-daily-bar-p { background: linear-gradient(90deg, #16a085, #1abc9c); }
 .share-daily-bar-c { background: linear-gradient(90deg, #2462b8, #3b7dd8); }
@@ -816,26 +820,26 @@
   gap: 10px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(30, 100, 200, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.08);
 }
 .share-sleep-extra {
   font-size: 0.76rem;
-  color: rgba(160, 190, 255, 0.55);
+  color: rgba(148, 163, 184, 0.55);
 }
 .share-sleep-extra strong {
-  color: #b0ccf0;
+  color: #ddd6fe;
   font-weight: 700;
 }
 
 .share-sleep-card--empty {
   opacity: 0.55;
   border-style: dashed;
-  border-color: rgba(30, 100, 200, 0.18);
+  border-color: rgba(139, 92, 246, 0.15);
 }
 .share-sleep-empty-note {
   font-size: 0.8rem;
   font-style: italic;
-  color: rgba(180, 210, 255, 0.35);
+  color: rgba(148, 163, 184, 0.35);
   padding: 4px 0 2px;
 }
 
@@ -851,12 +855,12 @@
 .share-med-card--empty {
   opacity: 0.55;
   border-style: dashed;
-  border-color: rgba(167, 139, 250, 0.18);
+  border-color: rgba(167, 139, 250, 0.15);
 }
 .share-med-empty-note {
   font-size: 0.8rem;
   font-style: italic;
-  color: rgba(200, 180, 255, 0.35);
+  color: rgba(167, 139, 250, 0.35);
   padding: 4px 0 2px;
 }
 
@@ -891,9 +895,9 @@
 /* ── Doctor Sleep Section (shs-*) ── */
 
 .shs-summary {
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.25);
-  border-top: 3px solid #3b7dd8;
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  border-top: 3px solid var(--primary, #8b5cf6);
   border-radius: 12px;
   padding: 16px 18px;
 }
@@ -912,13 +916,13 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(180, 210, 255, 0.65);
+  color: rgba(148, 163, 184, 0.65);
 }
 
 .shs-summary-badge {
   font-size: 0.7rem;
-  color: rgba(150, 185, 255, 0.5);
-  background: rgba(30, 80, 160, 0.25);
+  color: rgba(165, 180, 252, 0.5);
+  background: rgba(139, 92, 246, 0.18);
   padding: 2px 10px;
   border-radius: 10px;
   font-weight: 600;
@@ -935,8 +939,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background: rgba(0, 20, 50, 0.5);
-  border: 1px solid rgba(30, 100, 200, 0.15);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.1);
   border-radius: 8px;
   padding: 9px 6px 7px;
   gap: 2px;
@@ -945,7 +949,7 @@
 .shs-stat-val {
   font-size: 1.05rem;
   font-weight: 800;
-  color: #d8eaff;
+  color: #e2e8f0;
   line-height: 1.1;
   white-space: nowrap;
 }
@@ -953,13 +957,13 @@
 .shs-stat-unit {
   font-size: 0.62rem;
   font-weight: 500;
-  color: rgba(150, 190, 255, 0.5);
+  color: rgba(148, 163, 184, 0.5);
 }
 
 .shs-stat-lbl {
   font-size: 0.6rem;
   font-weight: 600;
-  color: rgba(140, 175, 255, 0.5);
+  color: rgba(148, 163, 184, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 2px;
@@ -967,7 +971,7 @@
 
 .shs-stat-hint {
   font-size: 0.56rem;
-  color: rgba(120, 160, 210, 0.4);
+  color: rgba(148, 163, 184, 0.4);
   font-style: italic;
 }
 
@@ -1019,7 +1023,7 @@
 /* Divider */
 .shs-divider {
   border: none;
-  border-top: 1px solid rgba(30, 100, 200, 0.15);
+  border-top: 1px solid rgba(139, 92, 246, 0.12);
   margin: 4px 0;
 }
 
@@ -1032,13 +1036,13 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(140, 175, 255, 0.5);
+  color: rgba(148, 163, 184, 0.5);
   padding: 0 2px;
 }
 
 .shs-nights-badge {
-  background: rgba(30, 80, 160, 0.3);
-  color: rgba(150, 185, 255, 0.6);
+  background: rgba(139, 92, 246, 0.2);
+  color: rgba(165, 180, 252, 0.6);
   font-size: 0.62rem;
   padding: 1px 8px;
   border-radius: 10px;
@@ -1053,9 +1057,9 @@
 
 /* Night card */
 .shs-night-card {
-  background: #061e36;
-  border: 1px solid rgba(30, 100, 200, 0.2);
-  border-left: 3px solid rgba(96, 165, 250, 0.55);
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-left: 3px solid rgba(139, 92, 246, 0.45);
   border-radius: 10px;
   padding: 12px 14px;
   display: flex;
@@ -1078,7 +1082,7 @@
 .shs-night-date {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #d8eaff;
+  color: #e2e8f0;
 }
 
 .shs-night-total {
@@ -1090,16 +1094,16 @@
 
 .shs-night-inbed {
   font-size: 0.7rem;
-  color: rgba(140, 175, 255, 0.45);
+  color: rgba(148, 163, 184, 0.45);
 }
 
 /* Efficiency badge */
 .shs-eff-badge {
   font-size: 0.7rem;
   font-weight: 700;
-  color: rgba(150, 185, 255, 0.6);
-  background: rgba(30, 80, 160, 0.25);
-  border: 1px solid rgba(30, 100, 200, 0.2);
+  color: rgba(165, 180, 252, 0.6);
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 6px;
   padding: 3px 9px;
   white-space: nowrap;
@@ -1123,7 +1127,7 @@
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  background: rgba(0, 20, 50, 0.6);
+  background: rgba(15, 23, 42, 0.7);
 }
 
 .shs-seg--deep  { background: linear-gradient(90deg, #2c387e, #3d5afe); }
@@ -1143,8 +1147,8 @@
   gap: 4px;
   font-size: 0.72rem;
   font-weight: 600;
-  color: rgba(175, 205, 255, 0.65);
-  background: rgba(0, 18, 45, 0.5);
+  color: rgba(148, 163, 184, 0.65);
+  background: rgba(15, 23, 42, 0.6);
   border-radius: 6px;
   padding: 3px 8px 3px 5px;
 }
@@ -1167,7 +1171,7 @@
   grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   gap: 5px;
   padding-top: 6px;
-  border-top: 1px solid rgba(30, 100, 200, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.08);
 }
 
 .shs-metric {
@@ -1175,7 +1179,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background: rgba(0, 14, 34, 0.45);
+  background: rgba(15, 23, 42, 0.55);
   border-radius: 6px;
   padding: 6px 4px 5px;
 }
@@ -1183,14 +1187,14 @@
 .shs-metric strong {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #b0d0f0;
+  color: #ddd6fe;
   line-height: 1.2;
   white-space: nowrap;
 }
 
 .shs-metric span {
   font-size: 0.57rem;
-  color: rgba(120, 158, 205, 0.45);
+  color: rgba(148, 163, 184, 0.45);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 600;

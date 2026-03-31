@@ -2,8 +2,8 @@
 .jnl-page {
   padding: 20px;
   padding-bottom: max(20px, env(safe-area-inset-bottom));
-  color: #eaf6ff;
-  background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
+  color: #e2e8f0;
+  background: linear-gradient(180deg, #080b16 0%, #0f1629 100%);
   min-height: 100vh;
 }
 
@@ -19,14 +19,14 @@
 .jnl-title {
   margin: 0 0 2px;
   font-size: 1.55rem;
-  color: #dff3ff;
+  color: #f1f5f9;
   font-weight: 800;
 }
 
 .jnl-subtitle {
   margin: 0;
   font-size: 0.82rem;
-  color: #4a7a9a;
+  color: #64748b;
 }
 
 .jnl-header-actions {
@@ -37,9 +37,9 @@
 }
 
 .jnl-today-btn {
-  background: var(--primary-light, #003d99);
+  background: var(--primary);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
   padding: 8px 18px;
@@ -49,13 +49,13 @@
   min-height: 36px;
   touch-action: manipulation;
 }
-.jnl-today-btn:hover { background: var(--primary-lighter, #0052cc); }
+.jnl-today-btn:hover { background: var(--primary-light); }
 
 .jnl-cal-toggle {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 8px;
-  color: #8ab8d8;
+  border-radius: 10px;
+  color: #94a3b8;
   font-size: 0.83rem;
   padding: 7px 14px;
   cursor: pointer;
@@ -68,43 +68,43 @@
 /* ── Dark-theme calendar overrides ── */
 .jnl-cal-wrap {
   margin-bottom: 22px;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(0,100,220,0.3);
-  box-shadow: 0 6px 28px rgba(0,0,0,0.4);
+  border: 1px solid rgba(139,92,246,0.2);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.35);
   max-width: 440px;
 }
 
 .jnl-cal-wrap .react-calendar {
-  background: #021733;
+  background: rgba(15,23,42,0.7);
   border: none;
   border-radius: 0;
-  color: #cce7ff;
+  color: #e2e8f0;
   width: 100%;
 }
 .jnl-cal-wrap .react-calendar__navigation {
-  background: #001040;
+  background: rgba(15,23,42,0.8);
   margin-bottom: 0;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .jnl-cal-wrap .react-calendar__navigation button {
   background: transparent;
   border: none;
-  color: #88c0e8;
+  color: var(--primary-lighter);
   font-weight: 600;
   min-width: 44px;
   min-height: 44px;
 }
 .jnl-cal-wrap .react-calendar__navigation button:hover,
 .jnl-cal-wrap .react-calendar__navigation button:focus {
-  background: rgba(255,255,255,0.08);
+  background: rgba(139,92,246,0.12);
 }
 .jnl-cal-wrap .react-calendar__month-view__weekdays {
-  background: #001535;
+  background: rgba(15,23,42,0.6);
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .jnl-cal-wrap .react-calendar__month-view__weekdays__weekday abbr {
-  color: #386888;
+  color: #64748b;
   text-decoration: none;
   font-size: 0.7rem;
   font-weight: 700;
@@ -113,31 +113,31 @@
 }
 .jnl-cal-wrap .react-calendar__tile {
   background: transparent;
-  color: #8ab8d8;
+  color: #94a3b8;
   padding: 7px 4px 3px;
   line-height: 1.2;
 }
 .jnl-cal-wrap .react-calendar__tile:hover,
 .jnl-cal-wrap .react-calendar__tile:focus {
-  background: rgba(0,100,255,0.14);
-  color: #cce7ff;
+  background: rgba(139,92,246,0.14);
+  color: #e2e8f0;
 }
 .jnl-cal-wrap .react-calendar__tile--now {
-  background: rgba(0,80,200,0.24);
-  color: #7dd3ff;
+  background: rgba(139,92,246,0.2);
+  color: var(--primary-lighter);
   font-weight: 700;
 }
 .jnl-cal-wrap .react-calendar__tile--active,
 .jnl-cal-wrap .react-calendar__tile--active:hover {
-  background: #0044b0 !important;
+  background: var(--primary) !important;
   color: #fff !important;
   border-radius: 6px;
 }
 .jnl-cal-wrap .react-calendar__month-view__days__day--weekend {
-  color: #7aa8cc;
+  color: #94a3b8;
 }
 .jnl-cal-wrap .react-calendar__month-view__days__day--neighboringMonth {
-  color: #1e3a58;
+  color: #334155;
   opacity: 0.5;
 }
 .jnl-tile-dot {
@@ -149,8 +149,8 @@
 
 /* ── Day panel ── */
 .jnl-day-panel {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(0,100,200,0.22);
+  background: rgba(15,23,42,0.4);
+  border: 1px solid rgba(139,92,246,0.15);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -161,14 +161,14 @@
   justify-content: space-between;
   padding: 16px 20px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.07);
-  background: rgba(0,20,70,0.45);
+  background: rgba(15,23,42,0.5);
 }
 
 .jnl-nav-arrow {
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 9px;
-  color: #88bbe0;
+  border-radius: 10px;
+  color: var(--primary-lighter);
   font-size: 1.5rem;
   width: 40px;
   height: 40px;
@@ -182,7 +182,7 @@
   line-height: 1;
   padding: 0;
 }
-.jnl-nav-arrow:hover { background: rgba(255,255,255,0.14); }
+.jnl-nav-arrow:hover { background: rgba(139,92,246,0.15); }
 
 .jnl-day-heading {
   text-align: center;
@@ -195,12 +195,12 @@
 .jnl-day-weekday {
   font-size: 1rem;
   font-weight: 700;
-  color: #dff3ff;
+  color: #f1f5f9;
 }
 
 .jnl-day-date {
   font-size: 0.8rem;
-  color: #4a7a9a;
+  color: #64748b;
 }
 
 .jnl-today-badge {
@@ -224,7 +224,7 @@
 }
 
 .jnl-loading {
-  color: #4a7a9a;
+  color: #64748b;
   padding: 20px;
   text-align: center;
   font-size: 0.88rem;
@@ -233,7 +233,7 @@
 .jnl-empty {
   padding: 30px;
   text-align: center;
-  color: #3a6880;
+  color: #475569;
 }
 .jnl-empty-icon {
   font-size: 2rem;
@@ -241,18 +241,18 @@
   margin-bottom: 8px;
 }
 .jnl-empty p { margin: 0; font-size: 0.88rem; }
-.jnl-empty-text { color: #aaa; padding: 20px; }
+.jnl-empty-text { color: #94a3b8; padding: 20px; }
 
 .jnl-entry {
-  border: 1px solid rgba(0,100,200,0.2);
+  border: 1px solid rgba(139,92,246,0.15);
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(0,30,80,0.22);
+  background: rgba(15,23,42,0.35);
   transition: border-color 0.15s;
 }
 .jnl-entry--open {
-  border-color: rgba(0,140,255,0.45);
-  background: rgba(0,40,100,0.3);
+  border-color: rgba(139,92,246,0.4);
+  background: rgba(15,23,42,0.5);
 }
 
 .jnl-entry-header {
@@ -266,10 +266,10 @@
   cursor: pointer;
   text-align: left;
   transition: background 0.12s;
-  color: #dff3ff;
+  color: #e2e8f0;
   box-sizing: border-box;
 }
-.jnl-entry-header:hover { background: rgba(255,255,255,0.05); }
+.jnl-entry-header:hover { background: rgba(139,92,246,0.06); }
 
 .jnl-entry-mood {
   font-size: 1.25rem;
@@ -281,7 +281,7 @@
   flex: 1;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #c8e8ff;
+  color: #cbd5e1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -290,14 +290,14 @@
 
 .jnl-entry-time {
   font-size: 0.73rem;
-  color: #4a7a9a;
+  color: #64748b;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .jnl-entry-chevron {
   font-size: 0.9rem;
-  color: #4a7a9a;
+  color: #64748b;
   flex-shrink: 0;
   transition: transform 0.15s;
 }
@@ -310,7 +310,7 @@
 
 .jnl-entry-full-title {
   font-weight: 700;
-  color: #aaddff;
+  color: #ddd6fe;
   font-size: 0.9rem;
   margin-bottom: 6px;
   padding-top: 10px;
@@ -319,7 +319,7 @@
 .jnl-entry-text {
   margin: 10px 0 12px;
   font-size: 0.88rem;
-  color: #9bbdd8;
+  color: #94a3b8;
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
@@ -334,7 +334,7 @@
 
 .jnl-mood-chip {
   font-size: 0.78rem;
-  color: #5a8ab0;
+  color: #94a3b8;
 }
 
 .jnl-delete-btn {
@@ -355,8 +355,8 @@
 .jnl-form {
   margin: 4px 16px 16px;
   padding: 16px;
-  background: rgba(0,16,48,0.6);
-  border: 1px solid rgba(0,100,200,0.22);
+  background: rgba(15,23,42,0.5);
+  border: 1px solid rgba(139,92,246,0.15);
   border-radius: 12px;
 }
 
@@ -365,7 +365,7 @@
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: #3a6888;
+  color: #64748b;
   margin-bottom: 10px;
 }
 
@@ -377,39 +377,39 @@
 
 .jnl-input {
   flex: 1;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(0,100,200,0.32);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(139,92,246,0.25);
   border-radius: 8px;
-  color: #dff3ff;
+  color: #e2e8f0;
   padding: 9px 12px;
   font-size: 16px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   min-width: 0;
   box-sizing: border-box;
 }
-.jnl-input:focus { border-color: rgba(0,140,255,0.55); }
+.jnl-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
 .jnl-input::placeholder { color: rgba(255,255,255,0.28); }
 .jnl-input--time { flex: 0 0 auto; width: 120px; }
 
 .jnl-textarea {
   width: 100%;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(0,100,200,0.32);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(139,92,246,0.25);
   border-radius: 8px;
-  color: #dff3ff;
+  color: #e2e8f0;
   padding: 9px 12px;
   font-size: 16px;
   font-family: inherit;
   line-height: 1.55;
   resize: vertical;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
   margin-bottom: 10px;
 }
-.jnl-textarea:focus { border-color: rgba(0,140,255,0.55); }
+.jnl-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
 .jnl-textarea::placeholder { color: rgba(255,255,255,0.28); }
 
 .jnl-mood-row {
@@ -422,7 +422,7 @@
 
 .jnl-mood-label-text {
   font-size: 0.8rem;
-  color: #5a8ab0;
+  color: #64748b;
   margin-right: 2px;
 }
 
@@ -444,33 +444,34 @@
 }
 .jnl-mood-btn:hover { transform: scale(1.15); }
 .jnl-mood-btn--active {
-  border-color: #4da6ff;
-  background: rgba(0,140,255,0.16);
+  border-color: var(--primary);
+  background: rgba(139,92,246,0.16);
   transform: scale(1.18);
 }
 
 .jnl-mood-selected-label {
   font-size: 0.78rem;
-  color: #4da6ff;
+  color: var(--primary-light);
   font-weight: 600;
   margin-left: 4px;
 }
 
 .jnl-save-btn {
   width: 100%;
-  background: #003d99;
+  background: var(--primary);
   border: none;
-  border-radius: 9px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 700;
   font-size: 0.95rem;
   padding: 12px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
   touch-action: manipulation;
   min-height: 46px;
 }
-.jnl-save-btn:hover { background: #0052cc; }
+.jnl-save-btn:hover { background: #7c3aed; }
+.jnl-save-btn:active { transform: scale(0.97); }
 
 /* ── Entry detail modal ── */
 .jnl-modal-overlay {
@@ -492,10 +493,12 @@
 }
 
 .jnl-modal {
-  background: linear-gradient(160deg, #021a40, #031228);
-  border: 1px solid rgba(0, 120, 255, 0.35);
+  background: rgba(15,23,42,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(139,92,246,0.25);
   border-radius: 20px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0,100,255,0.1);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(139,92,246,0.1);
   width: 100%;
   max-width: 560px;
   max-height: 85vh;
@@ -516,7 +519,7 @@
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 50%;
-  color: #88b0cc;
+  color: #94a3b8;
   font-size: 1rem;
   width: 34px;
   height: 34px;
@@ -547,22 +550,22 @@
 .jnl-modal-date {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #6a9ac0;
+  color: #c4b5fd;
 }
 
 .jnl-modal-time {
   font-size: 0.78rem;
-  color: #3a6080;
+  color: #64748b;
 }
 
-.jnl-modal-time::before { content: '·'; margin-right: 8px; color: #2a4860; }
+.jnl-modal-time::before { content: '·'; margin-right: 8px; color: #475569; }
 
 .jnl-modal-mood-label {
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(0,100,200,0.2);
-  border: 1px solid rgba(0,120,255,0.3);
-  color: #5aa0d0;
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.3);
+  color: var(--primary-light);
   border-radius: 20px;
   padding: 2px 10px;
 }
@@ -571,19 +574,19 @@
   margin: 0 0 14px;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #dff3ff;
+  color: #f1f5f9;
   line-height: 1.35;
 }
 
 .jnl-modal-body {
   margin: 0 0 22px;
   font-size: 0.95rem;
-  color: #9bbdd8;
+  color: #94a3b8;
   line-height: 1.75;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.jnl-modal-body--empty { font-style: italic; color: #3a6080; }
+.jnl-modal-body--empty { font-style: italic; color: #475569; }
 
 .jnl-modal-actions {
   display: flex;
@@ -628,8 +631,8 @@
 
 /* ── History sidebar ── */
 .jnl-history {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(0,100,200,0.22);
+  background: rgba(15,23,42,0.4);
+  border: 1px solid rgba(139,92,246,0.15);
   border-radius: 16px;
   overflow: hidden;
   max-height: 80vh;
@@ -644,7 +647,7 @@
   justify-content: space-between;
   padding: 14px 16px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.07);
-  background: rgba(0,20,70,0.45);
+  background: rgba(15,23,42,0.5);
   flex-shrink: 0;
 }
 
@@ -653,16 +656,16 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #4a7a9a;
+  color: #64748b;
 }
 
 .jnl-hist-count {
   font-size: 0.75rem;
-  color: #3a5a78;
+  color: #475569;
 }
 
 .jnl-hist-empty {
-  color: #3a6880;
+  color: #475569;
   font-size: 0.85rem;
   padding: 20px 16px;
   margin: 0;
@@ -683,7 +686,7 @@
 .jnl-hist-day:last-child { border-bottom: none; }
 
 .jnl-hist-day--active > .jnl-hist-day-btn {
-  background: rgba(0,60,160,0.28);
+  background: rgba(139,92,246,0.18);
 }
 
 .jnl-hist-day-btn {
@@ -699,11 +702,11 @@
   transition: background 0.12s;
   touch-action: manipulation;
 }
-.jnl-hist-day-btn:hover { background: rgba(0,100,255,0.1); }
+.jnl-hist-day-btn:hover { background: rgba(139,92,246,0.1); }
 
 .jnl-hist-chevron {
   font-size: 0.72rem;
-  color: #3a6888;
+  color: #475569;
   width: 10px;
   flex-shrink: 0;
 }
@@ -712,7 +715,7 @@
   flex: 1;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #9ec7e5;
+  color: #cbd5e1;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -726,9 +729,9 @@
 
 .jnl-hist-badge {
   flex-shrink: 0;
-  background: rgba(0,120,255,0.18);
-  border: 1px solid rgba(0,120,255,0.3);
-  color: #6ab0e0;
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.3);
+  color: var(--primary-light);
   font-size: 0.68rem;
   font-weight: 700;
   border-radius: 10px;
@@ -742,7 +745,7 @@
   list-style: none;
   margin: 0;
   padding: 2px 0 6px 28px;
-  background: rgba(0,0,0,0.14);
+  background: rgba(0,0,0,0.18);
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 
@@ -757,7 +760,7 @@
   border-radius: 6px;
 }
 .jnl-hist-entry:last-child { border-bottom: none; }
-.jnl-hist-entry:hover { background: rgba(0,100,255,0.12); }
+.jnl-hist-entry:hover { background: rgba(139,92,246,0.1); }
 
 .jnl-hist-entry-mood {
   flex-shrink: 0;
@@ -768,7 +771,7 @@
 .jnl-hist-entry-text {
   flex: 1;
   font-size: 0.78rem;
-  color: #7aaac8;
+  color: #94a3b8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -778,7 +781,7 @@
 .jnl-hist-entry-time {
   flex-shrink: 0;
   font-size: 0.7rem;
-  color: #365570;
+  color: #475569;
 }
 
 /* ── Mobile ── */

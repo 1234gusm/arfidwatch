@@ -1,7 +1,7 @@
 .fi-page {
   padding: 20px;
-  color: #eaf6ff;
-  background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
+  color: #e2e8f0;
+  background: linear-gradient(180deg, #080b16 0%, #0f1629 100%);
   min-height: 100vh;
 }
 
@@ -13,8 +13,8 @@
   gap: 12px;
   margin-bottom: 18px;
 }
-.fi-title { margin: 0 0 4px; color: #dff3ff; }
-.fi-subtitle { margin: 0; color: #6f94b0; font-size: 0.84rem; }
+.fi-title { margin: 0 0 4px; color: #f1f5f9; }
+.fi-subtitle { margin: 0; color: #64748b; font-size: 0.84rem; }
 
 .fi-header-right {
   display: flex;
@@ -24,8 +24,8 @@
 }
 .fi-toggle-all-btn {
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(0,160,255,0.25);
-  color: #7ab8d8;
+  border: 1px solid rgba(139,92,246,0.25);
+  color: #c4b5fd;
   border-radius: 20px;
   padding: 5px 14px;
   font-size: 0.8rem;
@@ -34,7 +34,7 @@
   min-height: 34px;
   touch-action: manipulation;
 }
-.fi-toggle-all-btn:hover { background: rgba(0,160,255,0.14); color: #aadeff; }
+.fi-toggle-all-btn:hover { background: rgba(139,92,246,0.14); color: #ddd6fe; }
 
 .fi-range-row {
   display: flex;
@@ -49,18 +49,19 @@
 .fi-range-btn {
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.04);
-  color: #7aaabb;
+  color: #94a3b8;
   border-radius: 20px;
   padding: 5px 12px;
   font-size: 0.8rem;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
 }
 .fi-range-btn.active {
-  color: #6ee7ff;
-  border-color: rgba(0, 180, 255, 0.45);
-  background: rgba(0, 150, 230, 0.18);
+  color: var(--primary-lighter);
+  border-color: rgba(139,92,246,0.45);
+  background: rgba(139,92,246,0.18);
 }
 
 .fi-error {
@@ -73,17 +74,17 @@
 }
 .fi-loading,
 .fi-empty-state {
-  color: #6f94b0;
+  color: #64748b;
   padding: 20px 4px;
 }
-.fi-hint { font-size: 0.82rem; color: #527089; font-style: italic; }
-.fi-empty { text-align: center; color: #5578a0; padding: 40px; }
+.fi-hint { font-size: 0.82rem; color: #475569; font-style: italic; }
+.fi-empty { text-align: center; color: #64748b; padding: 40px; }
 
 .fi-day {
   margin-bottom: 18px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  background: rgba(15,23,42,0.4);
 }
 .fi-day-title-btn {
   width: 100%;
@@ -99,9 +100,9 @@
   touch-action: manipulation;
   transition: background 0.12s;
 }
-.fi-day-title-btn:hover { background: rgba(0,140,255,0.07); }
-.fi-day-chevron { color: #5a8fbf; font-size: 0.8rem; width: 12px; flex-shrink: 0; }
-.fi-day-label { font-size: 0.92rem; font-weight: 600; color: #9ec7e5; flex: 1; }
+.fi-day-title-btn:hover { background: rgba(139,92,246,0.07); }
+.fi-day-chevron { color: var(--primary-lighter); font-size: 0.8rem; width: 12px; flex-shrink: 0; }
+.fi-day-label { font-size: 0.92rem; font-weight: 600; color: #cbd5e1; flex: 1; }
 .fi-day-total-cals { font-size: 0.82rem; color: #6ee7b0; font-weight: 600; margin-left: auto; }
 
 .fi-list {
@@ -123,17 +124,17 @@
 }
 .fi-time {
   font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
-  color: #5f89a8;
+  color: #64748b;
   font-size: 0.8rem;
   min-width: 68px;
 }
 .fi-name {
-  color: #dcefff;
+  color: #e2e8f0;
   font-size: 0.92rem;
   font-weight: 600;
 }
 .fi-serving {
-  color: #6f94b0;
+  color: #64748b;
   font-size: 0.78rem;
 }
 
@@ -143,10 +144,10 @@
   flex-wrap: wrap;
   padding-left: 78px;
   margin-top: 4px;
-  color: #7ab7d8;
+  color: #c4b5fd;
   font-size: 0.78rem;
 }
-.fi-note { color: #8f7e4b; font-style: italic; }
+.fi-note { color: #94a3b8; font-style: italic; }
 
 @media (max-width: 700px) {
   .fi-header { flex-direction: column; }

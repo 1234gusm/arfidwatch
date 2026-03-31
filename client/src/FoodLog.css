@@ -1,8 +1,8 @@
 .fl-page {
   padding: 20px;
   padding-bottom: max(20px, env(safe-area-inset-bottom));
-  color: #eaf6ff;
-  background: linear-gradient(180deg, #001428 0%, #001f2f 100%);
+  color: #e2e8f0;
+  background: linear-gradient(180deg, #080b16 0%, #0f1629 100%);
   min-height: 100vh;
 }
 
@@ -18,12 +18,12 @@
 .fl-title {
   margin: 0 0 4px;
   font-size: 1.5rem;
-  color: #dff3ff;
+  color: #f1f5f9;
 }
 .fl-subtitle {
   margin: 0;
   font-size: 0.82rem;
-  color: #4a7a9a;
+  color: #64748b;
 }
 
 /* Header right cluster */
@@ -37,8 +37,8 @@
 /* Collapse/Expand All button */
 .fl-toggle-all-btn {
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(0,160,255,0.25);
-  color: #7ab8d8;
+  border: 1px solid rgba(139,92,246,0.25);
+  color: #c4b5fd;
   border-radius: 20px;
   padding: 5px 14px;
   font-size: 0.8rem;
@@ -49,8 +49,8 @@
   touch-action: manipulation;
 }
 .fl-toggle-all-btn:hover {
-  background: rgba(0,160,255,0.14);
-  color: #aadeff;
+  background: rgba(139,92,246,0.14);
+  color: #ddd6fe;
 }
 
 /* Range buttons */
@@ -67,7 +67,7 @@
 .fl-range-btn {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
-  color: #7aaabb;
+  color: #94a3b8;
   border-radius: 20px;
   padding: 5px 14px;
   font-size: 0.8rem;
@@ -80,11 +80,11 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.fl-range-btn:hover { background: rgba(0,160,255,0.12); color: #aadeff; }
+.fl-range-btn:hover { background: rgba(139,92,246,0.12); color: #ddd6fe; }
 .fl-range-btn.active {
-  background: rgba(0,160,255,0.2);
-  border-color: rgba(0,160,255,0.45);
-  color: #6ee7ff;
+  background: rgba(139,92,246,0.2);
+  border-color: rgba(139,92,246,0.45);
+  color: var(--primary-lighter);
   font-weight: 600;
 }
 
@@ -93,7 +93,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #5588aa;
+  color: #64748b;
   padding: 40px 0;
   justify-content: center;
 }
@@ -109,18 +109,18 @@
 .fl-empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #4a6888;
+  color: #64748b;
 }
 .fl-empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
 .fl-empty-state p { margin: 4px 0; }
-.fl-hint { font-size: 0.82rem; color: #334d66; font-style: italic; }
-.fl-empty { text-align: center; color: #5578a0; padding: 40px; }
+.fl-hint { font-size: 0.82rem; color: #475569; font-style: italic; }
+.fl-empty { text-align: center; color: #64748b; padding: 40px; }
 
 /* Spinner */
 .fl-spin {
   display: inline-block;
   width: 18px; height: 18px;
-  border: 2px solid #5588aa;
+  border: 2px solid #64748b;
   border-top-color: transparent;
   border-radius: 50%;
   animation: fl-spin 0.7s linear infinite;
@@ -129,14 +129,14 @@
 
 /* ── Day card ─────────────────────────────────────────────────────────────── */
 .fl-day {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(0,100,200,0.15);
-  border-radius: 10px;
+  background: rgba(15,23,42,0.45);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
   padding: 14px 18px;
   margin-bottom: 12px;
   transition: border-color 0.15s;
 }
-.fl-day:hover { border-color: rgba(0,140,255,0.28); }
+.fl-day:hover { border-color: rgba(139,92,246,0.2); }
 
 .fl-day--today {
   background: linear-gradient(135deg, rgba(10,80,20,0.35), rgba(5,50,15,0.28));
@@ -170,13 +170,13 @@
 .fl-day-date {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #aaccee;
+  color: #cbd5e1;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .fl-day-chevron {
-  color: #83b9e5;
+  color: var(--primary-lighter);
   width: 12px;
 }
 .fl-today-badge {
@@ -206,9 +206,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(0,60,120,0.25);
-  border: 1px solid rgba(0,100,200,0.2);
-  border-radius: 8px;
+  background: rgba(139,92,246,0.08);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 10px;
   padding: 8px 16px;
   min-width: 74px;
   flex: 1;
@@ -216,12 +216,12 @@
 .fl-macro strong {
   font-size: 1rem;
   font-weight: 700;
-  color: #70d8ff;
+  color: #ddd6fe;
   line-height: 1.15;
 }
 .fl-macro span {
   font-size: 0.68rem;
-  color: #4a7a9a;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-top: 3px;
@@ -229,20 +229,20 @@
 .fl-macro--missing {
   opacity: 0.35;
 }
-.fl-macro--missing strong { color: #3a5570; }
+.fl-macro--missing strong { color: #475569; }
 .fl-macro--zero {
   opacity: 0.45;
 }
-.fl-macro--zero strong { color: #3a5570; }
+.fl-macro--zero strong { color: #475569; }
 
 .fl-day-cals--zero {
-  color: #4a7a9a;
+  color: #64748b;
   font-weight: 600;
 }
 
 .fl-empty-day-note {
   font-size: 0.72rem;
-  color: #4a7a9a;
+  color: #64748b;
   font-style: italic;
   margin-bottom: 8px;
   padding-left: 2px;
@@ -285,9 +285,9 @@
 }
 .fl-sec-item {
   font-size: 0.78rem;
-  color: #4a7090;
+  color: #64748b;
 }
-.fl-sec-item strong { color: #7aaabb; }
+.fl-sec-item strong { color: #94a3b8; }
 
 @media (max-width: 600px) {
   .fl-header { flex-direction: column; }

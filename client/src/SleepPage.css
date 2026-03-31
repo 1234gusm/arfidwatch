@@ -59,8 +59,8 @@
 }
 .sp-range-btn:hover { background: rgba(255,255,255,0.1); }
 .sp-range-btn--active {
-  background: #1d4ed8;
-  border-color: #3b82f6;
+  background: #7c3aed;
+  border-color: #8b5cf6;
   color: #fff;
 }
 
@@ -90,7 +90,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255,255,255,0.1);
-  border-top-color: #60a5fa;
+  border-top-color: #a78bfa;
   border-radius: 50%;
   animation: sp-spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -125,7 +125,7 @@
   width: 74px;
   height: 74px;
   border-radius: 50%;
-  background: #080f1c;
+  background: #080b16;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -177,8 +177,8 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .sp-spotlight--selected {
-  border-color: rgba(96,165,250,0.4);
-  box-shadow: 0 0 0 1px rgba(96,165,250,0.12), 0 4px 24px rgba(29,78,216,0.15);
+  border-color: rgba(139,92,246,0.4);
+  box-shadow: 0 0 0 1px rgba(139,92,246,0.12), 0 4px 24px rgba(124,58,237,0.15);
 }
 .sp-spotlight-header {
   display: flex;
@@ -201,9 +201,9 @@
   color: rgba(160,210,255,0.4);
 }
 .sp-spotlight-badge--selected {
-  color: #60a5fa;
-  background: rgba(29,78,216,0.2);
-  border: 1px solid rgba(96,165,250,0.3);
+  color: #a78bfa;
+  background: rgba(124,58,237,0.2);
+  border: 1px solid rgba(139,92,246,0.3);
   border-radius: 999px;
   padding: 1px 10px;
 }
@@ -333,7 +333,7 @@
   width: 100%;
 }
 .sp-seg          { height: 100%; }
-.sp-seg--deep    { background: #6366f1; }
+.sp-seg--deep    { background: #8b5cf6; }
 .sp-seg--rem     { background: #a78bfa; }
 .sp-seg--core    { background: #38bdf8; }
 .sp-seg--awake   { background: #fb923c; }
@@ -359,7 +359,7 @@
   color: rgba(200,225,255,0.75);
 }
 .sp-chip-dot             { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.sp-chip--deep  .sp-chip-dot { background: #6366f1; }
+.sp-chip--deep  .sp-chip-dot { background: #8b5cf6; }
 .sp-chip--rem   .sp-chip-dot { background: #a78bfa; }
 .sp-chip--core  .sp-chip-dot { background: #38bdf8; }
 .sp-chip--awake .sp-chip-dot { background: #fb923c; }
@@ -426,8 +426,8 @@
 
 /* ── Tooltip ── */
 .sp-tooltip {
-  background: #0a1628;
-  border: 1px solid rgba(60,120,230,0.3);
+  background: #0b0e1a;
+  border: 1px solid rgba(139,92,246,0.3);
   border-radius: 10px;
   padding: 10px 13px;
   font-size: 0.79rem;
@@ -452,7 +452,7 @@
 .sp-night-card {
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.07);
-  border-left: 3px solid rgba(96,165,250,0.25);
+  border-left: 3px solid rgba(139,92,246,0.25);
   border-radius: 12px;
   padding: 12px 14px;
   cursor: pointer;
@@ -463,11 +463,11 @@
   border-color: rgba(255,255,255,0.12);
 }
 .sp-night-card--open {
-  background: rgba(15,30,65,0.6);
-  border-left-color: #3b82f6;
+  background: rgba(15,15,40,0.6);
+  border-left-color: #8b5cf6;
 }
 .sp-night-card--selected {
-  border-left-color: rgba(96,165,250,0.35);
+  border-left-color: rgba(139,92,246,0.35);
 }
 
 .sp-viewing-badge {
@@ -478,9 +478,9 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: rgba(29,78,216,0.55);
-  border: 1px solid rgba(96,165,250,0.7);
-  color: #bdd8ff;
+  background: rgba(124,58,237,0.55);
+  border: 1px solid rgba(139,92,246,0.7);
+  color: #ddd6fe;
   border-radius: 999px;
   padding: 3px 10px;
   white-space: nowrap;
