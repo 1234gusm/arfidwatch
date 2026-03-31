@@ -214,8 +214,18 @@ router.put('/', authenticate, async (req, res) => {
 
     if (health_auto_export_url !== undefined) {
       const normalizedUrl = health_auto_export_url ? String(health_auto_export_url).trim() : null;
-      if (normalizedUrl && !URL_RE.test(normalizedUrl)) {
-        return res.status(400).json({ error: 'health_auto_export_url must start with http:// or https://' });
+      if (normalizedUrl) {
+        try {
+          const u = new URL(normalizedUrl);
+          if (!['http:', 'https:'].includes(u.protocol)) {
+            return res.status(400).json({ error: 'health_auto_export_url must use http or https' });
+          }
+          if (['localhost', '127.0.0.1', '0.0.0.0', '[::1]'].includes(u.hostname)) {
+            return res.status(400).json({ error: 'localhost URLs are not allowed' });
+          }
+        } catch (_) {
+          return res.status(400).json({ error: 'invalid health_auto_export_url' });
+        }
       }
       updates.health_auto_export_url = normalizedUrl;
     }

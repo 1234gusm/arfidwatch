@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const { sendPasswordResetCode } = require('../utils/mailer');
 const { authenticate, SECRET } = require('../middleware/auth');
@@ -10,6 +11,34 @@ const router = express.Router();
 const RESET_CODE_TTL_MINUTES = parseInt(process.env.RESET_CODE_TTL_MINUTES, 10) || 15;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* ── Auth-specific rate limiters ────────────────────────── */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 10,                    // 10 attempts per window
+  message: { error: 'Too many attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,  // 1 hour
+  max: 5,                     // 5 attempts per hour
+  message: { error: 'Too many password reset requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/* ── Password validation ────────────────────────────────── */
+function validatePassword(password) {
+  if (!password || password.length < 8) {
+    return 'Password must be at least 8 characters long.';
+  }
+  if (password.length > 128) {
+    return 'Password must be 128 characters or fewer.';
+  }
+  return null;
+}
 
 function hashResetCode(code) {
   return crypto.createHash('sha256').update(String(code)).digest('hex');
@@ -20,11 +49,16 @@ function generateResetCode() {
 }
 
 // register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { username, password, email } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'username and password required' });
   }
+  if (username.length > 64) {
+    return res.status(400).json({ error: 'username must be 64 characters or fewer' });
+  }
+  const pwError = validatePassword(password);
+  if (pwError) return res.status(400).json({ error: pwError });
   const existing = await db('users').where({ username }).first();
   if (existing) {
     return res.status(400).json({ error: 'username taken' });
@@ -42,12 +76,12 @@ router.post('/register', async (req, res) => {
   const rounds = parseInt(process.env.SALT_ROUNDS) || 10;
   const hash = await bcrypt.hash(password, rounds);
   const [id] = await db('users').insert({ username, password: hash, email: normalizedEmail });
-  const token = jwt.sign({ id, username }, SECRET);
+  const token = jwt.sign({ id, username }, SECRET, { expiresIn: '7d' });
   res.json({ token, has_email: !!normalizedEmail });
 });
 
 // login — accept username OR email
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'username/email and password required' });
@@ -63,12 +97,12 @@ router.post('/login', async (req, res) => {
   if (!match) {
     return res.status(400).json({ error: 'invalid credentials' });
   }
-  const token = jwt.sign({ id: user.id, username: user.username }, SECRET);
+  const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '7d' });
   res.json({ token });
 });
 
 // forgot-password — verify username + email match, send a reset code via email
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   const { username, email } = req.body;
   if (!username || !email) {
     return res.status(400).json({ error: 'username and email required' });
@@ -78,7 +112,8 @@ router.post('/forgot-password', async (req, res) => {
     .where({ username, email: normalizedEmail })
     .first();
   if (!user) {
-    return res.status(400).json({ error: 'No account found with that username and email combination.' });
+    // Return the same success message to prevent user enumeration
+    return res.json({ ok: true, message: 'If your account details are correct, a reset code has been sent to your email.' });
   }
   const resetCode = generateResetCode();
   const expires = new Date(Date.now() + RESET_CODE_TTL_MINUTES * 60 * 1000).toISOString();
@@ -113,11 +148,13 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // reset-password — use username/email + code to set a new password
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
   const { username, email, code, password } = req.body;
   if (!password) {
     return res.status(400).json({ error: 'new password required' });
   }
+  const pwError = validatePassword(password);
+  if (pwError) return res.status(400).json({ error: pwError });
 
   const rounds = parseInt(process.env.SALT_ROUNDS) || 10;
   const hash = await bcrypt.hash(password, rounds);
@@ -154,6 +191,8 @@ router.post('/change-password', authenticate, async (req, res) => {
   if (!current_password || !new_password) {
     return res.status(400).json({ error: 'current_password and new_password required' });
   }
+  const pwError = validatePassword(new_password);
+  if (pwError) return res.status(400).json({ error: pwError });
   const user = await db('users').where({ id: req.user.id }).first();
   if (!user) return res.status(400).json({ error: 'user not found' });
   const match = await bcrypt.compare(current_password, user.password);

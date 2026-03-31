@@ -1,10 +1,19 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
 const db = require('../db');
+const { SECRET } = require('../middleware/auth');
 
 const router = express.Router();
-const SECRET = process.env.JWT_SECRET || 'supersecret';
+
+const shareUnlockLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function authenticateShare(req, res, next) {
   const auth = req.headers.authorization;
@@ -61,7 +70,7 @@ router.get('/:shareToken', async (req, res) => {
 });
 
 // POST /api/share/:shareToken/unlock — verify passcode → issue short-lived share JWT
-router.post('/:shareToken/unlock', async (req, res) => {
+router.post('/:shareToken/unlock', shareUnlockLimiter, async (req, res) => {
   try {
     const profile = await db('user_profiles')
       .where({ share_token: req.params.shareToken })

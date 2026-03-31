@@ -46,7 +46,7 @@ router.get('/export', authenticate, async (req, res) => {
     res.send(pdfBuffer);
   } catch (err) {
     console.error('Export error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'server error' });
   }
 });
 
@@ -60,7 +60,7 @@ router.get('/', authenticate, async (req, res) => {
     res.json({ entries });
   } catch (err) {
     console.error('Get entries error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'server error' });
   }
 });
 
@@ -68,17 +68,20 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const { date, text, mood, title } = req.body;
     if (!date) return res.status(400).json({ error: 'date required' });
+    const safeTitle = String(title || '').slice(0, 1000);
+    const safeText = String(text || '').slice(0, 100000);
+    const safeMood = Math.min(5, Math.max(1, parseInt(mood, 10) || 3));
     const result = await db('journal_entries').insert({ 
       user_id: req.user.id, 
       date, 
-      title: title || '',
-      text: text || '', 
-      mood: mood || 3 
+      title: safeTitle,
+      text: safeText, 
+      mood: safeMood 
     });
     res.json({ success: true, id: result[0] });
   } catch (err) {
     console.error('Post entry error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'server error' });
   }
 });
 
@@ -103,7 +106,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Delete error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'server error' });
   }
 });
 

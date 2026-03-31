@@ -111,6 +111,12 @@ function App() {
         const response = await fetch(`${API_BASE}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (response.status === 401) {
+          // Token expired or invalid — auto-logout
+          localStorage.removeItem('token');
+          if (active) setToken(null);
+          return;
+        }
         if (!response.ok) return;
         const data = await response.json();
         if (!active) return;

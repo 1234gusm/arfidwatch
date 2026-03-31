@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
 const healthRoutes = require('./routes/health');
@@ -22,15 +24,50 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const app = express();
-app.use(cors());
+
+/* ── Security headers (helmet) ──────────────────────────── */
+app.use(helmet());
+
+/* ── HTTPS redirect in production ───────────────────────── */
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(301, `https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
+
+/* ── CORS — restrict to allowed origins ─────────────────── */
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+app.use(cors(
+  ALLOWED_ORIGINS.length
+    ? { origin: ALLOWED_ORIGINS, credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'X-Ingest-Key', 'X-Upload-Filename', 'X-File-Name'] }
+    : undefined   // fallback to open CORS only when env var not set (dev)
+));
+
+/* ── Global rate limiter ────────────────────────────────── */
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 300,                   // 300 requests per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
+
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-// Debug middleware
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
+// Debug middleware (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // mount routers
 app.use('/api/auth', authRoutes);

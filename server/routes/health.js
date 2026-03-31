@@ -703,14 +703,23 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
       });
     } catch (err) {
       console.error('CSV import parse error:', err);
-      return res.status(500).json({ error: 'failed to parse csv', details: err.message });
+      return res.status(500).json({ error: 'failed to parse csv' });
     }
   }
   res.status(400).json({ error: 'no data provided' });
 });
 
 // upload macrofactor .xlsx or .csv
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: 10 * 1024 * 1024 },  // 10 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.xlsx', '.xls', '.csv', '.json'];
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (allowed.includes(ext)) return cb(null, true);
+    cb(new Error('Only .xlsx, .xls, .csv, and .json files are allowed'));
+  },
+});
 
 const normalizeKey = k =>
   String(k).trim().toLowerCase()
@@ -1122,7 +1131,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
     res.json({ imported: isFoodLogFile ? foodLogInserted : deduped.length, isFoodLogFile, skipped: skippedRows, skipped_duplicates: records.length - deduped.length, duplicateFile });
   } catch (err) {
     console.error('Macro import error:', err);
-    res.status(500).json({ error: 'failed to import', details: err.message });
+    res.status(500).json({ error: 'failed to import' });
   } finally {
     try { fs.unlinkSync(req.file.path); } catch (_) {}
   }

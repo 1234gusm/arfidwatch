@@ -355,8 +355,8 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
     const medicationName = canonicalMedicationName(req.body.medication_name);
-    const dosage = String(req.body.dosage || '').trim();
-    const notes = String(req.body.notes || '').trim();
+    const dosage = String(req.body.dosage || '').trim().slice(0, 500);
+    const notes = String(req.body.notes || '').trim().slice(0, 10000);
     const takenAtInput = String(req.body.taken_at || '').trim();
 
     if (!medicationName) return res.status(400).json({ error: 'medication_name is required' });

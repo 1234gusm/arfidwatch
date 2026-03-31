@@ -38,7 +38,8 @@ router.post('/subscribe', authenticate, async (req, res) => {
     }
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('push subscribe error:', e);
+    res.status(500).json({ error: 'server error' });
   }
 });
 
@@ -53,7 +54,8 @@ router.delete('/subscribe', authenticate, async (req, res) => {
     }
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('push unsubscribe error:', e);
+    res.status(500).json({ error: 'server error' });
   }
 });
 
@@ -63,7 +65,8 @@ router.post('/reminders', authenticate, async (req, res) => {
   try {
     const { reminders, timezone } = req.body;
     if (!Array.isArray(reminders)) return res.status(400).json({ error: 'reminders must be array' });
-    const tz = (typeof timezone === 'string' && timezone.trim()) ? timezone.trim() : 'UTC';
+    if (reminders.length > 100) return res.status(400).json({ error: 'too many reminders (max 100)' });
+    const tz = (typeof timezone === 'string' && timezone.trim()) ? timezone.trim().slice(0, 100) : 'UTC';
     const existing = await db('user_reminders').where({ user_id: req.user.id }).first();
     const data = {
       reminders_json: JSON.stringify(reminders),
@@ -77,7 +80,8 @@ router.post('/reminders', authenticate, async (req, res) => {
     }
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('push reminders error:', e);
+    res.status(500).json({ error: 'server error' });
   }
 });
 
@@ -109,7 +113,8 @@ router.post('/test', authenticate, async (req, res) => {
     }
     res.json({ ok: true, sent });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('push test error:', e);
+    res.status(500).json({ error: 'server error' });
   }
 });
 
