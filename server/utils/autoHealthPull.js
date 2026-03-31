@@ -291,8 +291,13 @@ function shouldRun() {
   return isEnabledFlag() && !!getSourceUrl() && !!getIngestKey();
 }
 
+/* V-4: Sanitize errors — keep detail in logs, return generic message to clients */
 function getAutoHealthPullStatus() {
-  return { ...state };
+  const { last_error, ...safe } = state;
+  return {
+    ...safe,
+    last_error: last_error ? 'Auto-pull encountered an error. Check server logs for details.' : null,
+  };
 }
 
 async function triggerAutoHealthPullNow() {
@@ -360,7 +365,7 @@ function startAutoHealthPull({ port }) {
         const msg = `import failed (${importRes.status})`;
         state.last_error = `${msg}: ${importText.slice(0, 500)}`;
         console.error('[auto-pull]', state.last_error);
-        return { ok: false, error: msg };
+        return { ok: false, error: 'Auto-pull import failed. Check server logs.' };
       }
 
       let parsed = null;
@@ -372,7 +377,7 @@ function startAutoHealthPull({ port }) {
     } catch (err) {
       state.last_error = err.message;
       console.error('[auto-pull] run failed:', err.message);
-      return { ok: false, error: err.message };
+      return { ok: false, error: 'Auto-pull encountered an error. Check server logs.' };
     } finally {
       state.running = false;
     }

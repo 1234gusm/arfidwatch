@@ -47,7 +47,7 @@ const sanitizeTabPrefs = (raw) => {
 };
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(null); // V-2: no longer read from localStorage
   const [healthApiUrl, setHealthApiUrl] = useState('');
   const [tabPrefs, setTabPrefs] = useState({ order: TAB_IDS, hidden: [] });
   const [draggedTabId, setDraggedTabId] = useState(null);
@@ -57,6 +57,17 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  /* V-2: Restore session from httpOnly cookie on mount */
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (active && data?.authenticated) setToken('authenticated'); })
+      .catch(() => {});
+    /* Migrate: clear any leftover localStorage token from old versions */
+    localStorage.removeItem('token');
+    return () => { active = false; };
+  }, []);
 
   const saveTabPrefs = async (next) => {
     const safe = sanitizeTabPrefs(next);
@@ -65,9 +76,9 @@ function App() {
     try {
       await fetch(`${API_BASE}/api/profile`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           nav_tab_order: safe.order,
@@ -109,11 +120,9 @@ function App() {
     const loadProfileApiUrl = async () => {
       try {
         const response = await fetch(`${API_BASE}/api/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (response.status === 401) {
-          // Token expired or invalid — auto-logout
-          localStorage.removeItem('token');
           if (active) setToken(null);
           return;
         }
@@ -137,8 +146,8 @@ function App() {
     return () => { active = false; };
   }, [token]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    try { await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', credentials: 'include' }); } catch (_) {}
     setToken(null);
     setMobileMenuOpen(false);
     navigate('/login');
@@ -167,9 +176,9 @@ function App() {
 
         await fetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         });

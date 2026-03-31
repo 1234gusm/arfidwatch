@@ -225,7 +225,7 @@ function SleepPage({ token }) {
       try {
         const res = await fetch(
           `${API_BASE}/api/health/sleep/daily?days=${rangeDays || 3650}&tzOffsetMinutes=${tzOffsetMinutes}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { credentials: 'include' }
         );
         if (!res.ok) { setRows([]); setFetchError('Failed to load sleep data.'); return; }
         const json = await res.json();

@@ -34,7 +34,7 @@ function HealthPage({ token }) {
 
   const fetchData = async () => {
     const res = await fetch(`${API_BASE}/api/health`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     });
     const json = await res.json();
     setData(json.data || []);
@@ -42,7 +42,7 @@ function HealthPage({ token }) {
 
   const fetchImports = async () => {
     const res = await fetch(`${API_BASE}/api/health/imports`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     });
     const json = await res.json();
     setImports(json.imports || []);
@@ -53,7 +53,7 @@ function HealthPage({ token }) {
       const today = formatDate(new Date());
       const params = new URLSearchParams({ start: today, end: today });
       const res = await fetch(`${API_BASE}/api/food-log/daily?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const json = await res.json();
       const row = (json.data || []).find(r => r.date === today);
@@ -65,7 +65,8 @@ function HealthPage({ token }) {
     try {
       await fetch(`${API_BASE}/api/profile`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           hidden_health_types: [...nextHiddenTypes],
           health_stat_order: nextStatOrder,
@@ -83,7 +84,7 @@ function HealthPage({ token }) {
     const loadDashboardPrefs = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (!res.ok) return;
         const d = await res.json();
@@ -107,7 +108,7 @@ function HealthPage({ token }) {
     if (!window.confirm('Delete this import and all its data?')) return;
     await fetch(`${API_BASE}/api/health/imports/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     });
     fetchData();
     fetchImports();
@@ -116,7 +117,7 @@ function HealthPage({ token }) {
   const deleteAllImports = async () => {
     await fetch(`${API_BASE}/api/health/imports`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     });
     setDeleteAllConfirm(false);
     fetchData();
@@ -163,7 +164,7 @@ function HealthPage({ token }) {
       try {
         const res = await fetch(`${API_BASE}/api/health/macro/import`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
           body: form,
         });
         if (!res.ok) { alert('Failed to import MacroFactor file: ' + await res.text()); return; }
@@ -196,7 +197,8 @@ function HealthPage({ token }) {
       try {
         const res = await fetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ csv: text, filename: file.name }),
         });
         if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
@@ -215,7 +217,8 @@ function HealthPage({ token }) {
       try {
         const res = await fetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ csv: text, filename: file.name }),
         });
         if (!res.ok) { alert('Failed to import AutoSleep CSV: ' + await res.text()); return; }
@@ -237,7 +240,7 @@ function HealthPage({ token }) {
       const url = `${API_BASE}/api/health/macro/import` + (isFoodLog ? '?source=foodlog' : '');
       const res = await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
         body: form,
       });
       if (!res.ok) { alert('Failed to import MacroFactor file: ' + await res.text()); return; }

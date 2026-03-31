@@ -47,7 +47,7 @@ function CalendarPage({ token }) {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/journal?start=1970-01-01`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const data = await res.json();
       setEntries(data.entries || []);
@@ -90,7 +90,8 @@ function CalendarPage({ token }) {
     const iso = `${toDateKey(base)}T${String(base.getHours()).padStart(2, '0')}:${String(base.getMinutes()).padStart(2, '0')}:00`;
     const res = await fetch(`${API_BASE}/api/journal`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: iso, title, text, mood }),
     });
     if (!res.ok) {
@@ -113,7 +114,7 @@ function CalendarPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/journal/${entryId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) {
         showToast('Failed to delete', 'error');

@@ -63,7 +63,7 @@ function MedicationPage({ token }) {
     const loadEntryColors = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (!res.ok) return;
         const d = await res.json();
@@ -86,7 +86,8 @@ function MedicationPage({ token }) {
     setEntryColors(next);
     fetch(`${API_BASE}/api/profile`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ med_entry_colors: next }),
     }).catch(() => {
       // Keep UI color in place even if preference save fails.
@@ -130,7 +131,7 @@ function MedicationPage({ token }) {
         params.set('end', end);
       }
       const res = await fetch(`${API_BASE}/api/medications?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to load medication log');
@@ -148,7 +149,7 @@ function MedicationPage({ token }) {
     if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/api/medications/quick-buttons`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to load quick buttons');
@@ -165,7 +166,7 @@ function MedicationPage({ token }) {
     const params = new URLSearchParams();
     if (name.trim()) params.set('q', name.trim());
     fetch(`${API_BASE}/api/medications/names?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(d => setNameOptions(Array.isArray(d.names) ? d.names : []))
@@ -215,7 +216,8 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication_name: name.trim(),
           dosage: dosage.trim(),
@@ -242,7 +244,7 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to delete');
@@ -257,7 +259,8 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications/quick-buttons`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication_name: name.trim(),
           dosage: dosage.trim(),
@@ -276,7 +279,8 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication_name: button.medication_name,
           dosage: button.dosage || '',
@@ -297,7 +301,7 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to delete button');
@@ -328,7 +332,8 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication_name: medicationName,
           dosage: editQuickDosage.trim(),
@@ -364,7 +369,8 @@ function MedicationPage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/medications/quick-buttons/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ color }),
       });
       const json = await res.json();
@@ -379,7 +385,8 @@ function MedicationPage({ token }) {
     const ids = buttons.map(b => b.id);
     const res = await fetch(`${API_BASE}/api/medications/quick-buttons/reorder`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
     });
     const json = await res.json();

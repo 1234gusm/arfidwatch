@@ -1,8 +1,39 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { isIP } = require('net');
+const dns = require('dns');
+const { promisify } = require('util');
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
+
+const dnsLookup = promisify(dns.lookup);
+
+/* ── V-3: SSRF — reject private / reserved IP addresses ── */
+function isPrivateIP(ip) {
+  // IPv4-mapped IPv6 (::ffff:x.x.x.x) — extract the IPv4 part
+  const v4match = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  const addr = v4match ? v4match[1] : ip;
+
+  if (isIP(addr) === 4) {
+    const parts = addr.split('.').map(Number);
+    const [a, b] = parts;
+    if (a === 10) return true;                       // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true;          // 192.168.0.0/16
+    if (a === 127) return true;                       // 127.0.0.0/8
+    if (a === 169 && b === 254) return true;          // 169.254.0.0/16 (link-local + cloud metadata)
+    if (a === 0) return true;                         // 0.0.0.0/8
+    return false;
+  }
+
+  // IPv6: block loopback and link-local
+  const lower = addr.toLowerCase();
+  if (lower === '::1') return true;
+  if (lower.startsWith('fe80:')) return true;  // link-local
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // ULA
+  return false;
+}
 
 const router = express.Router();
 const SALT_ROUNDS = 12;
@@ -220,8 +251,21 @@ router.put('/', authenticate, async (req, res) => {
           if (!['http:', 'https:'].includes(u.protocol)) {
             return res.status(400).json({ error: 'health_auto_export_url must use http or https' });
           }
-          if (['localhost', '127.0.0.1', '0.0.0.0', '[::1]'].includes(u.hostname)) {
-            return res.status(400).json({ error: 'localhost URLs are not allowed' });
+          /* V-3: Resolve hostname and block private/reserved IPs */
+          const hostname = u.hostname.replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+          if (isIP(hostname)) {
+            if (isPrivateIP(hostname)) {
+              return res.status(400).json({ error: 'Private/reserved IP addresses are not allowed' });
+            }
+          } else {
+            try {
+              const { address } = await dnsLookup(hostname);
+              if (isPrivateIP(address)) {
+                return res.status(400).json({ error: 'URL resolves to a private/reserved IP address' });
+              }
+            } catch (_) {
+              return res.status(400).json({ error: 'Could not resolve hostname' });
+            }
           }
         } catch (_) {
           return res.status(400).json({ error: 'invalid health_auto_export_url' });

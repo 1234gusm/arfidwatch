@@ -18,8 +18,6 @@ function urlBase64ToUint8Array(base64String) {
 
 async function registerPushSubscription() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  const token = localStorage.getItem('token');
-  if (!token) return;
   try {
     const keyResp = await fetch(`${API_BASE}/api/push/vapid-key`);
     if (!keyResp.ok) return;
@@ -32,20 +30,20 @@ async function registerPushSubscription() {
     const subJson = sub.toJSON();
     await fetch(`${API_BASE}/api/push/subscribe`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
     });
   } catch { /* non-fatal — falls back to client-side interval */ }
 }
 
 async function syncRemindersToServer(list) {
-  const token = localStorage.getItem('token');
-  if (!token) return;
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     await fetch(`${API_BASE}/api/push/reminders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reminders: list, timezone }),
     });
   } catch { /* non-fatal */ }
@@ -119,14 +117,12 @@ export default function RemindersCard() {
   };
 
   const testPush = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
     setTestStatus('sending…');
     try {
       await registerPushSubscription();
       const resp = await fetch(`${API_BASE}/api/push/test`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
       });
       const data = await resp.json();
       if (!resp.ok || !data.ok) {

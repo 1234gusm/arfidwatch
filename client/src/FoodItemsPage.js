@@ -38,7 +38,7 @@ function FoodItemsPage({ token }) {
       const params = new URLSearchParams();
       if (start) { params.set('start', start); params.set('end', end); }
       const res = await fetch(`${API_BASE}/api/food-log/items?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const json = await res.json();
       setRows(json.data || []);

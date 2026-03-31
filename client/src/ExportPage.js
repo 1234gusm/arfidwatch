@@ -170,7 +170,7 @@ function ExportPage({ token }) {
   // Load the user's default export period from their profile
   useEffect(() => {
     fetch(`${API_BASE}/api/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.export_period) setPeriod(d.export_period); })
@@ -188,11 +188,11 @@ function ExportPage({ token }) {
     const { start, end } = getRange();
     try {
       const [jRes, hRes, heroRes, flRes, flDailyRes] = await Promise.all([
-        fetch(`${API_BASE}/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/health/hero`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/food-log/items?start=${start}&end=${end}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/food-log/daily?start=${start}T00:00:00&end=${end}T23:59:59`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/journal?start=${start}T00:00:00&end=${end}T23:59:59`, { credentials: 'include' }),
+        fetch(`${API_BASE}/api/health?start=${start}T00:00:00&end=${end}T23:59:59`,  { credentials: 'include' }),
+        fetch(`${API_BASE}/api/health/hero`, { credentials: 'include' }),
+        fetch(`${API_BASE}/api/food-log/items?start=${start}&end=${end}`, { credentials: 'include' }),
+        fetch(`${API_BASE}/api/food-log/daily?start=${start}T00:00:00&end=${end}T23:59:59`, { credentials: 'include' }),
       ]);
       const jData      = await jRes.json();
       const hData      = await hRes.json();
@@ -218,7 +218,7 @@ function ExportPage({ token }) {
     const params = new URLSearchParams({ start, end, includeJournal: includeJournal ? '1' : '0', quick: quickExport ? '1' : '0' });
     try {
       const res = await fetch(`${API_BASE}/api/journal/export?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) { setError('Export failed \u2014 check server logs.'); return; }
       const blob = await res.blob();

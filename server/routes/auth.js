@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const { sendPasswordResetCode } = require('../utils/mailer');
-const { authenticate, SECRET } = require('../middleware/auth');
+const { authenticate, SECRET, COOKIE_NAME, cookieOptions } = require('../middleware/auth');
 
 const router = express.Router();
 const RESET_CODE_TTL_MINUTES = parseInt(process.env.RESET_CODE_TTL_MINUTES, 10) || 15;
@@ -44,8 +44,9 @@ function hashResetCode(code) {
   return crypto.createHash('sha256').update(String(code)).digest('hex');
 }
 
+/* ── V-6: Cryptographically secure reset code ───────────── */
 function generateResetCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return crypto.randomBytes(20).toString('base64url'); // ~27 chars, 160 bits entropy
 }
 
 // register
@@ -77,7 +78,8 @@ router.post('/register', authLimiter, async (req, res) => {
   const hash = await bcrypt.hash(password, rounds);
   const [id] = await db('users').insert({ username, password: hash, email: normalizedEmail });
   const token = jwt.sign({ id, username }, SECRET, { expiresIn: '7d' });
-  res.json({ token, has_email: !!normalizedEmail });
+  res.cookie(COOKIE_NAME, token, cookieOptions());
+  res.json({ ok: true, has_email: !!normalizedEmail });
 });
 
 // login — accept username OR email
@@ -98,7 +100,8 @@ router.post('/login', authLimiter, async (req, res) => {
     return res.status(400).json({ error: 'invalid credentials' });
   }
   const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '7d' });
-  res.json({ token });
+  res.cookie(COOKIE_NAME, token, cookieOptions());
+  res.json({ ok: true });
 });
 
 // forgot-password — verify username + email match, send a reset code via email
@@ -200,6 +203,17 @@ router.post('/change-password', authenticate, async (req, res) => {
   const rounds = parseInt(process.env.SALT_ROUNDS) || 10;
   const hash = await bcrypt.hash(new_password, rounds);
   await db('users').where({ id: user.id }).update({ password: hash });
+  res.json({ ok: true });
+});
+
+// V-2: Session check — validates httpOnly cookie, returns user info
+router.get('/me', authenticate, async (req, res) => {
+  res.json({ authenticated: true, id: req.user.id, username: req.user.username });
+});
+
+// V-2: Logout — clears the httpOnly cookie
+router.post('/logout', (_req, res) => {
+  res.clearCookie(COOKIE_NAME, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', path: '/' });
   res.json({ ok: true });
 });
 

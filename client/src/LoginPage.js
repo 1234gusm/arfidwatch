@@ -19,6 +19,7 @@ function LoginPage({ setToken }) {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
 
@@ -29,9 +30,8 @@ function LoginPage({ setToken }) {
         data = { error: 'Server returned an unexpected response.' };
       }
 
-      if (res.ok && data.token) {
-        localStorage.setItem('token', data.token);
-        setToken(data.token);
+      if (res.ok && data.ok) {
+        setToken('authenticated');
         navigate('/');
       } else {
         setError(data.error || 'Login failed');

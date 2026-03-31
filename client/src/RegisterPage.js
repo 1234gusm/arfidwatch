@@ -15,13 +15,13 @@ function RegisterPage({ setToken }) {
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username, password, email: email.trim() || undefined }),
       });
       let data = {};
       try { data = await res.json(); } catch (_) { data = { error: 'Server returned an unexpected response.' }; }
-      if (res.ok && data.token) {
-        localStorage.setItem('token', data.token);
-        setToken(data.token);
+      if (res.ok && data.ok) {
+        setToken('authenticated');
         navigate('/');
       } else {
         setError(data.error || 'Registration failed');

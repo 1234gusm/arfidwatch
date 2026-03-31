@@ -79,7 +79,7 @@ function ProfilePage({ token }) {
 
   useEffect(() => {
     fetch(`${API_BASE}/api/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(applyProfileData)
@@ -87,14 +87,14 @@ function ProfilePage({ token }) {
       .finally(() => setLoading(false));
 
     fetch(`${API_BASE}/api/food-log/status`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(d => setFoodLogStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
       .catch(() => {});
 
     fetch(`${API_BASE}/api/medications/status`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(d => setMedStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
@@ -148,7 +148,8 @@ function ProfilePage({ token }) {
     try {
       const res = await fetch(`${API_BASE}/api/auth/change-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
       });
       const d = await res.json();
@@ -244,7 +245,8 @@ function ProfilePage({ token }) {
     setError(null);
     const res = await fetch(`${API_BASE}/api/profile`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error('save failed');
@@ -324,7 +326,7 @@ function ProfilePage({ token }) {
     try {
       await fetch(`${API_BASE}/api/food-log/clear`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       setFoodLogStatus({ count: 0, earliest: null, latest: null });
       if (shareFoodLog) {
@@ -404,7 +406,7 @@ function ProfilePage({ token }) {
     const params = new URLSearchParams({ start, end, includeJournal: includeJournal ? '1' : '0', quick: quickExport ? '1' : '0' });
     try {
       const res = await fetch(`${API_BASE}/api/journal/export?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) { setExportError('Export failed — check server logs.'); return; }
       const blob = await res.blob();
