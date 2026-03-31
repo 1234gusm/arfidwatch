@@ -96,9 +96,12 @@ app.use('/api/medications', medicationsRoutes);
 app.use('/api/push', pushRoutes);
 
 // Diagnostic endpoint (no auth needed)
-app.get('/api/diag', (_req, res) => {
-  const { dbDiag } = require('./db');
-  res.json({ db: dbDiag, uptime: process.uptime() });
+app.get('/api/diag', async (_req, res) => {
+  const db = require('./db');
+  const { dbDiag } = db;
+  let userCount = 0;
+  try { const r = await db('users').count('id as cnt').first(); userCount = r?.cnt || 0; } catch {}
+  res.json({ db: dbDiag, users: userCount, uptime: process.uptime() });
 });
 
 // 404 handler
