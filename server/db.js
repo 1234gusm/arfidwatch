@@ -54,6 +54,8 @@ const db = knex({
 
 console.log(`SQLite DB path: ${activeDbPath}${usingEphemeral ? ' (EPHEMERAL)' : ''}`);
 
+module.exports.dbDiag = { path: activeDbPath, ephemeral: usingEphemeral };
+
 // Wrap setup() so a migration failure doesn't crash the server
 async function setup() {
   try {

@@ -95,6 +95,12 @@ app.use('/api/food-log', foodLogRoutes);
 app.use('/api/medications', medicationsRoutes);
 app.use('/api/push', pushRoutes);
 
+// Diagnostic endpoint (no auth needed)
+app.get('/api/diag', (_req, res) => {
+  const { dbDiag } = require('./db');
+  res.json({ db: dbDiag, uptime: process.uptime() });
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
