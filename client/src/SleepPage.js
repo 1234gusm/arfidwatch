@@ -31,6 +31,11 @@ const CHART_LINES   = [
   { key: 'awake', dataKey: 'awake_hr',       name: 'Awake',  color: '#fb923c', width: 1.5 },
 ];
 
+/* ── Stage colours (shared) ── */
+const STAGE_COLORS = {
+  deep: '#8b5cf6', rem: '#a78bfa', core: '#38bdf8', awake: '#fb923c',
+};
+
 /* ── Helpers ── */
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 
@@ -124,6 +129,74 @@ const StageBar = ({ d }) => {
   );
 };
 
+/* ── SleepStageGraph (AutoSleep-style) ── */
+const SleepStageGraph = ({ r }) => {
+  const stages = [
+    { key: 'deep',  label: 'Deep Sleep',  hr: r.deep_hr  || 0, color: STAGE_COLORS.deep  },
+    { key: 'rem',   label: 'REM Sleep',   hr: r.rem_hr   || 0, color: STAGE_COLORS.rem   },
+    { key: 'core',  label: 'Core Sleep',  hr: r.core_hr  || 0, color: STAGE_COLORS.core  },
+    { key: 'awake', label: 'Awake',       hr: r.awake_hr || 0, color: STAGE_COLORS.awake },
+  ];
+  const tot = stages.reduce((s, st) => s + st.hr, 0);
+  if (tot <= 0) return null;
+
+  /* conic-gradient stops for donut */
+  let cumDeg = 0;
+  const stops = stages.map(s => {
+    const start = cumDeg;
+    cumDeg += (s.hr / tot) * 360;
+    return `${s.color} ${start.toFixed(1)}deg ${cumDeg.toFixed(1)}deg`;
+  }).join(', ');
+
+  return (
+    <div className="sp-sgraph">
+      <div className="sp-sgraph-top">
+        {/* donut ring */}
+        <div className="sp-donut" style={{ background: `conic-gradient(${stops})` }}>
+          <div className="sp-donut-inner">
+            <span className="sp-donut-total">{fmtHr(r.total_sleep_hr)}</span>
+            <span className="sp-donut-sub">Total</span>
+          </div>
+        </div>
+
+        {/* per-stage bars */}
+        <div className="sp-sgraph-bars">
+          {stages.map(s => {
+            const pct = (s.hr / tot) * 100;
+            return (
+              <div key={s.key} className="sp-sbar-row">
+                <div className="sp-sbar-head">
+                  <span className="sp-sbar-dot" style={{ background: s.color }} />
+                  <span className="sp-sbar-name">{s.label}</span>
+                  <span className="sp-sbar-pct">{pct.toFixed(0)}%</span>
+                </div>
+                <div className="sp-sbar-track">
+                  <div className="sp-sbar-fill" style={{ width: `${pct}%`, background: s.color }} />
+                </div>
+                <span className="sp-sbar-time">{fmtHr(s.hr)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* health metrics grid */}
+      <div className="sp-sgraph-metrics">
+        {r.efficiency      != null && <div className="sp-sgraph-metric"><small>Efficiency</small><strong>{r.efficiency.toFixed(1)}%</strong></div>}
+        {r.quality_hr      != null && <div className="sp-sgraph-metric"><small>Quality Sleep</small><strong>{fmtHr(r.quality_hr)}</strong></div>}
+        {r.fell_asleep_in  != null && <div className="sp-sgraph-metric"><small>Fell Asleep In</small><strong>{fmtHr(r.fell_asleep_in)}</strong></div>}
+        {r.sleep_bpm       != null && <div className="sp-sgraph-metric"><small>Sleep HR</small><strong>{Math.round(r.sleep_bpm)} bpm</strong></div>}
+        {r.waking_bpm      != null && <div className="sp-sgraph-metric"><small>Waking HR</small><strong>{Math.round(r.waking_bpm)} bpm</strong></div>}
+        {r.hrv             != null && <div className="sp-sgraph-metric"><small>HRV</small><strong>{Math.round(r.hrv)} ms</strong></div>}
+        {r.sleep_hrv       != null && <div className="sp-sgraph-metric"><small>Sleep HRV</small><strong>{Math.round(r.sleep_hrv)} ms</strong></div>}
+        {r.spo2            != null && <div className="sp-sgraph-metric"><small>SpO₂</small><strong>{r.spo2.toFixed(1)}%</strong></div>}
+        {r.resp_rate       != null && <div className="sp-sgraph-metric"><small>Resp. Rate</small><strong>{r.resp_rate.toFixed(1)}/min</strong></div>}
+        {r.breath_dist     != null && <div className="sp-sgraph-metric"><small>Disturbances</small><strong>{r.breath_dist}</strong></div>}
+      </div>
+    </div>
+  );
+};
+
 /* ── NightCard ── */
 const NightCard = ({ r, selected, onSelect }) => {
   const [open, setOpen] = useState(false);
@@ -157,8 +230,8 @@ const NightCard = ({ r, selected, onSelect }) => {
           <span className="sp-night-chevron">{open ? '▾' : '›'}</span>
         </div>
       </div>
-      {hasStages && <StageBar d={r} />}
-      {hasStages && (
+      {!open && hasStages && <StageBar d={r} />}
+      {!open && hasStages && (
         <div className="sp-stage-chips">
           {r.deep_hr  != null && <span className="sp-chip sp-chip--deep"><span  className="sp-chip-dot" />Deep {fmtHr(r.deep_hr)}</span>}
           {r.rem_hr   != null && <span className="sp-chip sp-chip--rem"><span   className="sp-chip-dot" />REM {fmtHr(r.rem_hr)}</span>}
@@ -166,21 +239,7 @@ const NightCard = ({ r, selected, onSelect }) => {
           {r.awake_hr != null && <span className="sp-chip sp-chip--awake"><span className="sp-chip-dot" />Awake {fmtHr(r.awake_hr)}</span>}
         </div>
       )}
-      {open && hasExtras && (
-        <div className="sp-night-extras">
-          {r.efficiency    != null && <div className="sp-extra-item"><small>Efficiency</small><strong>{r.efficiency.toFixed(1)}%</strong></div>}
-          {r.asleep_hr     != null && <div className="sp-extra-item"><small>Asleep</small><strong>{fmtHr(r.asleep_hr)}</strong></div>}
-          {r.quality_hr    != null && <div className="sp-extra-item"><small>Quality Sleep</small><strong>{fmtHr(r.quality_hr)}</strong></div>}
-          {r.fell_asleep_in != null && <div className="sp-extra-item"><small>Fell Asleep In</small><strong>{fmtHr(r.fell_asleep_in)}</strong></div>}
-          {r.sleep_bpm     != null && <div className="sp-extra-item"><small>Sleep HR</small><strong>{Math.round(r.sleep_bpm)} bpm</strong></div>}
-          {r.waking_bpm    != null && <div className="sp-extra-item"><small>Waking HR</small><strong>{Math.round(r.waking_bpm)} bpm</strong></div>}
-          {r.hrv           != null && <div className="sp-extra-item"><small>HRV</small><strong>{Math.round(r.hrv)} ms</strong></div>}
-          {r.sleep_hrv     != null && <div className="sp-extra-item"><small>Sleep HRV</small><strong>{Math.round(r.sleep_hrv)} ms</strong></div>}
-          {r.spo2          != null && <div className="sp-extra-item"><small>SpO₂</small><strong>{r.spo2.toFixed(1)}%</strong></div>}
-          {r.resp_rate     != null && <div className="sp-extra-item"><small>Resp. Rate</small><strong>{r.resp_rate.toFixed(1)}/min</strong></div>}
-          {r.breath_dist   != null && <div className="sp-extra-item"><small>Disturbances</small><strong>{r.breath_dist}</strong></div>}
-        </div>
-      )}
+      {open && <SleepStageGraph r={r} />}
     </div>
   );
 };
@@ -474,7 +533,7 @@ function SleepPage({ token }) {
           {/* ── Recent nights ── */}
           <div className="sp-nights-section">
             <div className="sp-section-title">
-              Recent Nights <span className="sp-section-count">{Math.min(dailyRows.length, 30)}</span>
+              Nightly Detail <span className="sp-section-count">{Math.min(dailyRows.length, 30)}</span>
             </div>
             <div className="sp-nights-list">
               {[...dailyRows].reverse().slice(0, 30).map(r => (

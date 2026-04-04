@@ -553,6 +553,131 @@
   color: #b8d0f0;
 }
 
+/* ── Sleep Stage Graph (AutoSleep-style) ── */
+.sp-sgraph {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sp-sgraph-top {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* donut ring */
+.sp-donut {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sp-donut-inner {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #0b0e1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.sp-donut-total {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+}
+.sp-donut-sub {
+  font-size: 0.58rem;
+  color: rgba(160,210,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* per-stage bars */
+.sp-sgraph-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.sp-sbar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sp-sbar-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sp-sbar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sp-sbar-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(200,225,255,0.7);
+  flex: 1;
+}
+.sp-sbar-pct {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(200,225,255,0.5);
+}
+.sp-sbar-track {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sp-sbar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.sp-sbar-time {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: rgba(160,210,255,0.4);
+}
+
+/* metrics grid */
+.sp-sgraph-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+  gap: 8px 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sp-sgraph-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sp-sgraph-metric small {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(160,210,255,0.3);
+}
+.sp-sgraph-metric strong {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #b8d0f0;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .sp-page { padding: 12px 10px 32px; }
@@ -575,6 +700,10 @@
   .sp-nights-section { margin-top: 0; }
   .sp-night-card { padding: 10px 12px; }
   .sp-stat-val { font-size: 0.95rem; }
+  .sp-sgraph-top { gap: 14px; }
+  .sp-donut { width: 80px; height: 80px; }
+  .sp-donut-inner { width: 54px; height: 54px; }
+  .sp-donut-total { font-size: 0.85rem; }
 }
 @media (max-width: 400px) {
   .sp-avg-bar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
