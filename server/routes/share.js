@@ -135,8 +135,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
     const startDate = start.toISOString().slice(0, 10);
     const endDate   = end.toISOString().slice(0, 10);
 
-    const foodLogColumns = ['date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g'];
-    if (profile?.share_food_notes) foodLogColumns.push('note');
+    const foodLogColumns = ['date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g', 'note'];
     const foodLog = profile?.share_food_log
       ? await db('food_log_entries')
           .where({ user_id: userId })
