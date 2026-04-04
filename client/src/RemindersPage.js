@@ -56,11 +56,13 @@ export default function RemindersPage({ token }) {
   const [formTimes, setFormTimes] = useState(['08:00']);
   const [formDays, setFormDays] = useState([...WEEKDAYS]);
   const [testStatus, setTestStatus] = useState('');
+  const [error, setError] = useState('');
   const addRef = useRef(null);
 
   /* ── persist / sync ─────────────────────────────────────── */
   const persist = useCallback((next) => {
     setReminders(next);
+    setError('');
     localStorage.setItem(LS_KEY, JSON.stringify(next));
     syncRemindersToSW(next);
     // server sync
@@ -71,7 +73,9 @@ export default function RemindersPage({ token }) {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reminders: next, timezone: tz }),
-      }).catch(() => {});
+      }).then(resp => {
+        if (!resp.ok) resp.json().then(d => setError(d.error || 'Sync failed')).catch(() => setError('Sync failed'));
+      }).catch(() => setError('Could not reach server — reminders saved locally'));
     } catch { /* non-fatal */ }
   }, []);
 
@@ -245,6 +249,13 @@ export default function RemindersPage({ token }) {
           {testStatus && <span className="rem-test-status">{testStatus}</span>}
         </div>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="rem-perm-denied" style={{ marginBottom: 14 }}>
+          {error}
+        </div>
+      )}
 
       {/* Permission banner */}
       {permission === 'default' && (
