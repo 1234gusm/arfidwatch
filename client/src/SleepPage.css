@@ -442,6 +442,35 @@
 /* ── Night cards ── */
 .sp-nights-section { margin-top: 4px; }
 
+.sp-nights-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sp-collapse-btns {
+  display: flex;
+  gap: 6px;
+}
+.sp-collapse-btn {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(180,210,255,0.55);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sp-collapse-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
 .sp-nights-list {
   display: flex;
   flex-direction: column;

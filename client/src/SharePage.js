@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import './SharePage.css';
 import API_BASE from './apiBase';
@@ -70,6 +70,74 @@ const fmtSleepHr = (v) => {
   const h = Math.floor(v);
   const m = Math.round((v - h) * 60);
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+};
+
+/* ── Sleep stage graph for share page ── */
+const SHARE_STAGE_COLORS = {
+  deep: '#3d5afe', rem: '#9d7aff', core: '#5b8fd9', awake: '#e57150',
+};
+
+const ShareSleepGraph = ({ d }) => {
+  const stages = [
+    { key: 'deep',  label: 'Deep Sleep',  hr: d.deep  || 0, color: SHARE_STAGE_COLORS.deep  },
+    { key: 'rem',   label: 'REM Sleep',   hr: d.rem   || 0, color: SHARE_STAGE_COLORS.rem   },
+    { key: 'core',  label: 'Core Sleep',  hr: d.core  || 0, color: SHARE_STAGE_COLORS.core  },
+    { key: 'awake', label: 'Awake',       hr: d.awake || 0, color: SHARE_STAGE_COLORS.awake },
+  ];
+  const tot = stages.reduce((s, st) => s + st.hr, 0);
+  if (tot <= 0) return null;
+
+  let cumDeg = 0;
+  const stops = stages.map(s => {
+    const start = cumDeg;
+    cumDeg += (s.hr / tot) * 360;
+    return `${s.color} ${start.toFixed(1)}deg ${cumDeg.toFixed(1)}deg`;
+  }).join(', ');
+
+  return (
+    <div className="shs-sgraph">
+      <div className="shs-sgraph-top">
+        <div className="shs-donut" style={{ background: `conic-gradient(${stops})` }}>
+          <div className="shs-donut-inner">
+            <span className="shs-donut-total">{fmtSleepHr(d.total)}</span>
+            <span className="shs-donut-sub">Total</span>
+          </div>
+        </div>
+        <div className="shs-sgraph-bars">
+          {stages.map(s => {
+            const pct = (s.hr / tot) * 100;
+            return (
+              <div key={s.key} className="shs-sbar-row">
+                <div className="shs-sbar-head">
+                  <span className="shs-sbar-dot" style={{ background: s.color }} />
+                  <span className="shs-sbar-name">{s.label}</span>
+                  <span className="shs-sbar-pct">{pct.toFixed(0)}%</span>
+                </div>
+                <div className="shs-sbar-track">
+                  <div className="shs-sbar-fill" style={{ width: `${pct}%`, background: s.color }} />
+                </div>
+                <span className="shs-sbar-time">{fmtSleepHr(s.hr)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="shs-sgraph-metrics">
+        {d.efficiency    != null && <div className="shs-metric"><strong className={d.efficiency < 75 ? 'shs-warn' : undefined}>{d.efficiency.toFixed(0)}%</strong><span>Efficiency</span></div>}
+        {d.quality       != null && <div className="shs-metric"><strong>{fmtSleepHr(d.quality)}</strong><span>Quality Sleep</span></div>}
+        {d.fellAsleepIn  != null && <div className="shs-metric"><strong>{Math.round(d.fellAsleepIn * 60)} min</strong><span>Onset Latency</span></div>}
+        {d.sleepHR       != null && <div className="shs-metric"><strong>{Math.round(d.sleepHR)} bpm</strong><span>Sleep HR</span></div>}
+        {d.wakingHR      != null && <div className="shs-metric"><strong>{Math.round(d.wakingHR)} bpm</strong><span>Waking HR</span></div>}
+        {d.hrv           != null && <div className="shs-metric"><strong>{Math.round(d.hrv)} ms</strong><span>HRV</span></div>}
+        {d.sleepHRV      != null && <div className="shs-metric"><strong>{Math.round(d.sleepHRV)} ms</strong><span>Sleep HRV</span></div>}
+        {d.spo2          != null && <div className="shs-metric"><strong className={d.spo2 < 96 ? 'shs-warn' : undefined}>{d.spo2.toFixed(1)}%</strong><span>SpO₂</span></div>}
+        {d.minSpo2       != null && <div className="shs-metric"><strong className={d.minSpo2 < 90 ? 'shs-crit' : d.minSpo2 < 94 ? 'shs-warn' : undefined}>{d.minSpo2.toFixed(1)}%</strong><span>Min SpO₂</span></div>}
+        {d.respRate      != null && <div className="shs-metric"><strong>{d.respRate.toFixed(1)}</strong><span>Resp /min</span></div>}
+        {d.breathDist    != null && <div className="shs-metric"><strong className={d.breathDist > 15 ? 'shs-warn' : undefined}>{Math.round(d.breathDist)}</strong><span>Disturbances</span></div>}
+        {d.wristTemp     != null && <div className="shs-metric"><strong>{d.wristTemp.toFixed(1)}°F</strong><span>Wrist Temp</span></div>}
+      </div>
+    </div>
+  );
 };
 
 function pick(maps, ...keys) {
@@ -358,6 +426,27 @@ function SharePage() {
   const [shareJwt,    setShareJwt]    = useState(null);
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
+  const [sleepOpenCards, setSleepOpenCards] = useState(new Set());
+
+  const toggleSleepCard = useCallback((date) => {
+    setSleepOpenCards(prev => {
+      const next = new Set(prev);
+      next.has(date) ? next.delete(date) : next.add(date);
+      return next;
+    });
+  }, []);
+
+  const setSleepAllOpen = useCallback((open) => {
+    if (open && healthInfo) {
+      // expand all valid sleep nights
+      const maps   = buildMaps(healthInfo.data || []);
+      const dates  = (healthInfo.data || []).map(r => String(r.timestamp || '').slice(0, 10)).filter(Boolean);
+      const unique = [...new Set(dates)].filter(d => maps['sleep_analysis_total_sleep_hr']?.[d] != null);
+      setSleepOpenCards(new Set(unique));
+    } else {
+      setSleepOpenCards(new Set());
+    }
+  }, [healthInfo]);
 
   useEffect(() => {
     authFetch(`${API_BASE}/api/share/${shareToken}`)
@@ -1037,31 +1126,38 @@ function SharePage() {
 
               {/* ── Nightly Detail ── */}
               <div className="shs-nights-hdr">
-                Nightly Detail
-                <span className="shs-nights-badge">{validNights.length}</span>
+                <div>
+                  Nightly Detail
+                  <span className="shs-nights-badge">{validNights.length}</span>
+                </div>
+                <div className="shs-collapse-btns">
+                  <button className="shs-collapse-btn" onClick={() => setSleepAllOpen(true)}>Expand All</button>
+                  <button className="shs-collapse-btn" onClick={() => setSleepAllOpen(false)}>Collapse All</button>
+                </div>
               </div>
               <div className="shs-nights-list">
                 {sleepDays.filter(d => !d.empty && d.total != null).map(d => {
                   const stg = sleepStageBar(d);
-                  const hasExtras = d.efficiency != null || d.quality != null || d.fellAsleepIn != null ||
-                    d.sleepHR != null || d.wakingHR != null || d.hrv != null || d.sleepHRV != null ||
-                    d.spo2 != null || d.minSpo2 != null || d.respRate != null ||
-                    d.breathDist != null || d.wristTemp != null;
+                  const isOpen = sleepOpenCards.has(d.date);
                   return (
-                    <div key={d.date} className="shs-night-card">
+                    <div key={d.date} className={`shs-night-card${isOpen ? ' shs-night-card--open' : ''}`}
+                         onClick={() => toggleSleepCard(d.date)} style={{ cursor: 'pointer' }}>
                       <div className="shs-night-hdr">
                         <div className="shs-night-left">
                           <span className="shs-night-date">{localDateStr(d.date)}</span>
                           <span className="shs-night-total">{fmtSleepHr(d.total)}</span>
                           {d.inBed != null && <span className="shs-night-inbed">In bed {fmtSleepHr(d.inBed)}</span>}
                         </div>
-                        {d.efficiency != null && (
-                          <span className={`shs-eff-badge${d.efficiency < 75 ? ' shs-eff-badge--low' : d.efficiency >= 85 ? ' shs-eff-badge--high' : ''}`}>
-                            {d.efficiency.toFixed(0)}% eff
-                          </span>
-                        )}
+                        <div className="shs-night-right-wrap">
+                          {d.efficiency != null && (
+                            <span className={`shs-eff-badge${d.efficiency < 75 ? ' shs-eff-badge--low' : d.efficiency >= 85 ? ' shs-eff-badge--high' : ''}`}>
+                              {d.efficiency.toFixed(0)}% eff
+                            </span>
+                          )}
+                          <span className="shs-night-chevron">{isOpen ? '▾' : '›'}</span>
+                        </div>
                       </div>
-                      {stg && (
+                      {!isOpen && stg && (
                         <>
                           <div className="shs-stage-bar">
                             <div className="shs-seg shs-seg--deep"  style={{ width: stg.deep  + '%' }} />
@@ -1077,22 +1173,7 @@ function SharePage() {
                           </div>
                         </>
                       )}
-                      {hasExtras && (
-                        <div className="shs-metrics-grid">
-                          {d.spo2       != null && <div className="shs-metric"><strong className={d.spo2 < 96 ? 'shs-warn' : undefined}>{d.spo2.toFixed(1)}%</strong><span>SpO₂</span></div>}
-                          {d.minSpo2    != null && <div className="shs-metric"><strong className={d.minSpo2 < 90 ? 'shs-crit' : d.minSpo2 < 94 ? 'shs-warn' : undefined}>{d.minSpo2.toFixed(1)}%</strong><span>Min SpO₂</span></div>}
-                          {d.respRate   != null && <div className="shs-metric"><strong>{d.respRate.toFixed(1)}</strong><span>Resp /min</span></div>}
-                          {d.breathDist != null && <div className="shs-metric"><strong className={d.breathDist > 15 ? 'shs-warn' : undefined}>{Math.round(d.breathDist)}</strong><span>Disturbances</span></div>}
-                          {d.hrv        != null && <div className="shs-metric"><strong>{Math.round(d.hrv)} ms</strong><span>HRV</span></div>}
-                          {d.sleepHRV   != null && <div className="shs-metric"><strong>{Math.round(d.sleepHRV)} ms</strong><span>Sleep HRV</span></div>}
-                          {d.sleepHR    != null && <div className="shs-metric"><strong>{Math.round(d.sleepHR)} bpm</strong><span>Sleep HR</span></div>}
-                          {d.wakingHR   != null && <div className="shs-metric"><strong>{Math.round(d.wakingHR)} bpm</strong><span>Waking HR</span></div>}
-                          {d.efficiency != null && <div className="shs-metric"><strong className={d.efficiency < 75 ? 'shs-warn' : undefined}>{d.efficiency.toFixed(0)}%</strong><span>Efficiency</span></div>}
-                          {d.fellAsleepIn != null && <div className="shs-metric"><strong>{Math.round(d.fellAsleepIn * 60)} min</strong><span>Onset Latency</span></div>}
-                          {d.quality    != null && <div className="shs-metric"><strong>{fmtSleepHr(d.quality)}</strong><span>Quality Sleep</span></div>}
-                          {d.wristTemp  != null && <div className="shs-metric"><strong>{d.wristTemp.toFixed(1)}°F</strong><span>Wrist Temp</span></div>}
-                        </div>
-                      )}
+                      {isOpen && <ShareSleepGraph d={d} />}
                     </div>
                   );
                 })}

@@ -198,16 +198,13 @@ const SleepStageGraph = ({ r }) => {
 };
 
 /* ── NightCard ── */
-const NightCard = ({ r, selected, onSelect }) => {
-  const [open, setOpen] = useState(false);
+const NightCard = ({ r, selected, onSelect, forceOpen }) => {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = forceOpen != null ? forceOpen : localOpen;
   const score = scoreNight(r);
   const { label, key } = scoreBand(score);
   const hasStages = r.deep_hr != null || r.rem_hr != null || r.core_hr != null;
-  const hasExtras = r.sleep_bpm != null || r.hrv != null || r.spo2 != null ||
-    r.resp_rate != null || r.efficiency != null || r.asleep_hr != null ||
-    r.quality_hr != null || r.waking_bpm != null || r.sleep_hrv != null ||
-    r.fell_asleep_in != null || r.breath_dist != null;
-  const handleClick = () => { onSelect(); setOpen(v => !v); };
+  const handleClick = () => { onSelect(); setLocalOpen(v => !v); };
   return (
     <div
       className={`sp-night-card${open ? ' sp-night-card--open' : ''}${selected ? ' sp-night-card--selected' : ''}`}
@@ -272,6 +269,7 @@ function SleepPage({ token }) {
   const [fetchError,  setFetchError]  = useState('');
   const [visLines,    setVisLines]    = useState(new Set(['total', 'deep', 'rem', 'core']));
   const [heroOffset,   setHeroOffset]  = useState(0);
+  const [allCardsOpen, setAllCardsOpen] = useState(null); // null = individual, true/false = forced
 
   const tzOffsetMinutes = new Date().getTimezoneOffset();
 
@@ -532,8 +530,14 @@ function SleepPage({ token }) {
 
           {/* ── Recent nights ── */}
           <div className="sp-nights-section">
-            <div className="sp-section-title">
-              Nightly Detail <span className="sp-section-count">{Math.min(dailyRows.length, 30)}</span>
+            <div className="sp-nights-header">
+              <div className="sp-section-title">
+                Nightly Detail <span className="sp-section-count">{Math.min(dailyRows.length, 30)}</span>
+              </div>
+              <div className="sp-collapse-btns">
+                <button className="sp-collapse-btn" onClick={() => setAllCardsOpen(true)}>Expand All</button>
+                <button className="sp-collapse-btn" onClick={() => setAllCardsOpen(false)}>Collapse All</button>
+              </div>
             </div>
             <div className="sp-nights-list">
               {[...dailyRows].reverse().slice(0, 30).map(r => (
@@ -541,7 +545,8 @@ function SleepPage({ token }) {
                   key={r.day}
                   r={r}
                   selected={viewedNight?.day === r.day}
-                  onSelect={() => handleSelectNight(r.day)}
+                  onSelect={() => { handleSelectNight(r.day); setAllCardsOpen(null); }}
+                  forceOpen={allCardsOpen}
                 />
               ))}
             </div>
