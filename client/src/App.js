@@ -17,6 +17,7 @@ import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import ProfilePage from './ProfilePage';
 import SharePage from './SharePage';
+import RemindersPage from './RemindersPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import API_BASE from './apiBase';
@@ -29,6 +30,7 @@ const TAB_DEFS = [
   { id: 'food', label: 'Food Log', to: '/food' },
   { id: 'medications', label: 'Medications', to: '/medications' },
   { id: 'journal', label: 'Journal', to: '/calendar' },
+  { id: 'reminders', label: 'Reminders', to: '/reminders' },
   { id: 'settings', label: 'Settings', to: '/profile' },
 ];
 
@@ -321,6 +323,10 @@ function App() {
         <Route
           path="/calendar"
           element={token ? <CalendarPage token={token} /> : <LoginPage setToken={setToken} />}
+        />
+        <Route
+          path="/reminders"
+          element={token ? <RemindersPage token={token} /> : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/profile"

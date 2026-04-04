@@ -1,0 +1,467 @@
+/* ── RemindersPage ─────────────────────────────────────────── */
+
+.rem-page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: max(90px, env(safe-area-inset-bottom));
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.rem-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.rem-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.45rem;
+}
+
+.rem-subtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.rem-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rem-test-btn {
+  border: 1px solid rgba(139,92,246,0.35);
+  background: rgba(139,92,246,0.12);
+  color: #a78bfa;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.15s;
+}
+.rem-test-btn:hover { background: rgba(139,92,246,0.22); }
+
+.rem-test-status {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+/* ── Permission banner ───────────────────────────────────── */
+.rem-perm-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(139,92,246,0.3);
+  background: rgba(139,92,246,0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  margin-bottom: 18px;
+  text-align: left;
+  font-size: 0.92rem;
+  transition: background 0.15s;
+}
+.rem-perm-banner:hover { background: rgba(139,92,246,0.15); }
+.rem-perm-icon { font-size: 1.5rem; }
+.rem-perm-sub { color: #94a3b8; font-size: 0.82rem; }
+
+.rem-perm-denied {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(220,38,38,0.1);
+  border: 1px solid rgba(220,38,38,0.25);
+  color: #fca5a5;
+  font-size: 0.85rem;
+  margin-bottom: 18px;
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+.rem-section {
+  margin-bottom: 22px;
+}
+
+.rem-section-hdr {
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rem-count {
+  background: rgba(139,92,246,0.18);
+  color: #a78bfa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ── Presets ──────────────────────────────────────────────── */
+.rem-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rem-preset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.rem-preset:hover:not(:disabled) {
+  background: rgba(139,92,246,0.12);
+  border-color: rgba(139,92,246,0.3);
+}
+.rem-preset--added {
+  opacity: 0.45;
+  cursor: default;
+}
+.rem-preset-icon { font-size: 1.1rem; }
+.rem-preset-label { white-space: nowrap; }
+.rem-preset-check {
+  color: #22c55e;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.rem-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 32px 14px;
+  font-size: 0.92rem;
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: 12px;
+}
+
+/* ── Group (grouped by label) ────────────────────────────── */
+.rem-group {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+.rem-group--off { opacity: 0.55; }
+
+.rem-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px 8px;
+}
+
+.rem-group-label {
+  font-weight: 700;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.rem-group-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rem-group-times {
+  padding: 0 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Individual reminder item ────────────────────────────── */
+.rem-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.12s, opacity 0.2s;
+}
+.rem-item:hover { background: rgba(255,255,255,0.04); }
+.rem-item--off { opacity: 0.45; }
+
+.rem-item-body {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.rem-item-time {
+  font-weight: 600;
+  color: #a78bfa;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rem-item-days {
+  color: #64748b;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rem-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Toggle switch ───────────────────────────────────────── */
+.rem-toggle {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+.rem-toggle--on { background: #8b5cf6; }
+
+.rem-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+  pointer-events: none;
+}
+.rem-toggle--on .rem-toggle-knob { transform: translateX(18px); }
+
+.rem-toggle--sm {
+  width: 34px;
+  height: 20px;
+}
+.rem-toggle--sm .rem-toggle-knob {
+  width: 14px;
+  height: 14px;
+}
+.rem-toggle--sm.rem-toggle--on .rem-toggle-knob { transform: translateX(14px); }
+
+/* ── Icon buttons ────────────────────────────────────────── */
+.rem-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.rem-icon-btn:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+.rem-icon-btn--danger:hover { background: rgba(239,68,68,0.15); color: #f87171; }
+.rem-icon-btn--sm { width: 24px; height: 24px; font-size: 0.75rem; }
+
+/* ── Add / Edit form ─────────────────────────────────────── */
+.rem-form {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.rem-form-title {
+  font-weight: 700;
+  color: #e2e8f0;
+  font-size: 1.05rem;
+  margin-bottom: 14px;
+}
+
+.rem-form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.rem-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.rem-input:focus { border-color: rgba(139,92,246,0.5); }
+.rem-input--time { width: auto; max-width: 144px; }
+
+.rem-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rem-add-time-btn {
+  border: none;
+  background: none;
+  color: #8b5cf6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  align-self: flex-start;
+}
+.rem-add-time-btn:hover { text-decoration: underline; }
+
+/* ── Day picker ──────────────────────────────────────────── */
+.rem-day-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rem-day-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: #64748b;
+  transition: all 0.15s;
+}
+.rem-day-btn--on {
+  background: rgba(139,92,246,0.2);
+  color: #a78bfa;
+  border-color: rgba(139,92,246,0.45);
+}
+
+.rem-day-shortcuts {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.rem-shortcut {
+  border: none;
+  background: none;
+  color: #8b5cf6;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.rem-shortcut:hover { text-decoration: underline; }
+
+/* ── Form buttons ────────────────────────────────────────── */
+.rem-form-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.rem-btn-primary {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: none;
+  background: #8b5cf6;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rem-btn-primary:hover { background: #7c3aed; }
+.rem-btn-primary:disabled { opacity: 0.4; cursor: default; }
+
+.rem-btn-secondary {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rem-btn-secondary:hover { background: rgba(255,255,255,0.05); }
+
+/* ── Floating Add Button ─────────────────────────────────── */
+.rem-fab {
+  position: fixed;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #8b5cf6;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1;
+  box-shadow: 0 4px 20px rgba(139,92,246,0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+  z-index: 100;
+}
+.rem-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(139,92,246,0.55);
+}
+.rem-fab:active { transform: scale(0.95); }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 500px) {
+  .rem-page { padding: 12px; }
+  .rem-preset { padding: 7px 10px; font-size: 0.82rem; }
+  .rem-group-header { padding: 10px 12px 6px; }
+  .rem-group-times { padding: 0 12px 8px; }
+  .rem-item-body { gap: 6px; }
+  .rem-form { padding: 14px; }
+}
