@@ -239,7 +239,7 @@ function HealthPage({ token }) {
     form.append('file', file);
     try {
       const url = `${API_BASE}/api/health/macro/import` + (isFoodLog ? '?source=foodlog' : '');
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method: 'POST',
         credentials: 'include',
         body: form,

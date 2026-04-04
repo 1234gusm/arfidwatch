@@ -354,7 +354,7 @@ function SharePage() {
   const [unlocking,  setUnlocking]  = useState(false);
   const [activeTab,  setActiveTab]  = useState('overview');
   const [showJournal, setShowJournal] = useState(false);
-  const [showFoodNotes, setShowFoodNotes] = useState(false);
+  const [showFoodNotes, setShowFoodNotes] = useState(true);
   const [shareJwt,    setShareJwt]    = useState(null);
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
@@ -715,14 +715,6 @@ function SharePage() {
                 <label className="share-toggle">
                   <span>Journal</span>
                   <span className={`share-toggle-track${showJournal ? ' share-toggle-track--on' : ''}`} onClick={() => setShowJournal(v => !v)}>
-                    <span className="share-toggle-thumb" />
-                  </span>
-                </label>
-              )}
-              {foodLog.some(e => e.note) && (
-                <label className="share-toggle">
-                  <span>Food Notes</span>
-                  <span className={`share-toggle-track${showFoodNotes ? ' share-toggle-track--on' : ''}`} onClick={() => setShowFoodNotes(v => !v)}>
                     <span className="share-toggle-thumb" />
                   </span>
                 </label>
