@@ -648,7 +648,7 @@ nav {
                 visibility 0s linear 0.36s;
   }
   .nav-links.nav-links--open {
-    max-height: 600px;
+    max-height: 800px;
     padding: 6px;
     opacity: 1;
     transform: translateY(0);

@@ -218,6 +218,7 @@ function App() {
 
   const reorderTabs = (sourceId, targetId) => {
     if (!sourceId || !targetId || sourceId === targetId) return;
+    if (sourceId === 'settings' || targetId === 'settings') return;
     const order = [...tabPrefs.order];
     const sourceIdx = order.indexOf(sourceId);
     const targetIdx = order.indexOf(targetId);
@@ -264,6 +265,7 @@ function App() {
         {token ? (
           <div className={`nav-links${mobileMenuOpen ? ' nav-links--open' : ''}`}>
             {orderedTabs.map((tab, idx) => {
+              const isSettings = tab.id === 'settings';
               const isDragging = draggedTabId === tab.id;
               const isDropTarget = dragOverTabId === tab.id && draggedTabId !== tab.id;
               return (
@@ -271,15 +273,15 @@ function App() {
                   <Link
                     to={tab.to}
                     className={`nav-tab-link${isDragging ? ' nav-tab-link--dragging' : ''}${isDropTarget ? ' nav-tab-link--drop-target' : ''}${location.pathname === tab.to ? ' nav-tab-link--active' : ''}`}
-                    draggable={!isMobileNav}
-                    onDragStart={() => onTabDragStart(tab.id)}
+                    draggable={!isMobileNav && !isSettings}
+                    onDragStart={() => { if (!isSettings) onTabDragStart(tab.id); }}
                     onDragEnd={onTabDragEnd}
                     onDragOver={(e) => {
-                      if (isMobileNav) return;
+                      if (isMobileNav || isSettings) return;
                       e.preventDefault();
                       if (dragOverTabId !== tab.id) setDragOverTabId(tab.id);
                     }}
-                    onDrop={() => onTabDrop(tab.id)}
+                    onDrop={() => { if (!isSettings) onTabDrop(tab.id); }}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {tab.label}
