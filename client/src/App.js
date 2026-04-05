@@ -18,6 +18,7 @@ import RegisterPage from './RegisterPage';
 import ProfilePage from './ProfilePage';
 import SharePage from './SharePage';
 import RemindersPage from './RemindersPage';
+import VitalsPage from './VitalsPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import API_BASE from './apiBase';
@@ -26,6 +27,7 @@ import { authFetch, checkSession, clearAuthToken } from './auth';
 const TAB_DEFS = [
   { id: 'health', label: 'Health', to: '/' },
   { id: 'sleep', label: 'Sleep', to: '/sleep' },
+  { id: 'vitals', label: 'Vitals', to: '/vitals' },
   { id: 'macros', label: 'Macros', to: '/macros' },
   { id: 'food', label: 'Food Log', to: '/food' },
   { id: 'medications', label: 'Medications', to: '/medications' },
@@ -313,6 +315,10 @@ function App() {
         <Route
           path="/sleep"
           element={token ? <SleepPage token={token} /> : <LoginPage setToken={setToken} />}
+        />
+        <Route
+          path="/vitals"
+          element={token ? <VitalsPage token={token} /> : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/food"

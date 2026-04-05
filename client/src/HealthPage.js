@@ -193,8 +193,9 @@ function HealthPage({ token }) {
         /(active.energy|heart.rate|step.count|blood.oxygen|walking.*running)/i.test(firstLine));
     const isAutoSleepHeaderShape = /(iso8601,.*fromdate,.*todate|\binbed\b|\bfellasleepin\b|\basleepavg7\b|\befficiencyavg7\b)/i.test(firstLine.replace(/\s+/g, ''));
     const isAutoSleepCsv = isAutoSleepHeaderShape || /\bautosleep\b/i.test(firstLine);
-    if (isHealthAutoExport) {
-      // Health Auto Export CSV
+    const isIHealthCsv = /(systolic|sys\s*\(?\s*mmhg)/i.test(firstLine) && /(diastolic|dia\s*\(?\s*mmhg)/i.test(firstLine);
+    if (isHealthAutoExport || isIHealthCsv) {
+      // Health Auto Export CSV or iHealth BP CSV
       try {
         const res = await authFetch(`${API_BASE}/api/health/import`, {
           method: 'POST',
@@ -204,7 +205,8 @@ function HealthPage({ token }) {
         });
         if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
         const r = await res.json();
-        alert(buildImportAlertMessage({ ...r, label: 'health records' }));
+        const label = isIHealthCsv ? 'blood pressure records' : 'health records';
+        alert(buildImportAlertMessage({ ...r, label }));
         fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('CSV import error:', err);
@@ -777,6 +779,10 @@ function HealthPage({ token }) {
       .filter(x => Number.isFinite(x.v))
       .sort((a, b) => b.day.localeCompare(a.day));
     const hrVals = getRange('resting_heart_rate_countmin').sort((a, b) => b.day.localeCompare(a.day));
+    const avgSimple = (vals) => {
+      if (!vals.length) return null;
+      return vals.reduce((a, b) => a + b.v, 0) / vals.length;
+    };
     return {
       weight:     weightVals.length ? weightVals[0].v    : null,
       weightUnit: weightVals.length ? weightVals[0].unit : 'lb',
@@ -785,6 +791,9 @@ function HealthPage({ token }) {
       carbs:      avgZeroFill(getRange('carbohydrates_g')),
       fat:        avgZeroFill(getRange('total_fat_g')),
       restingHR:  hrVals.length ? hrVals[0].v : null,
+      bpSys:      avgSimple(getRange('blood_pressure_systolic_mmhg')),
+      bpDia:      avgSimple(getRange('blood_pressure_diastolic_mmhg')),
+      hrv:        avgSimple(getRange('heart_rate_variability_ms')),
     };
   })();
 
@@ -903,6 +912,18 @@ function HealthPage({ token }) {
               <div className="hp-macro-chip hp-macro--hr">
                 <strong>{Math.round(overviewData.restingHR)}</strong>
                 <span>bpm rHR</span>
+              </div>
+            )}
+            {overviewData.bpSys !== null && overviewData.bpDia !== null && (
+              <div className="hp-macro-chip hp-macro--bp">
+                <strong>{Math.round(overviewData.bpSys)}/{Math.round(overviewData.bpDia)}</strong>
+                <span>mmHg BP</span>
+              </div>
+            )}
+            {overviewData.hrv !== null && (
+              <div className="hp-macro-chip hp-macro--hrv">
+                <strong>{overviewData.hrv.toFixed(1)}</strong>
+                <span>ms HRV</span>
               </div>
             )}
           </div>

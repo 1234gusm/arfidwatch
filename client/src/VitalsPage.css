@@ -1,0 +1,171 @@
+/* ── VitalsPage ── */
+.vp-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+  color: #e2e8f0;
+}
+
+/* Header */
+.vp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.vp-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.vp-subtitle {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: rgba(148,163,184,0.6);
+}
+.vp-range-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.vp-range-btn {
+  background: rgba(30,41,59,0.7);
+  border: 1px solid rgba(139,92,246,0.18);
+  color: #94a3b8;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.vp-range-btn:hover { background: rgba(139,92,246,0.12); color: #c4b5fd; }
+.vp-range-btn--active { background: rgba(139,92,246,0.25); color: #c4b5fd; border-color: rgba(139,92,246,0.4); }
+
+/* Loading / empty */
+.vp-loading, .vp-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: rgba(148,163,184,0.5);
+  font-size: 0.9rem;
+}
+
+/* Summary chips */
+.vp-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.vp-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: linear-gradient(135deg, rgba(30,41,59,0.85), rgba(15,23,42,0.9));
+  border: 1px solid rgba(139,92,246,0.15);
+  border-bottom: 3px solid transparent;
+  border-radius: 10px;
+  padding: 10px 16px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 80px;
+}
+.vp-chip:hover { background: rgba(139,92,246,0.1); }
+.vp-chip--active { border-color: rgba(139,92,246,0.35); background: rgba(139,92,246,0.14); }
+.vp-chip strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.vp-chip span {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: rgba(148,163,184,0.5);
+  letter-spacing: 0.04em;
+}
+
+/* Detail card (expanded) */
+.vp-detail-card {
+  background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.85));
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+.vp-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.vp-detail-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #c4b5fd;
+}
+.vp-detail-latest {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.vp-detail-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.78rem;
+  color: rgba(148,163,184,0.6);
+  margin-bottom: 10px;
+}
+.vp-detail-stats strong { color: #cbd5e1; }
+.vp-chart-wrap { margin-top: 6px; }
+
+/* Grid cards */
+.vp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.vp-metric-card {
+  background: linear-gradient(135deg, rgba(30,41,59,0.7), rgba(15,23,42,0.75));
+  border: 1px solid rgba(139,92,246,0.12);
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.vp-metric-card:hover { background: rgba(139,92,246,0.08); }
+.vp-metric-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(148,163,184,0.55);
+  margin-bottom: 4px;
+}
+.vp-metric-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.vp-metric-value small {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: rgba(148,163,184,0.5);
+}
+.vp-metric-sub {
+  font-size: 0.7rem;
+  color: rgba(148,163,184,0.45);
+  margin-top: 2px;
+}
+.vp-spark-wrap { margin-top: 8px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .vp-header { flex-direction: column; }
+  .vp-grid { grid-template-columns: 1fr; }
+  .vp-summary { gap: 6px; }
+  .vp-chip { min-width: 70px; padding: 8px 10px 6px; }
+}

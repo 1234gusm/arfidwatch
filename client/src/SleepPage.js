@@ -1,14 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-  ReferenceLine,
-} from 'recharts';
 import './SleepPage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
@@ -23,13 +13,6 @@ const RANGE_OPTS = [
   { days: 0,   label: 'All'      },
 ];
 const SCORE_COLORS  = { excellent: '#22c55e', good: '#3b82f6', fair: '#f59e0b', low: '#ef4444', na: '#475569' };
-const CHART_LINES   = [
-  { key: 'total', dataKey: 'total_sleep_hr', name: 'Total',  color: '#60a5fa', width: 2.5 },
-  { key: 'deep',  dataKey: 'deep_hr',        name: 'Deep',   color: '#818cf8', width: 1.5 },
-  { key: 'rem',   dataKey: 'rem_hr',         name: 'REM',    color: '#c084fc', width: 1.5 },
-  { key: 'core',  dataKey: 'core_hr',        name: 'Core',   color: '#38bdf8', width: 1.5 },
-  { key: 'awake', dataKey: 'awake_hr',       name: 'Awake',  color: '#fb923c', width: 1.5 },
-];
 
 /* ── Stage colours (shared) ── */
 const STAGE_COLORS = {
@@ -241,40 +224,16 @@ const NightCard = ({ r, selected, onSelect, forceOpen }) => {
   );
 };
 
-/* ── Chart Tooltip ── */
-const ChartTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  const d = new Date(`${label}T12:00:00`);
-  const dateStr = Number.isNaN(d.getTime()) ? label
-    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return (
-    <div className="sp-tooltip">
-      <div className="sp-tooltip-date">{dateStr}</div>
-      {payload.map(p => (
-        <div key={p.dataKey} className="sp-tooltip-row">
-          <span className="sp-tooltip-dot" style={{ background: p.color }} />
-          <span className="sp-tooltip-name">{p.name}</span>
-          <span className="sp-tooltip-val">{p.value != null ? fmtHr(p.value) : '–'}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 function SleepPage({ token }) {
   const [rows,        setRows]        = useState([]);
   const [rangeDays,   setRangeDays]   = useState(90);
   const [refreshTick, setRefreshTick] = useState(0);
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState('');
-  const [visLines,    setVisLines]    = useState(new Set(['total', 'deep', 'rem', 'core']));
   const [heroOffset,   setHeroOffset]  = useState(0);
   const [allCardsOpen, setAllCardsOpen] = useState(null); // null = individual, true/false = forced
 
   const tzOffsetMinutes = new Date().getTimezoneOffset();
-
-  const toggleLine = (key) =>
-    setVisLines(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
   useEffect(() => {
     const load = async () => {
@@ -462,69 +421,6 @@ function SleepPage({ token }) {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* ── Trend chart ── */}
-          <div className="sp-chart-section">
-            <div className="sp-chart-header">
-              <span className="sp-section-title">Trends</span>
-              <div className="sp-line-toggles">
-                {CHART_LINES.map(l => (
-                  <button
-                    key={l.key}
-                    type="button"
-                    className={`sp-line-btn${visLines.has(l.key) ? ' sp-line-btn--on' : ''}`}
-                    style={visLines.has(l.key) ? { borderColor: l.color, color: l.color } : {}}
-                    onClick={() => toggleLine(l.key)}
-                  >
-                    <span
-                      className="sp-line-dot"
-                      style={visLines.has(l.key)
-                        ? { background: l.color, borderColor: l.color }
-                        : { background: 'transparent', borderColor: 'rgba(160,210,255,0.3)' }}
-                    />
-                    {l.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="sp-chart-wrap">
-              <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={dailyRows} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis
-                    dataKey="day"
-                    tick={{ fill: 'rgba(180,210,255,0.4)', fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={v => {
-                      const d = new Date(`${v}T12:00:00`);
-                      return isNaN(d) ? v : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    }}
-                  />
-                  <YAxis
-                    unit="h"
-                    tick={{ fill: 'rgba(180,210,255,0.4)', fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={v => v.toFixed(0)}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <ReferenceLine
-                    y={8}
-                    stroke="rgba(255,255,255,0.1)"
-                    strokeDasharray="6 4"
-                    label={{ value: '8h goal', position: 'insideTopRight', fill: 'rgba(255,255,255,0.2)', fontSize: 10 }}
-                  />
-                  {CHART_LINES.map(l =>
-                    visLines.has(l.key) ? (
-                      <Line key={l.key} type="monotone" dataKey={l.dataKey} name={l.name}
-                        stroke={l.color} strokeWidth={l.width} dot={false} connectNulls />
-                    ) : null
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
             </div>
           </div>
 

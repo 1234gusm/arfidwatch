@@ -94,6 +94,8 @@
 .hp-macro--c { border-bottom: 2px solid #3b7dd8; }
 .hp-macro--f { border-bottom: 2px solid #d35400; }
 .hp-macro--hr { border-bottom: 2px solid #e74c3c; }
+.hp-macro--bp { border-bottom: 2px solid #e67e22; }
+.hp-macro--hrv { border-bottom: 2px solid #9b59b6; }
 
 /* ── Today's Eating banner ─────────────────────────────────────────────── */
 .eating-banner {

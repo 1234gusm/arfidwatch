@@ -127,6 +127,87 @@ const isAutoSleepCsvHeaders = (headers = []) => {
   return autoSleepSpecific >= 2;
 };
 
+// ── iHealth CSV detection & parsing ──────────────────────────────────────────
+// iHealth blood pressure exports have headers like:
+// "Measurement Date","Systolic(mmHg)","Diastolic(mmHg)","Heart Rate(Beats/min)","Irregular Heartbeat","Note"
+// or sometimes: "Date","SYS(mmHg)","DIA(mmHg)","Pulse(bpm)",...
+const isIHealthCsvHeaders = (headers = []) => {
+  const hs = headers.map(normalizeCsvHeader).filter(Boolean);
+  if (!hs.length) return false;
+  const hasSystolic  = hs.some(h => h.includes('systolic') || h.includes('sysmmhg') || h.includes('sys mmhg'));
+  const hasDiastolic = hs.some(h => h.includes('diastolic') || h.includes('diammhg') || h.includes('dia mmhg'));
+  const hasDate      = hs.some(h => h.includes('date') || h.includes('time'));
+  return hasSystolic && hasDiastolic && hasDate;
+};
+
+const buildIHealthRecords = (rows, userId) => {
+  const out = [];
+  rows.forEach((row, idx) => {
+    // Combine separate Date + Time columns (iHealth exports them separately)
+    let dateVal = null, timeVal = null;
+    for (const [k, v] of Object.entries(row)) {
+      const kn = k.trim().toLowerCase();
+      if (kn === 'date' && v) dateVal = v.trim();
+      if (kn === 'time' && v) timeVal = v.trim();
+    }
+    let ts = null;
+    if (dateVal && timeVal) {
+      const d = new Date(`${dateVal} ${timeVal}`);
+      if (!Number.isNaN(d.getTime())) ts = d.toISOString();
+    }
+    if (!ts && dateVal) {
+      const d = new Date(dateVal);
+      if (!Number.isNaN(d.getTime())) ts = d.toISOString();
+    }
+    if (!ts) {
+      // Fallback: try any date/time-like column
+      for (const [k, v] of Object.entries(row)) {
+        if (/date|time/i.test(k) && v) {
+          const d = new Date(v);
+          if (!Number.isNaN(d.getTime())) { ts = d.toISOString(); break; }
+        }
+      }
+    }
+    if (!ts) {
+      const d = parseDateOnlyLocal(Object.values(row)[0]);
+      ts = d ? d.toISOString() : new Date().toISOString();
+    }
+
+    // Extract systolic
+    const sysRaw = pickRowValue(row, h => h.includes('systolic') || h === 'sysmmhg' || h === 'sys mmhg' || h === 'sys');
+    const sysVal = sysRaw != null ? parseFloat(String(sysRaw).replace(/[^0-9.\-]/g, '')) : NaN;
+    if (Number.isFinite(sysVal) && sysVal > 0) {
+      out.push({ user_id: userId, type: 'blood_pressure_systolic_mmhg', value: sysVal, timestamp: ts,
+        raw: JSON.stringify({ source: 'ihealth_csv', row: idx + 2, value: sysRaw }) });
+    }
+
+    // Extract diastolic
+    const diaRaw = pickRowValue(row, h => h.includes('diastolic') || h === 'diammhg' || h === 'dia mmhg' || h === 'dia');
+    const diaVal = diaRaw != null ? parseFloat(String(diaRaw).replace(/[^0-9.\-]/g, '')) : NaN;
+    if (Number.isFinite(diaVal) && diaVal > 0) {
+      out.push({ user_id: userId, type: 'blood_pressure_diastolic_mmhg', value: diaVal, timestamp: ts,
+        raw: JSON.stringify({ source: 'ihealth_csv', row: idx + 2, value: diaRaw }) });
+    }
+
+    // Extract heart rate / pulse
+    const hrRaw = pickRowValue(row, h => h.includes('heart rate') || h.includes('pulse') || h === 'heartrate' || h.includes('beatsmin'));
+    const hrVal = hrRaw != null ? parseFloat(String(hrRaw).replace(/[^0-9.\-]/g, '')) : NaN;
+    if (Number.isFinite(hrVal) && hrVal > 0) {
+      out.push({ user_id: userId, type: 'heart_rate_avg_countmin', value: hrVal, timestamp: ts,
+        raw: JSON.stringify({ source: 'ihealth_csv', row: idx + 2, value: hrRaw }) });
+    }
+
+    // Extract irregular heartbeat flag
+    const irregRaw = pickRowValue(row, h => h.includes('irregular'));
+    if (irregRaw != null && String(irregRaw).trim() !== '') {
+      const irregVal = /yes|true|1|detected/i.test(String(irregRaw)) ? 1 : 0;
+      out.push({ user_id: userId, type: 'irregular_heartbeat_flag', value: irregVal, timestamp: ts,
+        raw: JSON.stringify({ source: 'ihealth_csv', row: idx + 2, value: irregRaw }) });
+    }
+  });
+  return out;
+};
+
 const pickRowValue = (row, testFn) => {
   for (const [k, v] of Object.entries(row || {})) {
     if (testFn(normalizeCsvHeader(k))) return v;
@@ -570,16 +651,21 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
       });
       const headers = rows.length ? Object.keys(rows[0]) : [];
       const isAutoSleep = isAutoSleepCsvHeaders(headers);
+      const isIHealth = !isAutoSleep && isIHealthCsvHeaders(headers);
       const records = [];
 
       if (isAutoSleep) {
         records.push(...buildAutoSleepRecords(rows, req.user.id));
       }
 
+      if (isIHealth) {
+        records.push(...buildIHealthRecords(rows, req.user.id));
+      }
+
       const tsCandidates = ['startDate', 'endDate', 'timestamp', 'date', 'time'];
 
       for (const row of rows) {
-        if (isAutoSleep) continue;
+        if (isAutoSleep || isIHealth) continue;
         // find a timestamp field in the row
         let ts = null;
         for (const k of Object.keys(row)) {
@@ -752,6 +838,74 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
           skipped_duplicates: records.length - importedCount,
           duplicateFile,
           source: 'autosleep_csv',
+        });
+      }
+
+      if (isIHealth) {
+        // iHealth BP CSV — replace-style dedup (like AutoSleep):
+        // delete existing records that share the same type+timestamp, then
+        // re-insert so re-uploads always reflect the latest export.
+        let normalized = [];
+        const seenUpload = new Set();
+        for (const rec of records) {
+          const ts = normalizeStatTimestamp(rec.timestamp);
+          if (!ts) continue;
+          const nr = { ...rec, timestamp: ts, value: normalizeStatValue(rec.value) };
+          const key = statKey(nr);
+          if (seenUpload.has(key)) continue;
+          seenUpload.add(key);
+          normalized.push(nr);
+        }
+
+        // Group by type+timestamp so we can delete existing rows atomically
+        const tsTypeKeys = new Map(); // "type|YYYY-MM-DDTHH:MM" → true
+        for (const rec of normalized) {
+          tsTypeKeys.set(`${rec.type}|${rec.timestamp.slice(0, 16)}`, true);
+        }
+
+        let importedCount = 0;
+        await db.transaction(async (trx) => {
+          // Delete existing rows matching any incoming type+minute-timestamp
+          for (const compound of tsTypeKeys.keys()) {
+            const [type, tsPrefix] = compound.split('|');
+            await trx('health_data')
+              .where({ user_id: req.user.id, type })
+              .andWhere('timestamp', '>=', `${tsPrefix}:00.000Z`)
+              .andWhere('timestamp', '<=', `${tsPrefix}:59.999Z`)
+              .delete();
+          }
+
+          if (normalized.length > 0) {
+            const importRow = {
+              user_id: req.user.id,
+              filename: uploadFilename,
+              source: 'health',
+              imported_at: new Date().toISOString(),
+              record_count: normalized.length,
+            };
+            if (fileHash) importRow.file_hash = fileHash;
+            let importId;
+            try {
+              [importId] = await trx('health_imports').insert(importRow);
+            } catch (e) {
+              if (Object.prototype.hasOwnProperty.call(importRow, 'file_hash')) {
+                delete importRow.file_hash;
+                [importId] = await trx('health_imports').insert(importRow);
+              } else { throw e; }
+            }
+            const tagged = normalized.map(r => ({ ...r, import_id: importId }));
+            for (let i = 0; i < tagged.length; i += CHUNK_SIZE) {
+              await trx('health_data').insert(tagged.slice(i, i + CHUNK_SIZE));
+            }
+            importedCount = normalized.length;
+          }
+        });
+
+        return res.json({
+          imported: importedCount,
+          skipped_duplicates: records.length - importedCount,
+          duplicateFile,
+          source: 'ihealth_csv',
         });
       }
 

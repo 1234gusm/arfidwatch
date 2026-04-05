@@ -743,6 +743,20 @@ function SharePage() {
               </div>
             );
           })()}
+          {(() => {
+            const rhr    = avgOf(maps['resting_heart_rate_countmin']);
+            const bpSys  = avgOf(maps['blood_pressure_systolic_mmhg']);
+            const bpDia  = avgOf(maps['blood_pressure_diastolic_mmhg']);
+            const hrv    = avgOf(maps['heart_rate_variability_ms']);
+            if (rhr == null && bpSys == null && hrv == null) return null;
+            return (
+              <div className="share-patient-macros share-patient-vitals">
+                {rhr != null && <span className="share-pm-chip share-pm--hr"><strong>{Math.round(rhr)}</strong> bpm rHR</span>}
+                {bpSys != null && bpDia != null && <span className="share-pm-chip share-pm--bp"><strong>{Math.round(bpSys)}/{Math.round(bpDia)}</strong> mmHg</span>}
+                {hrv != null && <span className="share-pm-chip share-pm--hrv"><strong>{hrv.toFixed(1)}</strong> ms HRV</span>}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Tabs */}
@@ -770,11 +784,20 @@ function SharePage() {
               onClick={() => setActiveTab('meds')}
             >Medications{medications.length > 0 ? ` (${medications.length})` : ''}</button>
           )}
+          <button
+            className={`share-tab${activeTab === 'vitals' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('vitals')}
+          >Vitals</button>
         </div>
         </div>
 
         {activeTab === 'overview' && <>
         {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
+        </>}
+
+        {activeTab === 'vitals' && <>
+          {renderMetricSection(SECTIONS.find(s => s.id === 'body_activity'))}
+          {renderMetricSection(SECTIONS.find(s => s.id === 'sleep'))}
         </>}
 
         {activeTab === 'log' && (() => {
