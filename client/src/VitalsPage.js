@@ -58,9 +58,9 @@ function VitalsPage({ token }) {
   const [data, setData]             = useState([]);
   const [rangeDays, setRangeDays]   = useState(90);
   const [loading, setLoading]       = useState(true);
-  const [cardsOpen, setCardsOpen]   = useState(false);
   const [expanded, setExpanded]     = useState({});    // per-graph expand state
   const [allExpanded, setAllExpanded] = useState(false); // master toggle
+  const [expandedCard, setExpandedCard] = useState(null); // per-stat-card expand
 
   useEffect(() => {
     if (!token) return;
@@ -293,14 +293,17 @@ function VitalsPage({ token }) {
             })}
           </div>
 
-          {/* ── Collapsible stat cards ── */}
-          <button className="vp-cards-toggle" onClick={() => setCardsOpen(v => !v)}>
-            {cardsOpen ? '▾ Hide Details' : '▸ Show Details'} ({metrics.length} metrics)
-          </button>
-          {cardsOpen && (
-            <div className="vp-cards">
-              {metrics.map(m => (
-                <div key={m.key} className="vp-stat-card" style={{ borderLeftColor: m.color }}>
+          {/* ── Stat cards ── */}
+          <div className="vp-cards">
+            {metrics.map(m => {
+              const isCardOpen = expandedCard === m.key;
+              return (
+                <div
+                  key={m.key}
+                  className={`vp-stat-card${isCardOpen ? ' vp-stat-card--expanded' : ''}`}
+                  style={{ borderLeftColor: m.color }}
+                  onClick={() => setExpandedCard(isCardOpen ? null : m.key)}
+                >
                   <div className="vp-stat-label">{m.label}</div>
                   <div className="vp-stat-row">
                     <span className="vp-stat-latest">{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)} <small>{m.unit}</small></span>
@@ -308,10 +311,29 @@ function VitalsPage({ token }) {
                       {m.dp === 0 ? Math.round(m.min) : m.min.toFixed(m.dp)}–{m.dp === 0 ? Math.round(m.max) : m.max.toFixed(m.dp)} · avg {m.dp === 0 ? Math.round(m.avg) : m.avg.toFixed(m.dp)} · {m.count}
                     </span>
                   </div>
+                  {isCardOpen && (
+                    <div className="vp-stat-chart">
+                      <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                          <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" tickFormatter={d => d.slice(5)} />
+                          <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
+                          <Tooltip
+                            contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                            labelStyle={{ color: '#94a3b8' }}
+                          />
+                          <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={2}
+                            dot={{ r: m.chart.length < 30 ? 3 : 0, fill: m.color }}
+                            name={m.label} connectNulls
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </>
       )}
     </div>
