@@ -10,7 +10,6 @@ import {
   ReferenceLine,
 } from 'recharts';
 import './SleepPage.css';
-const HideTrends=()=>{React.useEffect(()=>{const el=document.querySelector('.sleep-trends');if(el)el.style.display='none';const canvas=document.querySelector('canvas');if(canvas)canvas.style.display='none';},[]);return null};
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 
@@ -332,7 +331,8 @@ function SleepPage({ token }) {
   if (!token) return <div className="sp-page"><p>Please log in.</p></div>;
 
   return (
-    <div className="sp-page">      {React.createElement(HideTrends)}      {/* ── Header ── */}
+    <div className="sp-page">
+      {/* ── Header ── */}
       <div className="sp-header">
         <div className="sp-header-left">
           <h2 className="sp-title">Sleep</h2>

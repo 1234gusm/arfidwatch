@@ -1165,66 +1165,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       const amtCol     = findH(/^amount$|^serving$|^quantity$/i);
       const dateCol    = findH(/^date$/i, /date/i, /day/i);
 
-      // ═══════════════════════════════════════════════════════════════════════════════
-// iHealth Blood Pressure Integration Complete ✓
-// ✓ Vitals table schema created in db.js
-// ✓ CSV parsing for systolic/diastolic/pulse columns
-// ✓ GET /api/health/vitals endpoint
-// ✓ GET /api/health/overview endpoint  
-// ✓ HealthPage displays vitals (VitalsDisplay component)
-// ✓ SharePage displays vitals for doctors (VitalsDisplayShare component)
-// ✓ SleepPage trends removed (HideTrends component)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// iHealth Blood Pressure Integration
-// This route automatically detects and imports iHealth CSV exports containing blood pressure data
-// The system detects systolic/diastolic/pulse columns and stores them in the vitals table
-// Vitals are returned via:
-//   GET /api/health/vitals - returns all user vitals
-//   GET /api/health/overview - returns vitals along with sleeping data
-// 
-// On the client side, HealthPage and SharePage need to:
-// 1. Add useState([]) for vitals state
-// 2. Fetch from /api/health/vitals on mount
-// 3. Display vitals in a VitalsSection component below the averages
-//
-// CSV columns recognized: systolic, diastolic, pulse, heart rate, hr, date, time
-// Source is set to 'iHealth' for tracking/filtering purposes
-
-// Database schema ready - vitals table created with all necessary fields
-      const systolicCol = findH(/^systolic$/i, /systolic/i);
-      const diastolicCol = findH(/^diastolic$/i, /diastolic/i);
-      const pulseCol = findH(/^pulse$/i, /heart.*rate/i, /hr/i);
-
-      if (systolicCol || diastolicCol) {
-        isVitalsFile = true;
-        const vitalsEntries = parsedRows
-          .map(row => {
-            const datePart = dateCol ? row[dateCol] : (row.Date || row.date);
-            const dateStr = normalizeDateOnly(datePart);
-            if (!dateStr) return null;
-            return {
-              user_id: req.user.id,
-              date: dateStr,
-              time: timeCol ? String(row[timeCol] || '').trim() : null,
-              systolic: systolicCol ? numOrNull(row[systolicCol]) : null,
-              diastolic: diastolicCol ? numOrNull(row[diastolicCol]) : null,
-              pulse: pulseCol ? numOrNull(row[pulseCol]) : null,
-              source: 'iHealth',
-              note: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
-          })
-          .filter(Boolean);
-
-        if (vitalsEntries.length > 0) {
-          // Replace existing vitals for this user (similar to food log)
-          await db('vitals').where({ user_id: req.user.id, source: 'iHealth' }).delete();
-          await insertInChunks('vitals', vitalsEntries);
-          vitalsInserted = vitalsEntries.length;
-        }
-      }
+      if (foodCol) {
         isFoodLogFile = true;
         // MacroFactor CSV is always a complete export, so replace all food-log
         // entries for this user to avoid stale / schema-mismatched duplicates.
@@ -1539,35 +1480,4 @@ router.post('/auto-pull/pull', authenticate, async (_req, res) => {
   res.json({ ...result, status: refreshed });
 });
 
-// GET /api/health/overview - returns sleeping, vitals, and other data summaries
-router.get('/overview', authenticate, async (req, res) => {
-  try {
-    const sleeping = await db('sleeping')
-      .where({ user_id: req.user.id })
-      .orderBy('date', 'desc')
-      .limit(100);
-    
-    const vitals = await db('vitals')
-      .where({ user_id: req.user.id })
-      .orderBy('date', 'desc')
-      .limit(50);
-
-    res.json({ sleeping, vitals });
-  } catch (err) {
-    console.error('health overview error:', err);
-    res.status(500).json({ error: 'server error' });
-  }
-});
-
-router.get('/vitals', authenticate, async (req, res) => {
-  try {
-    const vitals = await db('vitals')
-      .where({ user_id: req.user.id })
-      .orderBy('date', 'desc')
-      .limit(100);
-    res.json({ vitals });
-  } catch (err) {
-    console.error('vitals error:', err);
-    res.status(500).json({ error: 'server error' });
-  }
-});
+module.exports = router;

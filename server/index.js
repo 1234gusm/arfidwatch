@@ -1,8 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// ArfidWatch Health Tracker Server
-// Features: Sleep tracking, food logs, medications, health vitals (iHealth integration)
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
