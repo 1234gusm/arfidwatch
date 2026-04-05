@@ -992,7 +992,8 @@ const upload = multer({
     const allowed = ['.xlsx', '.xls', '.csv', '.json', '.numbers'];
     const ext = path.extname(file.originalname || '').toLowerCase();
     if (!allowed.includes(ext)) return cb(new Error('Only .xlsx, .xls, .csv, .json, and .numbers files are allowed'));
-    if (!allowedMimeTypes.has(file.mimetype)) return cb(new Error('Invalid file type'));
+    // Skip MIME check for .numbers — browsers send unpredictable MIME types for them
+    if (ext !== '.numbers' && !allowedMimeTypes.has(file.mimetype)) return cb(new Error('Invalid file type'));
     cb(null, true);
   },
 });
