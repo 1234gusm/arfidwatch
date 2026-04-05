@@ -857,7 +857,6 @@ function HealthPage({ token }) {
           <input
             ref={uploadInputRef}
             type="file"
-            accept=".csv,.xlsx,.xls,text/csv,application/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={handleUnifiedUpload}
             className="health-upload-input"
           />
