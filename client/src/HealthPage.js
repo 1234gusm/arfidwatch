@@ -158,7 +158,7 @@ function HealthPage({ token }) {
 
     const ext = file.name.split('.').pop().toLowerCase();
 
-    if (ext === 'xlsx' || ext === 'xls') {
+    if (ext === 'numbers' || ext === 'xlsx' || ext === 'xls') {
       // MacroFactor Excel export
       const form = new FormData();
       form.append('file', file);
@@ -183,6 +183,29 @@ function HealthPage({ token }) {
     // CSV: read text and sniff header to determine route
     let text;
     try { text = await file.text(); } catch { alert('Could not read file'); return; }
+
+    // Detect binary/ZIP files (e.g. .numbers, .xlsx disguised as .csv)
+    if (text.startsWith('PK\x03\x04') || text.startsWith('PK')) {
+      // Send as FormData to macro/import which handles xlsx/numbers
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const res = await authFetch(`${API_BASE}/api/health/macro/import`, {
+          method: 'POST',
+          credentials: 'include',
+          body: form,
+        });
+        if (!res.ok) { alert('Failed to import file: ' + await res.text()); return; }
+        const r = await res.json();
+        alert(buildImportAlertMessage({ ...r, label: 'records' }));
+        fetchData(); fetchImports(); fetchTodayFood();
+      } catch (err) {
+        console.error('Binary file import error:', err);
+        alert('Error importing file');
+      }
+      return;
+    }
+
     const firstLine = text.split('\n')[0].toLowerCase();
 
     // Health Auto Export headers: row-per-measurement shape ("Source Name", "Start Date") or

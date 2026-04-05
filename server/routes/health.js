@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const multer = require('multer');
 const exceljs = require('exceljs');
+const XLSX = require('xlsx');
 const { triggerAutoHealthPullNow, getAutoHealthPullStatus, flattenHAEMetrics } = require('../utils/autoHealthPull');
 const path = require('path');
 const fs = require('fs');
@@ -1185,24 +1186,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       // Parse Excel with ExcelJS
       const workbook = new exceljs.Workbook();
       await workbook.xlsx.readFile(req.file.path);
-      const sheet = workbook.worksheets[0];
-      if (!sheet) return res.status(400).json({ error: 'no sheet found in xlsx' });
-
-      // First row = headers
-      const headers = [];
-      sheet.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => {
-        headers[col] = String(cell.value || '').trim();
-      });
-      if (isHealthAutoExportHeaders(headers)) {
-        return res.status(400).json({
-          error: 'health auto export file detected; use /api/health/import for this file type'
-        });
-      }
-      if (isAutoSleepCsvHeaders(headers)) {
-        return res.status(400).json({
-          error: 'AutoSleep file detected; use /api/health/import for this file type'
-        });
-      }
+      if (!workbook.worksheets.length) return res.status(400).json({ error: 'no sheets found in xlsx' });
 
       const toCellValue = (v) => {
         if (v == null) return '';
@@ -1216,41 +1200,133 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
         return v;
       };
 
-      sheet.eachRow((row, rowNum) => {
-        if (rowNum === 1) return;
-        const rowUid = `xlsx-${rowNum}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const rowObj = {};
-        headers.forEach((h, col) => {
-          if (!h) return;
-          rowObj[h] = toCellValue(row.getCell(col).value);
-        });
-        parsedRowsForFoodLog.push(rowObj);
+      for (const sheet of workbook.worksheets) {
+        if (!sheet || sheet.rowCount < 2) continue;
 
-        // find timestamp
-        let ts = null;
-        headers.forEach((h, col) => {
-          if (!ts && tsCandidates.test(h)) {
-            const v = toCellValue(row.getCell(col).value);
-            if (v) {
-              const d = v instanceof Date ? v : new Date(v);
-              if (!isNaN(d.getTime())) ts = d.toISOString();
+        // First row = headers
+        const headers = [];
+        sheet.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => {
+          headers[col] = String(cell.value || '').trim();
+        });
+        if (isHealthAutoExportHeaders(headers)) continue;
+        if (isAutoSleepCsvHeaders(headers)) continue;
+
+        sheet.eachRow((row, rowNum) => {
+          if (rowNum === 1) return;
+          const rowUid = `xlsx-${sheet.name}-${rowNum}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const rowObj = {};
+          headers.forEach((h, col) => {
+            if (!h) return;
+            rowObj[h] = toCellValue(row.getCell(col).value);
+          });
+          parsedRowsForFoodLog.push(rowObj);
+
+          // find timestamp
+          let ts = null;
+          headers.forEach((h, col) => {
+            if (!ts && tsCandidates.test(h)) {
+              const v = toCellValue(row.getCell(col).value);
+              if (v) {
+                const d = v instanceof Date ? v : new Date(v);
+                if (!isNaN(d.getTime())) ts = d.toISOString();
+              }
             }
-          }
-        });
-        if (!ts) ts = new Date().toISOString();
+          });
+          if (!ts) ts = new Date().toISOString();
 
-        headers.forEach((h, col) => {
-          if (!h || tsCandidates.test(h)) return;
-          const cellVal = toCellValue(row.getCell(col).value);
-          if (cellVal === null || cellVal === undefined || cellVal === '') return;
-          const rec = toRecord(req.user.id, normalizeKey(h), cellVal, ts, {
-            rowUid,
-            rowNum,
-            source: 'macro_xlsx',
+          headers.forEach((h, col) => {
+            if (!h || tsCandidates.test(h)) return;
+            const cellVal = toCellValue(row.getCell(col).value);
+            if (cellVal === null || cellVal === undefined || cellVal === '') return;
+            const rec = toRecord(req.user.id, normalizeKey(h), cellVal, ts, {
+              rowUid,
+              rowNum,
+              source: 'macro_xlsx',
+            });
+            if (rec) records.push(rec);
+          });
+        });
+      }
+    } else if (ext === '.numbers') {
+      // Parse Apple Numbers using SheetJS — read all sheets
+      const wb = XLSX.readFile(req.file.path, { type: 'file' });
+      if (!wb.SheetNames.length) return res.status(400).json({ error: 'no sheet found in Numbers file' });
+
+      // Collect rows from all sheets
+      const allRows = [];
+      let firstHeaders = null;
+      for (const sheetName of wb.SheetNames) {
+        const sheet = wb.Sheets[sheetName];
+        if (!sheet) continue;
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (!rows.length) continue;
+        if (!firstHeaders) firstHeaders = Object.keys(rows[0]);
+        allRows.push(...rows);
+      }
+      if (!allRows.length) return res.status(400).json({ error: 'empty Numbers file' });
+
+      const headers = firstHeaders;
+
+      // Check if this is actually a health/sleep file that should go to /api/health/import
+      if (isHealthAutoExportHeaders(headers)) {
+        return res.status(400).json({ error: 'health auto export file detected; use /api/health/import for this file type' });
+      }
+      if (isAutoSleepCsvHeaders(headers)) {
+        return res.status(400).json({ error: 'AutoSleep file detected; use /api/health/import for this file type' });
+      }
+
+      // Check if this is an iHealth BP file — if so, parse BP records directly
+      if (isIHealthCsvHeaders(headers)) {
+        const iHealthRecords = buildIHealthRecords(allRows, req.user.id);
+        if (!iHealthRecords.length) return res.status(400).json({ error: 'no valid BP records found in Numbers file' });
+
+        const deduped = await filterDuplicateStats(req.user.id, iHealthRecords);
+        if (deduped.length > 0) {
+          const importRow = {
+            user_id: req.user.id,
+            filename: uploadFilename,
+            source: 'health',
+            imported_at: new Date().toISOString(),
+            record_count: deduped.length,
+          };
+          if (fileHash) importRow.file_hash = fileHash;
+          let importId;
+          try { [importId] = await db('health_imports').insert(importRow); }
+          catch (e) { delete importRow.file_hash; [importId] = await db('health_imports').insert(importRow); }
+          const tagged = deduped.map(r => ({ ...r, import_id: importId }));
+          await insertInChunks('health_data', tagged);
+        }
+        return res.json({ imported: deduped.length, skipped_duplicates: iHealthRecords.length - deduped.length, source: 'ihealth_numbers' });
+      }
+
+      // Generic Numbers file — treat like xlsx (MacroFactor etc.)
+      parsedRowsForFoodLog = allRows;
+      let rowNum = 1;
+      for (const row of allRows) {
+        rowNum += 1;
+        const rowUid = `numbers-${rowNum}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        let ts = null;
+        const datePart = row.Date || row.date;
+        const timePart = row.Time || row.time;
+        if (datePart && timePart) {
+          const d = new Date(`${datePart} ${timePart}`);
+          if (!isNaN(d.getTime())) ts = d.toISOString();
+        }
+        for (const [k, v] of Object.entries(row)) {
+          if (!ts && tsCandidates.test(k) && v) {
+            const d = new Date(v);
+            if (!isNaN(d.getTime())) { ts = d.toISOString(); break; }
+          }
+        }
+        if (!ts) ts = new Date().toISOString();
+        for (const [k, v] of Object.entries(row)) {
+          if (tsCandidates.test(k) || !v || String(v).trim() === '') continue;
+          const rec = toRecord(req.user.id, normalizeKey(k), v, ts, {
+            rowUid, rowNum, source: 'numbers',
           });
           if (rec) records.push(rec);
-        });
-      });
+        }
+      }
     } else {
       // Parse CSV using the lenient parser which correctly handles MacroFactor's
       // malformed embedded quotes (inch marks in serving-size fields).
