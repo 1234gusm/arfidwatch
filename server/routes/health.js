@@ -967,8 +967,8 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
         source: 'health_csv',
       });
     } catch (err) {
-      console.error('CSV import parse error:', err);
-      return res.status(500).json({ error: 'failed to parse csv' });
+      console.error('CSV import parse error:', err.message, err.stack);
+      return res.status(500).json({ error: 'failed to parse csv', detail: err.message });
     }
   }
   res.status(400).json({ error: 'no data provided' });
