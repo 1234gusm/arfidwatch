@@ -624,46 +624,85 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
         }
       }
 
-      let deduped = records;
-      try {
-        if (isAutoSleep) {
-          // AutoSleep exports are nightly snapshots; replace nights present in
-          // this upload so corrected values always win over prior shifted rows.
-          const normalized = [];
-          const seenUpload = new Set();
-          for (const rec of records) {
-            const ts = normalizeStatTimestamp(rec.timestamp);
-            if (!ts) continue;
-            const normalizedRec = { ...rec, timestamp: ts, value: normalizeStatValue(rec.value) };
-            const key = statKey(normalizedRec);
-            if (seenUpload.has(key)) continue;
-            seenUpload.add(key);
-            normalized.push(normalizedRec);
-          }
+      if (isAutoSleep) {
+        // AutoSleep exports are nightly snapshots; replace nights present in
+        // this upload so corrected values always win over prior shifted rows.
+        // Use a transaction so delete + insert is atomic — if anything fails,
+        // nothing changes and no duplicates are created.
+        const normalized = [];
+        const seenUpload = new Set();
+        for (const rec of records) {
+          const ts = normalizeStatTimestamp(rec.timestamp);
+          if (!ts) continue;
+          const normalizedRec = { ...rec, timestamp: ts, value: normalizeStatValue(rec.value) };
+          const key = statKey(normalizedRec);
+          if (seenUpload.has(key)) continue;
+          seenUpload.add(key);
+          normalized.push(normalizedRec);
+        }
 
-          // Delete all existing records for each type+night in this upload so
-          // re-imports always win with the latest values from AutoSleep.
-          const nightTypeMap = new Map(); // day → Set<type>
-          for (const rec of normalized) {
-            const day = String(rec.timestamp).slice(0, 10);
-            if (!nightTypeMap.has(day)) nightTypeMap.set(day, new Set());
-            nightTypeMap.get(day).add(rec.type);
-            const sleepAlias = canonicalSleepType(rec.type);
-            if (sleepAlias && sleepAlias !== rec.type) nightTypeMap.get(day).add(`macrofactor_${sleepAlias}`);
-          }
+        // Delete all existing records for each type+night in this upload so
+        // re-imports always win with the latest values from AutoSleep.
+        const nightTypeMap = new Map(); // day → Set<type>
+        for (const rec of normalized) {
+          const day = String(rec.timestamp).slice(0, 10);
+          if (!nightTypeMap.has(day)) nightTypeMap.set(day, new Set());
+          nightTypeMap.get(day).add(rec.type);
+          const sleepAlias = canonicalSleepType(rec.type);
+          if (sleepAlias && sleepAlias !== rec.type) nightTypeMap.get(day).add(`macrofactor_${sleepAlias}`);
+        }
 
+        let importedCount = 0;
+        await db.transaction(async (trx) => {
           for (const [day, types] of nightTypeMap) {
-            await db('health_data')
+            await trx('health_data')
               .where({ user_id: req.user.id })
               .whereIn('type', [...types])
               .andWhereRaw('substr(timestamp, 1, 10) = ?', [day])
               .delete();
           }
 
-          deduped = normalized;
-        } else {
-          deduped = await filterDuplicateStats(req.user.id, records);
-        }
+          if (normalized.length > 0) {
+            const importRow = {
+              user_id: req.user.id,
+              filename: uploadFilename,
+              source: 'health',
+              imported_at: new Date().toISOString(),
+              record_count: normalized.length,
+            };
+            if (fileHash) importRow.file_hash = fileHash;
+
+            let importId;
+            try {
+              [importId] = await trx('health_imports').insert(importRow);
+            } catch (e) {
+              if (Object.prototype.hasOwnProperty.call(importRow, 'file_hash')) {
+                delete importRow.file_hash;
+                [importId] = await trx('health_imports').insert(importRow);
+              } else {
+                throw e;
+              }
+            }
+            const tagged = normalized.map(r => ({ ...r, import_id: importId }));
+            for (let i = 0; i < tagged.length; i += CHUNK_SIZE) {
+              await trx('health_data').insert(tagged.slice(i, i + CHUNK_SIZE));
+            }
+            importedCount = normalized.length;
+          }
+        });
+
+        return res.json({
+          imported: importedCount,
+          skipped_duplicates: records.length - importedCount,
+          duplicateFile,
+          source: 'autosleep_csv',
+        });
+      }
+
+      // Non-AutoSleep CSV dedup
+      let deduped = records;
+      try {
+        deduped = await filterDuplicateStats(req.user.id, records);
       } catch (e) {
         // Dedupe should be best-effort; preserve upload ability on any failure.
         console.warn('health csv dedupe failed, importing raw rows:', e.message);
@@ -699,7 +738,7 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
         imported: deduped.length,
         skipped_duplicates: records.length - deduped.length,
         duplicateFile,
-        source: isAutoSleep ? 'autosleep_csv' : 'health_csv',
+        source: 'health_csv',
       });
     } catch (err) {
       console.error('CSV import parse error:', err);

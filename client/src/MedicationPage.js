@@ -256,7 +256,9 @@ function MedicationPage({ token }) {
   };
 
   const handleCreateQuickButton = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    setError(null);
     try {
       const res = await authFetch(`${API_BASE}/api/medications/quick-buttons`, {
         method: 'POST',
@@ -273,6 +275,8 @@ function MedicationPage({ token }) {
       await loadQuickButtons();
     } catch (e) {
       setError(e.message || 'Failed to create quick button');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -617,8 +621,8 @@ function MedicationPage({ token }) {
         )}
         {name.trim() && !existingQuickNameKeys.has(name.trim().toLowerCase()) && (
           <div className="med-create-quick-row">
-            <button className="med-create-quick-btn" onClick={handleCreateQuickButton}>
-              Create quick button for "{name.trim()}"{dosage.trim() ? ` (${dosage.trim()})` : ''}
+            <button className="med-create-quick-btn" onClick={handleCreateQuickButton} disabled={saving}>
+              {saving ? 'Creating…' : `Create quick button for "${name.trim()}"${dosage.trim() ? ` (${dosage.trim()})` : ''}`}
             </button>
           </div>
         )}
