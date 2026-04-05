@@ -235,23 +235,12 @@ const buildAutoSleepRecords = (rows, userId) => {
   rows.forEach((row, idx) => {
     const ts = autosleepTimestamp(row);
 
-    // AutoSleep combines multiple sessions into one CSV row, summing all
-    // duration columns. When sessions > 1, the totals (asleep, inBed, deep …)
-    // are inflated and misleading. Skip duration metrics for multi-session
-    // nights so that per-session data from Health Auto Export is preserved
-    // (or the night simply has no duration data, which is better than wrong).
-    const sessionsRaw = pickRowValue(row, h => h === 'sessions');
-    const sessions = sessionsRaw ? parseInt(String(sessionsRaw), 10) : 1;
-    const isMultiSession = Number.isFinite(sessions) && sessions > 1;
-
-    if (!isMultiSession) {
-      durationMetrics.forEach((m) => {
-        const rawVal = pickRowValue(row, m.match);
-        const value = parseDurationHours(rawVal);
-        if (value == null) return;
-        out.push({ user_id: userId, type: m.type, value, timestamp: ts, raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }) });
-      });
-    }
+    durationMetrics.forEach((m) => {
+      const rawVal = pickRowValue(row, m.match);
+      const value = parseDurationHours(rawVal);
+      if (value == null) return;
+      out.push({ user_id: userId, type: m.type, value, timestamp: ts, raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }) });
+    });
 
     numericMetrics.forEach((m) => {
       const rawVal = pickRowValue(row, m.match);
@@ -261,17 +250,17 @@ const buildAutoSleepRecords = (rows, userId) => {
       out.push({ user_id: userId, type: m.type, value, timestamp: ts, raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, value: rawVal }) });
     });
 
-    // Derive core (light) sleep = asleep − deep (single-session only).
-    if (!isMultiSession) {
-      const asleepRaw = pickRowValue(row, h => h === 'asleep' || h.includes('total sleep') || h.includes('time asleep'));
-      const deepRaw   = pickRowValue(row, h => h === 'deep'   || h.includes('deep sleep'));
-      const asleepH   = parseDurationHours(asleepRaw);
-      const deepH     = parseDurationHours(deepRaw) ?? 0;
-      if (Number.isFinite(asleepH) && asleepH > 0) {
-        const coreH = Math.max(0, Math.round((asleepH - deepH) * 10000) / 10000);
-        out.push({ user_id: userId, type: 'sleep_analysis_core_hr', value: coreH, timestamp: ts,
-          raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, derived: true, formula: 'asleep - deep' }) });
-      }
+    // Derive core (light) sleep = asleep − deep.
+    // AutoSleep exports total sleep (asleep) and deep sleep but not a separate
+    // core/light stage. Everything that isn't deep sleep is light/core sleep.
+    const asleepRaw = pickRowValue(row, h => h === 'asleep' || h.includes('total sleep') || h.includes('time asleep'));
+    const deepRaw   = pickRowValue(row, h => h === 'deep'   || h.includes('deep sleep'));
+    const asleepH   = parseDurationHours(asleepRaw);
+    const deepH     = parseDurationHours(deepRaw) ?? 0;
+    if (Number.isFinite(asleepH) && asleepH > 0) {
+      const coreH = Math.max(0, Math.round((asleepH - deepH) * 10000) / 10000);
+      out.push({ user_id: userId, type: 'sleep_analysis_core_hr', value: coreH, timestamp: ts,
+        raw: JSON.stringify({ source: 'autosleep_csv', row: idx + 2, derived: true, formula: 'asleep - deep' }) });
     }
   });
 
@@ -663,11 +652,63 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
           if (sleepAlias && sleepAlias !== rec.type) nightTypeMap.get(day).add(`macrofactor_${sleepAlias}`);
         }
 
+        // When AutoSleep combines multiple sessions into one CSV row the
+        // duration totals (asleep, inBed, deep, …) are summed across sessions.
+        // Health Auto Export (HAE REST) sends per-session data with correct
+        // individual values. Preserve existing per-session HAE data for
+        // multi-session nights instead of overwriting with combined totals.
+        const SLEEP_DURATION_TYPES = new Set([
+          'sleep_analysis_total_sleep_hr', 'sleep_analysis_in_bed_hr',
+          'sleep_analysis_deep_hr', 'sleep_analysis_rem_hr',
+          'sleep_analysis_awake_hr', 'sleep_analysis_quality_hr',
+          'sleep_analysis_core_hr', 'fell_asleep_in_hr',
+        ]);
+
         let importedCount = 0;
         await db.transaction(async (trx) => {
-          // Duration metrics for multi-session nights are already excluded by
-          // buildAutoSleepRecords, so nightTypeMap won't contain duration types
-          // for those nights and existing per-session data stays untouched.
+          // Find nights with sessions > 1
+          const multiSessionDays = new Set();
+          for (const rec of normalized) {
+            if (rec.type === 'sleep_sessions_count' && rec.value > 1) {
+              multiSessionDays.add(String(rec.timestamp).slice(0, 10));
+            }
+          }
+
+          // For multi-session nights, check if there's existing non-CSV data
+          // (e.g. per-session HAE REST data) that should be preserved.
+          const preserveDurationDays = new Set();
+          for (const day of multiSessionDays) {
+            const existing = await trx('health_data')
+              .where({ user_id: req.user.id })
+              .where('type', 'sleep_analysis_total_sleep_hr')
+              .andWhereRaw('substr(timestamp, 1, 10) = ?', [day])
+              .first();
+            if (existing) {
+              let source = 'unknown';
+              try { source = JSON.parse(String(existing.raw || '{}')).source || 'unknown'; } catch (_) {}
+              if (source !== 'autosleep_csv') {
+                preserveDurationDays.add(day);
+              }
+            }
+          }
+
+          // Strip duration metrics for preserved days and update the delete map.
+          if (preserveDurationDays.size > 0) {
+            normalized = normalized.filter(r => {
+              const day = String(r.timestamp).slice(0, 10);
+              return !(preserveDurationDays.has(day) && SLEEP_DURATION_TYPES.has(r.type));
+            });
+            for (const day of preserveDurationDays) {
+              const types = nightTypeMap.get(day);
+              if (types) {
+                for (const dt of SLEEP_DURATION_TYPES) {
+                  types.delete(dt);
+                  types.delete(`macrofactor_${dt}`);
+                }
+                if (types.size === 0) nightTypeMap.delete(day);
+              }
+            }
+          }
 
           for (const [day, types] of nightTypeMap) {
             await trx('health_data')
