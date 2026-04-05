@@ -193,7 +193,7 @@ function HealthPage({ token }) {
         /(active.energy|heart.rate|step.count|blood.oxygen|walking.*running)/i.test(firstLine));
     const isAutoSleepHeaderShape = /(iso8601,.*fromdate,.*todate|\binbed\b|\bfellasleepin\b|\basleepavg7\b|\befficiencyavg7\b)/i.test(firstLine.replace(/\s+/g, ''));
     const isAutoSleepCsv = isAutoSleepHeaderShape || /\bautosleep\b/i.test(firstLine);
-    const isIHealthCsv = /(systolic|sys\s*\(?\s*mmhg)/i.test(firstLine) && /(diastolic|dia\s*\(?\s*mmhg)/i.test(firstLine);
+    const isIHealthCsv = /(systolic|sys[^,]*mmhg|\bsys\b)/i.test(firstLine) && /(diastolic|dia[^,]*mmhg|\bdia\b)/i.test(firstLine) && /pulse|heart/i.test(firstLine);
     if (isHealthAutoExport || isIHealthCsv) {
       // Health Auto Export CSV or iHealth BP CSV
       try {
@@ -237,23 +237,43 @@ function HealthPage({ token }) {
 
     // MacroFactor CSV — food log if header contains "meal" or "food"
     const isFoodLog = /\bmeal\b|\bfood\b/.test(firstLine);
-    const form = new FormData();
-    form.append('file', file);
+    if (isFoodLog || /\bcalories\b|\bprotein\b|\bcarbs\b|\bfat\b|\bmacro/i.test(firstLine)) {
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const url = `${API_BASE}/api/health/macro/import` + (isFoodLog ? '?source=foodlog' : '');
+        const res = await authFetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          body: form,
+        });
+        if (!res.ok) { alert('Failed to import MacroFactor file: ' + await res.text()); return; }
+        const r = await res.json();
+        const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
+        alert(buildImportAlertMessage({ ...r, label }));
+        fetchData(); fetchImports(); fetchTodayFood();
+      } catch (err) {
+        console.error('MacroFactor import error:', err);
+        alert('Error importing MacroFactor CSV');
+      }
+      return;
+    }
+
+    // Fallback: send unknown CSVs to the health import route (handles iHealth, HAE, etc.)
     try {
-      const url = `${API_BASE}/api/health/macro/import` + (isFoodLog ? '?source=foodlog' : '');
-      const res = await authFetch(url, {
+      const res = await authFetch(`${API_BASE}/api/health/import`, {
         method: 'POST',
         credentials: 'include',
-        body: form,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv: text, filename: file.name }),
       });
-      if (!res.ok) { alert('Failed to import MacroFactor file: ' + await res.text()); return; }
+      if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
       const r = await res.json();
-      const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
-      alert(buildImportAlertMessage({ ...r, label }));
+      alert(buildImportAlertMessage({ ...r, label: 'health records' }));
       fetchData(); fetchImports(); fetchTodayFood();
     } catch (err) {
-      console.error('MacroFactor import error:', err);
-      alert('Error importing MacroFactor CSV');
+      console.error('CSV import error:', err);
+      alert('Error importing CSV');
     }
   };
 
