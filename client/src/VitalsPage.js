@@ -59,7 +59,7 @@ function VitalsPage({ token }) {
       try {
         const startDate = rangeDays ? fmtDate((() => { const d = new Date(); d.setDate(d.getDate() - rangeDays); return d; })()) : '';
         const qs = startDate ? `?start=${startDate}` : '';
-        const res = await authFetch(`${API_BASE}/api/health/data${qs}`);
+        const res = await authFetch(`${API_BASE}/api/health${qs}`);
         if (!res.ok) { setData([]); return; }
         const json = await res.json();
         if (active) setData(Array.isArray(json.data) ? json.data : []);

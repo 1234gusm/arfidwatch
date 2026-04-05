@@ -464,15 +464,22 @@ const filterDuplicateStats = async (userId, inputRecords) => {
   // Track existing sleep night sources for CSV-over-REST priority.
   // Maps "sleepType|YYYY-MM-DD" → source string ('autosleep_csv' | 'hae_rest' | 'unknown').
   const existingSleepNightSources = new Map();
+  // Track existing non-sleep sources for CSV-over-REST priority.
+  // Maps "type|YYYY-MM-DD" → true when a CSV source already owns that day.
+  const existingCsvDayTypes = new Set();
   for (const row of existing) {
-    const sleepType = canonicalSleepType(row.type);
-    if (!sleepType) continue;
-    const nightKey = `${sleepType}|${String(row.timestamp).slice(0, 10)}`;
     let source = 'unknown';
     try { source = JSON.parse(String(row.raw || '{}')).source || 'unknown'; } catch (_) {}
-    // CSV always wins: once a night+type is CSV-owned, mark it as such.
-    if (!existingSleepNightSources.has(nightKey) || source === 'autosleep_csv') {
-      existingSleepNightSources.set(nightKey, source);
+
+    const sleepType = canonicalSleepType(row.type);
+    if (sleepType) {
+      const nightKey = `${sleepType}|${String(row.timestamp).slice(0, 10)}`;
+      // CSV always wins: once a night+type is CSV-owned, mark it as such.
+      if (!existingSleepNightSources.has(nightKey) || source === 'autosleep_csv') {
+        existingSleepNightSources.set(nightKey, source);
+      }
+    } else if (source.endsWith('_csv')) {
+      existingCsvDayTypes.add(`${row.type}|${String(row.timestamp).slice(0, 10)}`);
     }
   }
 
@@ -515,6 +522,15 @@ const filterDuplicateStats = async (userId, inputRecords) => {
       existingKeyCounts.set(key, existingCount - 1);
       continue;
     }
+
+    // CSV-over-REST priority for non-sleep records (e.g. iHealth BP over HAE REST BP).
+    let incomingSource = 'unknown';
+    try { incomingSource = JSON.parse(String(rec.raw || '{}')).source || 'unknown'; } catch (_) {}
+    if (incomingSource === 'hae_rest') {
+      const dayTypeKey = `${rec.type}|${String(rec.timestamp).slice(0, 10)}`;
+      if (existingCsvDayTypes.has(dayTypeKey)) continue; // skip — CSV data takes priority
+    }
+
     keep.push(rec);
   }
   return keep;

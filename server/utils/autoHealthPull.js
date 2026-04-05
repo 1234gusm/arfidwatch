@@ -222,7 +222,7 @@ function flattenHAEMetrics(metrics) {
       if (value == null) continue;
       const num = Number(value);
       if (!Number.isFinite(num)) continue;
-      samples.push({ type: typeKey, value: num, timestamp: String(date) });
+      samples.push({ type: typeKey, value: num, timestamp: String(date), source: 'hae_rest' });
     }
   }
   return samples;
