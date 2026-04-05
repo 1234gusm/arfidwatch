@@ -629,7 +629,7 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
         // this upload so corrected values always win over prior shifted rows.
         // Use a transaction so delete + insert is atomic — if anything fails,
         // nothing changes and no duplicates are created.
-        const normalized = [];
+        let normalized = [];
         const seenUpload = new Set();
         for (const rec of records) {
           const ts = normalizeStatTimestamp(rec.timestamp);
@@ -652,8 +652,64 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
           if (sleepAlias && sleepAlias !== rec.type) nightTypeMap.get(day).add(`macrofactor_${sleepAlias}`);
         }
 
+        // When AutoSleep combines multiple sessions into one CSV row the
+        // duration totals (asleep, inBed, deep, …) are summed across sessions.
+        // Health Auto Export (HAE REST) sends per-session data with correct
+        // individual values. Preserve existing per-session HAE data for
+        // multi-session nights instead of overwriting with combined totals.
+        const SLEEP_DURATION_TYPES = new Set([
+          'sleep_analysis_total_sleep_hr', 'sleep_analysis_in_bed_hr',
+          'sleep_analysis_deep_hr', 'sleep_analysis_rem_hr',
+          'sleep_analysis_awake_hr', 'sleep_analysis_quality_hr',
+          'sleep_analysis_core_hr', 'fell_asleep_in_hr',
+        ]);
+
         let importedCount = 0;
         await db.transaction(async (trx) => {
+          // Find nights with sessions > 1
+          const multiSessionDays = new Set();
+          for (const rec of normalized) {
+            if (rec.type === 'sleep_sessions_count' && rec.value > 1) {
+              multiSessionDays.add(String(rec.timestamp).slice(0, 10));
+            }
+          }
+
+          // For multi-session nights, check if there's existing non-CSV data
+          // (e.g. per-session HAE REST data) that should be preserved.
+          const preserveDurationDays = new Set();
+          for (const day of multiSessionDays) {
+            const existing = await trx('health_data')
+              .where({ user_id: req.user.id })
+              .where('type', 'sleep_analysis_total_sleep_hr')
+              .andWhereRaw('substr(timestamp, 1, 10) = ?', [day])
+              .first();
+            if (existing) {
+              let source = 'unknown';
+              try { source = JSON.parse(String(existing.raw || '{}')).source || 'unknown'; } catch (_) {}
+              if (source !== 'autosleep_csv') {
+                preserveDurationDays.add(day);
+              }
+            }
+          }
+
+          // Strip duration metrics for preserved days and update the delete map.
+          if (preserveDurationDays.size > 0) {
+            normalized = normalized.filter(r => {
+              const day = String(r.timestamp).slice(0, 10);
+              return !(preserveDurationDays.has(day) && SLEEP_DURATION_TYPES.has(r.type));
+            });
+            for (const day of preserveDurationDays) {
+              const types = nightTypeMap.get(day);
+              if (types) {
+                for (const dt of SLEEP_DURATION_TYPES) {
+                  types.delete(dt);
+                  types.delete(`macrofactor_${dt}`);
+                }
+                if (types.size === 0) nightTypeMap.delete(day);
+              }
+            }
+          }
+
           for (const [day, types] of nightTypeMap) {
             await trx('health_data')
               .where({ user_id: req.user.id })
