@@ -3,7 +3,6 @@ import './ProfilePage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 import { localToday, localOffset, localMonthAgo } from './utils/dateUtils';
-import RemindersCard from './RemindersCard';
 
 const PERIOD_OPTIONS = [
   { id: 'today', label: 'Today' },
@@ -909,8 +908,6 @@ function ProfilePage({ token }) {
           <p className="profile-hint" style={{ fontStyle: 'italic' }}>No medication entries yet.</p>
         )}
       </div>
-
-      <RemindersCard />
     </div>
   );
 }
