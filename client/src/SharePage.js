@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import './SharePage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
+const VitalsDisplayShare=()=>{const [v,setV]=React.useState([]);const shareId=window.location.pathname.split('/').pop();React.useEffect(()=>{const f=async()=>{try{const r=await fetch('/api/share/'+shareId);const j=await r.json();setV(j.vitals||[]);}catch(e){}};f()},[shareId]);return React.createElement('div',{style:{padding:'20px',borderTop:'1px solid #ddd'}},React.createElement('h3',{},'Blood Pressure & Vitals'),v.length>0?React.createElement('div',{},v.slice(0,10).map((x,i)=>React.createElement('div',{key:i,style:{padding:'8px',background:'#f5f5f5',marginBottom:'6px',borderRadius:'4px',display:'flex',justifyContent:'space-between'}},React.createElement('span',{},x.date),x.systolic&&x.diastolic?React.createElement('span',{style:{color:'#c41e3a',fontWeight:'600'}},x.systolic+'/'+x.diastolic):null,x.pulse?React.createElement('span',{style:{color:'#e74c3c'}},x.pulse):null))):React.createElement('p',{style:{color:'#999'}},'No vitals'));};
+import { authFetch } from './auth';
 import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
@@ -687,8 +689,9 @@ function SharePage() {
     );
   };
 
-  return (
+    return (
     <div className="share-page">
+      {React.createElement(VitalsDisplayShare)}
       <div className="share-header">
         <div className="share-header-inner">
           <span className="share-logo">ArfidWatch</span>

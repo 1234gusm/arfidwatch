@@ -11,6 +11,8 @@ import {
 import './HealthPage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
+import { getAuthToken } from './auth';
+const VitalsDisplay=()=>{const [v,setV]=React.useState([]);React.useEffect(()=>{const f=async()=>{try{const r=await fetch(API_BASE+'/api/health/vitals',{headers:{Authorization:'Bearer '+getAuthToken()}});const j=await r.json();setV(j.vitals||[]);}catch(e){}};f()},[]);return React.createElement('div',{style:{padding:'20px',borderTop:'1px solid #ddd'}},React.createElement('h3',{},'Blood Pressure & Vitals'),v.length>0?React.createElement('div',{},v.slice(0,10).map((x,i)=>React.createElement('div',{key:i,style:{padding:'8px',background:'#f5f5f5',marginBottom:'6px',borderRadius:'4px',display:'flex',justifyContent:'space-between'}},React.createElement('span',{},x.date),x.systolic&&x.diastolic?React.createElement('span',{style:{color:'#c41e3a',fontWeight:'600'}},x.systolic+'/'+x.diastolic):null,x.pulse?React.createElement('span',{style:{color:'#e74c3c'}},x.pulse):null))):React.createElement('p',{style:{color:'#999'}},'No vitals'));};
 
 function HealthPage({ token }) {
   const [data, setData] = useState([]);
@@ -832,8 +834,9 @@ function HealthPage({ token }) {
     setDragOver(null);
   };
 
-  return (
+    return (
     <div className="health-page">
+      {React.createElement(VitalsDisplay)}
       <div className="health-page-header">
         <h2>Health Dashboard</h2>
         <div className="health-page-actions">

@@ -217,9 +217,27 @@ async function setup() {
   // Flip existing users to share_food_notes = true (new default)
   await db('user_profiles').where({ share_food_notes: false }).update({ share_food_notes: true });
 
-  await db.schema.hasTable('medication_entries').then(exists => {
+  // Initialize vitals table for doctors who upload iHealth data
+  // vitals are displayed on both patient and doctor share pages automatically
+
+  // Blood pressure / vitals table
+  await db.schema.hasTable('vitals').then(exists => {
     if (!exists) {
-      return db.schema.createTable('medication_entries', table => {
+      return db.schema.createTable('vitals', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users').onDelete('CASCADE');
+        table.string('date'); // YYYY-MM-DD
+        table.time('time').nullable(); // HH:mm optional
+        table.integer('systolic').nullable(); // blood pressure systolic
+        table.integer('diastolic').nullable(); // blood pressure diastolic
+        table.integer('pulse').nullable(); // heart rate
+        table.string('source').nullable(); // 'iHealth' or manual
+        table.text('note').nullable();
+        table.timestamp('created_at').defaultTo(db.fn.now());
+        table.timestamp('updated_at').defaultTo(db.fn.now());
+      });
+    }
+  });
         table.increments('id').primary();
         table.integer('user_id').references('id').inTable('users');
         table.string('date'); // YYYY-MM-DD
