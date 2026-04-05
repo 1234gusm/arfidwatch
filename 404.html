@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting...</title>
+    <script>
+      (function () {
+        var segments = window.location.pathname.split('/').filter(Boolean);
+        var repoBase = segments.length ? '/' + segments[0] : '';
+        var appRoute = '/' + segments.slice(1).join('/');
+        var target =
+          window.location.origin +
+          repoBase +
+          '/#' +
+          (appRoute === '/' ? '/' : appRoute) +
+          window.location.search;
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
+</html>
