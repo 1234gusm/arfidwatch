@@ -55,6 +55,11 @@ const canonical = t => {
   if (s.startsWith('apple_')) return s.slice('apple_'.length);
   return s;
 };
+const lighten = hex => {
+  const n = parseInt(hex.slice(1), 16);
+  return '#' + [16, 8, 0].map(s => Math.min(255, ((n >> s) & 0xFF) + Math.round((255 - ((n >> s) & 0xFF)) * 0.4)).toString(16).padStart(2, '0')).join('');
+};
+const getSource = r => { try { return JSON.parse(String(r.raw || '{}')).source || ''; } catch (_) { return ''; } };
 
 function VitalsPage({ token }) {
   const [data, setData]             = useState([]);
@@ -83,59 +88,80 @@ function VitalsPage({ token }) {
   }, [token, rangeDays]);
 
   const metrics = useMemo(() => {
-    // Build per-metric arrays of individual readings (every reading, not averaged)
+    // Split data: auto health → daily averages, iHealth → individual readings
     const allKeys = new Set();
     VITALS_METRICS.forEach(m => { allKeys.add(m.key); (m.altKeys || []).forEach(k => allKeys.add(k)); });
 
-    // Collect every individual reading: { ts (ISO string), dt (formatted datetime), day, v }
-    const byType = {};
+    const autoByType = {};   // { [ct]: { [day]: { sum, count } } }
+    const ihByType = {};     // { [ct]: [{ ts, dt, day, v }] }
     data.forEach(r => {
       const ct = canonical(r.type);
       if (!allKeys.has(ct)) return;
       const v = toNum(r.value);
       if (!Number.isFinite(v)) return;
-      const dt = toLocalDateTime(r.timestamp);
       const day = toLocalDate(r.timestamp);
-      if (!dt) return;
-      if (!byType[ct]) byType[ct] = [];
-      byType[ct].push({ ts: r.timestamp, dt, day, v });
+      if (!day) return;
+      if (getSource(r) === 'ihealth_csv') {
+        const dt = toLocalDateTime(r.timestamp);
+        if (!dt) return;
+        if (!ihByType[ct]) ihByType[ct] = [];
+        ihByType[ct].push({ ts: r.timestamp, dt, day, v });
+      } else {
+        if (!autoByType[ct]) autoByType[ct] = {};
+        if (!autoByType[ct][day]) autoByType[ct][day] = { sum: 0, count: 0 };
+        autoByType[ct][day].sum += v;
+        autoByType[ct][day].count += 1;
+      }
     });
-    // Sort each type by timestamp ascending
-    for (const arr of Object.values(byType)) {
-      arr.sort((a, b) => a.ts.localeCompare(b.ts));
-    }
+    for (const arr of Object.values(ihByType)) arr.sort((a, b) => a.ts.localeCompare(b.ts));
 
     return VITALS_METRICS.map(m => {
-      const readings = byType[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || byType[k], null) : null);
-      if (!readings || readings.length === 0) return null;
+      const autoData = autoByType[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || autoByType[k], null) : null);
+      const ihData = ihByType[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || ihByType[k], null) : null);
+      if (!autoData && (!ihData || !ihData.length)) return null;
 
-      const vals = readings.map(r => r.v);
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const min = Math.min(...vals);
-      const max = Math.max(...vals);
-      const latest = readings[readings.length - 1];
+      // Auto health: daily averages
+      const autoReadings = [];
+      if (autoData) {
+        for (const [day, { sum, count }] of Object.entries(autoData))
+          autoReadings.push({ day, v: Math.round((sum / count) * 100) / 100 });
+        autoReadings.sort((a, b) => a.day.localeCompare(b.day));
+      }
+      const ihReadings = ihData || [];
 
-      // Use the correct unit for weight
+      const allVals = [...autoReadings.map(r => r.v), ...ihReadings.map(r => r.v)];
+      if (!allVals.length) return null;
+      const avg = allVals.reduce((a, b) => a + b, 0) / allVals.length;
+      const min = Math.min(...allVals);
+      const max = Math.max(...allVals);
+
+      // Latest value from whichever series is most recent
+      const lastA = autoReadings.length ? autoReadings[autoReadings.length - 1] : null;
+      const lastI = ihReadings.length ? ihReadings[ihReadings.length - 1] : null;
+      const ihMoreRecent = lastI && (!lastA || lastI.ts > lastA.day + 'T23:59:59');
+      const latest = ihMoreRecent ? lastI.v : lastA ? lastA.v : lastI.v;
+      const latestDay = ihMoreRecent ? lastI.dt : lastA ? lastA.day : lastI.dt;
+
       let unit = m.unit;
-      if (m.key === 'weight_lb' && !byType['weight_lb'] && byType['weight_kg']) unit = 'kg';
+      if (m.key === 'weight_lb' && !autoByType['weight_lb'] && autoByType['weight_kg']) unit = 'kg';
 
-      // Build chart data from individual readings
-      const chart = readings.map(r => ({ day: r.dt, v: Math.round(r.v * 100) / 100 }));
+      // Unified chart: auto → v, iHealth → vIh, sorted by time
+      const pts = [];
+      autoReadings.forEach(r => pts.push({ sortKey: r.day, day: r.day, v: r.v }));
+      ihReadings.forEach(r => pts.push({ sortKey: r.ts, day: r.dt, vIh: Math.round(r.v * 100) / 100 }));
+      pts.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const chart = pts.map(({ sortKey, ...rest }) => rest);
 
-      // Also build a dayMap for graph groups (using readings array keyed by datetime)
+      // dayMaps for graph groups
       const dayMap = {};
-      readings.forEach(r => { dayMap[r.dt] = r.v; });
+      autoReadings.forEach(r => { dayMap[r.day] = r.v; });
+      const dayMapIh = {};
+      ihReadings.forEach(r => { dayMapIh[r.dt] = r.v; });
 
       return {
-        ...m,
-        unit,
-        dayMap,
-        readings,
-        chart,
-        avg, min, max,
-        latest: latest.v,
-        latestDay: latest.dt,
-        count: readings.length,
+        ...m, unit, dayMap, dayMapIh, chart, avg, min, max,
+        latest, latestDay, count: allVals.length,
+        hasAuto: autoReadings.length > 0, hasIh: ihReadings.length > 0,
       };
     }).filter(Boolean);
   }, [data]);
@@ -144,40 +170,40 @@ function VitalsPage({ token }) {
   const graphs = useMemo(() => {
     if (!metrics.length) return [];
     return GRAPH_GROUPS.map(g => {
-      // Resolve metrics for each key in the group
       const resolved = g.keys.map(k => {
         const m = metrics.find(x => x.key === k);
         if (m) return m;
         const alts = g.altKeys && g.altKeys[k];
-        if (alts) {
-          for (const ak of alts) {
-            const am = metrics.find(x => x.key === ak);
-            if (am) return am;
-          }
-        }
+        if (alts) { for (const ak of alts) { const am = metrics.find(x => x.key === ak); if (am) return am; } }
         return null;
       });
       if (resolved.every(r => !r)) return null;
 
-      // Collect all unique timestamps across all metrics in this group
+      // Collect all time points: dates (auto) + datetimes (iHealth)
       const allTimes = new Set();
-      resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allTimes.add(d)); });
+      resolved.forEach(m => {
+        if (m) {
+          Object.keys(m.dayMap).forEach(d => allTimes.add(d));
+          Object.keys(m.dayMapIh).forEach(d => allTimes.add(d));
+        }
+      });
       const sortedTimes = [...allTimes].sort();
       if (sortedTimes.length < 1) return null;
 
       const chartData = sortedTimes.map(dt => {
-        // Show date + time for compact axis: "MM-DD HH:MM"
         const pt = { day: dt.length > 10 ? dt.slice(5) : dt.slice(5) };
         resolved.forEach((m, i) => {
-          if (m && m.dayMap[dt] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[dt] * 100) / 100;
+          if (m) {
+            if (m.dayMap[dt] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[dt] * 100) / 100;
+            if (m.dayMapIh[dt] !== undefined) pt[`v${i}Ih`] = Math.round(m.dayMapIh[dt] * 100) / 100;
+          }
         });
         return pt;
       });
 
-      // Compute min-max legends
       const legends = resolved.map((m, i) => {
         if (!m) return null;
-        return { label: g.labels[i], color: m.color, min: m.min, max: m.max, dp: m.dp };
+        return { label: g.labels[i], color: m.color, min: m.min, max: m.max, dp: m.dp, hasIh: m.hasIh };
       }).filter(Boolean);
 
       return { ...g, chartData, legends, resolvedMetrics: resolved.filter(Boolean) };
@@ -240,13 +266,25 @@ function VitalsPage({ token }) {
                     <div className="vp-graph-mini">
                       <ResponsiveContainer width="100%" height={60}>
                         <LineChart data={g.chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                          {g.resolvedMetrics.map((m, i) => (
-                            <Line key={m.key} type="monotone" dataKey={`v${g.keys.indexOf(m.key)}`}
-                              stroke={m.color} strokeWidth={1.5}
-                              dot={false} name={g.labels[g.keys.indexOf(m.key)] || m.label}
-                              connectNulls
-                            />
-                          ))}
+                          {g.resolvedMetrics.map((m, i) => {
+                            const ki = g.keys.indexOf(m.key);
+                            return (
+                              <React.Fragment key={m.key}>
+                                <Line type="monotone" dataKey={`v${ki}`}
+                                  stroke={m.color} strokeWidth={1.5}
+                                  dot={false} name={g.labels[ki] || m.label}
+                                  connectNulls
+                                />
+                                {m.hasIh && (
+                                  <Line type="monotone" dataKey={`v${ki}Ih`}
+                                    stroke={lighten(m.color)} strokeWidth={1} strokeDasharray="3 2"
+                                    dot={false} name={`${g.labels[ki]} (Individual)`}
+                                    connectNulls={false}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -263,14 +301,27 @@ function VitalsPage({ token }) {
                             contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
                             labelStyle={{ color: '#94a3b8' }}
                           />
-                          {g.resolvedMetrics.map((m, i) => (
-                            <Line key={m.key} type="monotone" dataKey={`v${g.keys.indexOf(m.key)}`}
-                              stroke={m.color} strokeWidth={2}
-                              dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
-                              name={g.labels[g.keys.indexOf(m.key)] || m.label}
-                              connectNulls
-                            />
-                          ))}
+                          {g.resolvedMetrics.map((m, i) => {
+                            const ki = g.keys.indexOf(m.key);
+                            return (
+                              <React.Fragment key={m.key}>
+                                <Line type="monotone" dataKey={`v${ki}`}
+                                  stroke={m.color} strokeWidth={2}
+                                  dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
+                                  name={m.hasIh ? `${g.labels[ki]} (Daily Avg)` : (g.labels[ki] || m.label)}
+                                  connectNulls
+                                />
+                                {m.hasIh && (
+                                  <Line type="monotone" dataKey={`v${ki}Ih`}
+                                    stroke={lighten(m.color)} strokeWidth={1.5} strokeDasharray="5 3"
+                                    dot={{ r: 4, fill: lighten(m.color), stroke: '#fff', strokeWidth: 1 }}
+                                    name={`${g.labels[ki]} (Individual)`}
+                                    connectNulls={false}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -310,9 +361,16 @@ function VitalsPage({ token }) {
                             labelStyle={{ color: '#94a3b8' }}
                           />
                           <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={2}
-                            dot={{ r: m.chart.length < 30 ? 3 : 0, fill: m.color }}
-                            name={m.label} connectNulls
+                            dot={{ r: m.chart.filter(p => p.v != null).length < 30 ? 3 : 0, fill: m.color }}
+                            name={m.hasIh ? `${m.label} (Daily Avg)` : m.label} connectNulls
                           />
+                          {m.hasIh && (
+                            <Line type="monotone" dataKey="vIh" stroke={lighten(m.color)} strokeWidth={1.5}
+                              strokeDasharray="5 3"
+                              dot={{ r: 4, fill: lighten(m.color), stroke: '#fff', strokeWidth: 1 }}
+                              name={`${m.label} (Individual)`} connectNulls={false}
+                            />
+                          )}
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
