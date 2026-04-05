@@ -43,7 +43,9 @@ const RANGE_OPTS = [
 ];
 
 const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const fmtDateTime = d => `${fmtDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 const toLocalDate = ts => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : fmtDate(d); };
+const toLocalDateTime = ts => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : fmtDateTime(d); };
 const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : NaN; };
 
 const canonical = t => {
@@ -81,60 +83,59 @@ function VitalsPage({ token }) {
   }, [token, rangeDays]);
 
   const metrics = useMemo(() => {
-    // Build day → value maps per metric
+    // Build per-metric arrays of individual readings (every reading, not averaged)
     const allKeys = new Set();
     VITALS_METRICS.forEach(m => { allKeys.add(m.key); (m.altKeys || []).forEach(k => allKeys.add(k)); });
 
+    // Collect every individual reading: { ts (ISO string), dt (formatted datetime), day, v }
     const byType = {};
     data.forEach(r => {
       const ct = canonical(r.type);
       if (!allKeys.has(ct)) return;
       const v = toNum(r.value);
       if (!Number.isFinite(v)) return;
+      const dt = toLocalDateTime(r.timestamp);
       const day = toLocalDate(r.timestamp);
-      if (!day) return;
-      if (!byType[ct]) byType[ct] = {};
-      // For BP we want averages across readings on same day; for weight, latest wins
-      if (byType[ct][day] === undefined) {
-        byType[ct][day] = { sum: v, count: 1 };
-      } else {
-        byType[ct][day].sum += v;
-        byType[ct][day].count += 1;
-      }
+      if (!dt) return;
+      if (!byType[ct]) byType[ct] = [];
+      byType[ct].push({ ts: r.timestamp, dt, day, v });
     });
-    // Flatten to day → avg value
-    const maps = {};
-    for (const [type, dayMap] of Object.entries(byType)) {
-      maps[type] = {};
-      for (const [day, { sum, count }] of Object.entries(dayMap)) {
-        maps[type][day] = sum / count;
-      }
+    // Sort each type by timestamp ascending
+    for (const arr of Object.values(byType)) {
+      arr.sort((a, b) => a.ts.localeCompare(b.ts));
     }
 
     return VITALS_METRICS.map(m => {
-      const dayMap = maps[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || maps[k], null) : null);
-      if (!dayMap || Object.keys(dayMap).length === 0) return null;
+      const readings = byType[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || byType[k], null) : null);
+      if (!readings || readings.length === 0) return null;
 
-      const entries = Object.entries(dayMap).sort((a, b) => a[0].localeCompare(b[0]));
-      const vals = entries.map(([, v]) => v);
+      const vals = readings.map(r => r.v);
       const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
       const min = Math.min(...vals);
       const max = Math.max(...vals);
-      const latest = entries[entries.length - 1];
+      const latest = readings[readings.length - 1];
 
       // Use the correct unit for weight
       let unit = m.unit;
-      if (m.key === 'weight_lb' && !maps['weight_lb'] && maps['weight_kg']) unit = 'kg';
+      if (m.key === 'weight_lb' && !byType['weight_lb'] && byType['weight_kg']) unit = 'kg';
+
+      // Build chart data from individual readings
+      const chart = readings.map(r => ({ day: r.dt, v: Math.round(r.v * 100) / 100 }));
+
+      // Also build a dayMap for graph groups (using readings array keyed by datetime)
+      const dayMap = {};
+      readings.forEach(r => { dayMap[r.dt] = r.v; });
 
       return {
         ...m,
         unit,
         dayMap,
-        chart: entries.map(([day, v]) => ({ day, v: Math.round(v * 100) / 100 })),
+        readings,
+        chart,
         avg, min, max,
-        latest: latest[1],
-        latestDay: latest[0],
-        count: entries.length,
+        latest: latest.v,
+        latestDay: latest.dt,
+        count: readings.length,
       };
     }).filter(Boolean);
   }, [data]);
@@ -143,12 +144,10 @@ function VitalsPage({ token }) {
   const graphs = useMemo(() => {
     if (!metrics.length) return [];
     return GRAPH_GROUPS.map(g => {
-      // collect all days present across all keys in this group
-      const allDays = new Set();
+      // Resolve metrics for each key in the group
       const resolved = g.keys.map(k => {
         const m = metrics.find(x => x.key === k);
         if (m) return m;
-        // check altKeys
         const alts = g.altKeys && g.altKeys[k];
         if (alts) {
           for (const ak of alts) {
@@ -160,14 +159,17 @@ function VitalsPage({ token }) {
       });
       if (resolved.every(r => !r)) return null;
 
-      resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allDays.add(d)); });
-      const sortedDays = [...allDays].sort();
-      if (sortedDays.length < 1) return null;
+      // Collect all unique timestamps across all metrics in this group
+      const allTimes = new Set();
+      resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allTimes.add(d)); });
+      const sortedTimes = [...allTimes].sort();
+      if (sortedTimes.length < 1) return null;
 
-      const chartData = sortedDays.map(day => {
-        const pt = { day: day.slice(5) }; // MM-DD for compact axis
+      const chartData = sortedTimes.map(dt => {
+        // Show date + time for compact axis: "MM-DD HH:MM"
+        const pt = { day: dt.length > 10 ? dt.slice(5) : dt.slice(5) };
         resolved.forEach((m, i) => {
-          if (m && m.dayMap[day] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[day] * 100) / 100;
+          if (m && m.dayMap[dt] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[dt] * 100) / 100;
         });
         return pt;
       });
@@ -301,7 +303,7 @@ function VitalsPage({ token }) {
                       <ResponsiveContainer width="100%" height={180}>
                         <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-                          <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" tickFormatter={d => d.slice(5)} />
+                          <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" tickFormatter={d => d.length > 10 ? d.slice(6) : d.slice(5)} />
                           <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
                           <Tooltip
                             contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
