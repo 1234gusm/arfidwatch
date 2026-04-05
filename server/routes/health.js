@@ -1169,6 +1169,17 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
         isFoodLogFile = true;
         // MacroFactor CSV is always a complete export, so replace all food-log
         // entries for this user to avoid stale / schema-mismatched duplicates.
+        // Preserve user-added notes before wiping so they survive re-imports.
+        const existingNotes = await db('food_log_entries')
+          .where({ user_id: req.user.id })
+          .whereNotNull('note')
+          .select('date', 'meal', 'food_name', 'note');
+        const noteMap = new Map();
+        for (const n of existingNotes) {
+          const key = `${n.date}|${(n.meal || '').trim().toLowerCase()}|${(n.food_name || '').trim().toLowerCase()}`;
+          noteMap.set(key, n.note);
+        }
+
         await db('food_log_entries').where({ user_id: req.user.id }).delete();
         // Also clean up the corresponding import tracking rows
         await db('health_imports').where({ user_id: req.user.id, source: 'foodlog' }).delete();
@@ -1208,6 +1219,16 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           const taggedFood = foodEntries.map(e => ({ ...e, import_id: foodlogImportId }));
           await insertInChunks('food_log_entries', taggedFood);
           foodLogInserted = foodEntries.length;
+
+          // Restore user-added notes that were preserved before the wipe
+          for (const [key, note] of noteMap) {
+            const [date, meal, foodName] = key.split('|');
+            await db('food_log_entries')
+              .where({ user_id: req.user.id, date })
+              .whereRaw('LOWER(TRIM(meal)) = ?', [meal])
+              .whereRaw('LOWER(TRIM(food_name)) = ?', [foodName])
+              .update({ note });
+          }
         }
       }
     }

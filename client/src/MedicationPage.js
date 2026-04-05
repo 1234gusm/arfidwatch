@@ -43,6 +43,7 @@ function MedicationPage({ token }) {
   const [editQuickDosage, setEditQuickDosage] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingQuick, setSavingQuick] = useState(false);
   const [error, setError] = useState(null);
   const [name, setName] = useState('');
   const [nameOptions, setNameOptions] = useState([]);
@@ -256,8 +257,8 @@ function MedicationPage({ token }) {
   };
 
   const handleCreateQuickButton = async () => {
-    if (!name.trim() || saving) return;
-    setSaving(true);
+    if (!name.trim() || savingQuick) return;
+    setSavingQuick(true);
     setError(null);
     try {
       const res = await authFetch(`${API_BASE}/api/medications/quick-buttons`, {
@@ -276,7 +277,7 @@ function MedicationPage({ token }) {
     } catch (e) {
       setError(e.message || 'Failed to create quick button');
     } finally {
-      setSaving(false);
+      setSavingQuick(false);
     }
   };
 
@@ -614,15 +615,20 @@ function MedicationPage({ token }) {
         </p>
         {name.trim() && !hasCloseAutocompleteMatch && (
           <div className="med-custom-add-row">
-            <button className="med-custom-add-chip" onClick={handleAdd} disabled={saving}>
+            <button className="med-custom-add-chip" onPointerDown={e => e.preventDefault()} onClick={handleAdd} disabled={saving}>
               Add "{name.trim()}" as custom entry
             </button>
           </div>
         )}
         {name.trim() && !existingQuickNameKeys.has(name.trim().toLowerCase()) && (
           <div className="med-create-quick-row">
-            <button className="med-create-quick-btn" onClick={handleCreateQuickButton} disabled={saving}>
-              {saving ? 'Creating…' : `Create quick button for "${name.trim()}"${dosage.trim() ? ` (${dosage.trim()})` : ''}`}
+            <button
+              className="med-create-quick-btn"
+              onPointerDown={e => e.preventDefault()}
+              onClick={handleCreateQuickButton}
+              disabled={savingQuick}
+            >
+              {savingQuick ? 'Creating…' : `Create quick button for "${name.trim()}"${dosage.trim() ? ` (${dosage.trim()})` : ''}`}
             </button>
           </div>
         )}
