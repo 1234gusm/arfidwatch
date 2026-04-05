@@ -746,10 +746,17 @@ function HealthPage({ token }) {
   const todayHasAnyFood = Object.values(todayNutrition).some(v => v !== null);
 
   // ── Rolling overview card data ─────────────────────────────────────────────
+  // Use yesterday as the end of the rolling window so a brand-new day with no
+  // data logged yet doesn't drag the average down with a zero.
+  const yesterdayKey = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return formatDate(d);
+  })();
   const overviewCutoffKey = (() => {
     if (overviewPeriod === 0) return '2000-01-01';
     const d = new Date();
-    d.setDate(d.getDate() - overviewPeriod + 1);
+    d.setDate(d.getDate() - overviewPeriod);
     return formatDate(d);
   })();
   const overviewData = (() => {
@@ -757,7 +764,7 @@ function HealthPage({ token }) {
       data
         .filter(r => canonical(r.type) === ct)
         .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp) }))
-        .filter(x => x.day >= overviewCutoffKey && x.day <= todayKey && Number.isFinite(x.v));
+        .filter(x => x.day >= overviewCutoffKey && x.day <= yesterdayKey && Number.isFinite(x.v));
     const avgZeroFill = (vals) => {
       if (!vals.length) return null;
       const byDay = {};
