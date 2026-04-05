@@ -162,7 +162,7 @@ function VitalsPage({ token }) {
 
       resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allDays.add(d)); });
       const sortedDays = [...allDays].sort();
-      if (sortedDays.length < 2) return null;
+      if (sortedDays.length < 1) return null;
 
       const chartData = sortedDays.map(day => {
         const pt = { day: day.slice(5) }; // MM-DD for compact axis

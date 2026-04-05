@@ -1261,7 +1261,7 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
       for (const sheetName of wb.SheetNames) {
         const sheet = wb.Sheets[sheetName];
         if (!sheet) continue;
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
         if (!rows.length) continue;
         if (!firstHeaders) firstHeaders = Object.keys(rows[0]);
         allRows.push(...rows);
