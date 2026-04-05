@@ -59,7 +59,6 @@ function VitalsPage({ token }) {
   const [rangeDays, setRangeDays]   = useState(90);
   const [loading, setLoading]       = useState(true);
   const [expanded, setExpanded]     = useState({});    // per-graph expand state
-  const [allExpanded, setAllExpanded] = useState(false); // master toggle
   const [expandedCard, setExpandedCard] = useState(null); // per-stat-card expand
 
   useEffect(() => {
@@ -184,13 +183,6 @@ function VitalsPage({ token }) {
   }, [metrics]);
 
   const toggleGraph = id => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
-  const toggleAll = () => {
-    const next = !allExpanded;
-    setAllExpanded(next);
-    const map = {};
-    graphs.forEach(g => { map[g.id] = next; });
-    setExpanded(map);
-  };
 
   if (!token) return <div className="vp-page"><p>Please log in.</p></div>;
 
@@ -220,13 +212,6 @@ function VitalsPage({ token }) {
 
       {!loading && metrics.length > 0 && (
         <>
-          {/* Master expand/collapse */}
-          {graphs.length > 0 && (
-            <button className="vp-master-toggle" onClick={toggleAll}>
-              {allExpanded ? '▾ Collapse All Charts' : '▸ Expand All Charts'}
-            </button>
-          )}
-
           {/* ── Chart tiles grid ── */}
           <div className="vp-graphs-grid">
             {graphs.map(g => {
