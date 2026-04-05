@@ -212,8 +212,10 @@ async function setup() {
     if (!exists) return db.schema.table('food_log_entries', t => t.text('note').nullable());
   });
   await db.schema.hasColumn('user_profiles', 'share_food_notes').then(exists => {
-    if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_food_notes').defaultTo(false));
+    if (!exists) return db.schema.table('user_profiles', t => t.boolean('share_food_notes').defaultTo(true));
   });
+  // Flip existing users to share_food_notes = true (new default)
+  await db('user_profiles').where({ share_food_notes: false }).update({ share_food_notes: true });
 
   await db.schema.hasTable('medication_entries').then(exists => {
     if (!exists) {

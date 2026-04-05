@@ -43,7 +43,7 @@ function ProfilePage({ token }) {
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
   const [shareMeds,       setShareMeds]       = useState(false);
   const [shareJournal,    setShareJournal]    = useState(false);
-  const [shareFoodNotes,  setShareFoodNotes]  = useState(false);
+  const [shareFoodNotes,  setShareFoodNotes]  = useState(true);
   const [sharePeriod,     setSharePeriod]     = useState(null);
   const [hasIngestKey,    setHasIngestKey]    = useState(false);
   const [ingestKey,       setIngestKey]       = useState('');
