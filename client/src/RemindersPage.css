@@ -394,6 +394,40 @@
 }
 .rem-shortcut:hover { text-decoration: underline; }
 
+/* ── Per-day schedule ────────────────────────────────────── */
+.rem-perday-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rem-perday-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.rem-perday-row--on { opacity: 1; }
+
+.rem-day-btn--wide {
+  min-width: 52px;
+  text-align: center;
+}
+
+.rem-perday-toggle {
+  border: none;
+  background: none;
+  color: #8b5cf6;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0 0;
+  align-self: flex-start;
+}
+.rem-perday-toggle:hover { text-decoration: underline; }
+
 /* ── Form buttons ────────────────────────────────────────── */
 .rem-form-btns {
   display: flex;

@@ -55,6 +55,8 @@ export default function RemindersPage({ token }) {
   const [formLabel, setFormLabel] = useState('');
   const [formTimes, setFormTimes] = useState(['08:00']);
   const [formDays, setFormDays] = useState([...WEEKDAYS]);
+  const [formPerDay, setFormPerDay] = useState(false);
+  const [formDayTimes, setFormDayTimes] = useState({});
   const [testStatus, setTestStatus] = useState('');
   const [error, setError] = useState('');
   const addRef = useRef(null);
@@ -124,28 +126,59 @@ export default function RemindersPage({ token }) {
   };
 
   const addCustom = () => {
-    if (!formDays.length || !formTimes.length) return;
+    if (!formDays.length) return;
     const label = formLabel.trim() || 'Reminder';
-    const entries = formTimes.map(time => ({
-      id: makeId(), type: 'reminder', label,
-      time, days: [...formDays].sort((a, b) => a - b), enabled: true,
-    }));
+    let entries;
+    if (formPerDay) {
+      const timeGroups = {};
+      for (const d of formDays) {
+        const t = formDayTimes[d] || '08:00';
+        if (!timeGroups[t]) timeGroups[t] = [];
+        timeGroups[t].push(d);
+      }
+      entries = Object.entries(timeGroups).map(([time, days]) => ({
+        id: makeId(), type: 'reminder', label,
+        time, days: days.sort((a, b) => a - b), enabled: true,
+      }));
+    } else {
+      if (!formTimes.length) return;
+      entries = formTimes.map(time => ({
+        id: makeId(), type: 'reminder', label,
+        time, days: [...formDays].sort((a, b) => a - b), enabled: true,
+      }));
+    }
     persist([...reminders, ...entries]);
     resetForm();
   };
 
   const saveEdit = () => {
-    if (!formDays.length || !formTimes.length) return;
+    if (!formDays.length) return;
     const label = formLabel.trim() || 'Reminder';
-    // Replace the edited reminder; if times changed, replace with multi-entries
     const oldR = reminders.find(r => r.id === editId);
     const without = reminders.filter(r => r.id !== editId);
-    const entries = formTimes.map((time, i) => ({
-      id: i === 0 ? editId : makeId(),
-      type: oldR?.type || 'reminder',
-      label, time, days: [...formDays].sort((a, b) => a - b),
-      enabled: oldR?.enabled ?? true,
-    }));
+    let entries;
+    if (formPerDay) {
+      const timeGroups = {};
+      for (const d of formDays) {
+        const t = formDayTimes[d] || '08:00';
+        if (!timeGroups[t]) timeGroups[t] = [];
+        timeGroups[t].push(d);
+      }
+      entries = Object.entries(timeGroups).map(([time, days], i) => ({
+        id: i === 0 ? editId : makeId(),
+        type: oldR?.type || 'reminder',
+        label, time, days: days.sort((a, b) => a - b),
+        enabled: oldR?.enabled ?? true,
+      }));
+    } else {
+      if (!formTimes.length) return;
+      entries = formTimes.map((time, i) => ({
+        id: i === 0 ? editId : makeId(),
+        type: oldR?.type || 'reminder',
+        label, time, days: [...formDays].sort((a, b) => a - b),
+        enabled: oldR?.enabled ?? true,
+      }));
+    }
     persist([...without, ...entries]);
     resetForm();
   };
@@ -156,6 +189,8 @@ export default function RemindersPage({ token }) {
     setFormLabel('');
     setFormTimes(['08:00']);
     setFormDays([...WEEKDAYS]);
+    setFormPerDay(false);
+    setFormDayTimes({});
   };
 
   const toggleEnabled = (id) =>
@@ -192,6 +227,22 @@ export default function RemindersPage({ token }) {
   const addFormTime = () => setFormTimes(prev => [...prev, '08:00']);
   const removeFormTime = (i) => setFormTimes(prev => prev.filter((_, j) => j !== i));
   const setFormTime = (i, v) => setFormTimes(prev => prev.map((t, j) => j === i ? v : t));
+
+  const setFormDayTime = (d, v) =>
+    setFormDayTimes(prev => ({ ...prev, [d]: v }));
+
+  const togglePerDay = () => {
+    if (!formPerDay) {
+      const defaultTime = formTimes[0] || '08:00';
+      const dayTimes = {};
+      for (const d of (formDays.length ? formDays : ALL_DAYS)) {
+        dayTimes[d] = defaultTime;
+      }
+      setFormDayTimes(dayTimes);
+      if (!formDays.length) setFormDays([...ALL_DAYS]);
+    }
+    setFormPerDay(p => !p);
+  };
 
   /* ── test push ──────────────────────────────────────────── */
   const testPush = async () => {
@@ -387,46 +438,83 @@ export default function RemindersPage({ token }) {
             />
           </label>
 
-          <div className="rem-form-label">
-            Times
-            {formTimes.map((t, i) => (
-              <div key={i} className="rem-time-row">
-                <input
-                  type="time"
-                  className="rem-input rem-input--time"
-                  value={t}
-                  onChange={e => setFormTime(i, e.target.value)}
-                />
-                {formTimes.length > 1 && (
-                  <button className="rem-icon-btn rem-icon-btn--danger rem-icon-btn--sm"
-                    onClick={() => removeFormTime(i)}>✕</button>
-                )}
+          {formPerDay ? (
+            <div className="rem-form-label">
+              Schedule
+              <div className="rem-perday-grid">
+                {DAY_LABELS.map((label, idx) => (
+                  <div key={idx} className={`rem-perday-row${formDays.includes(idx) ? ' rem-perday-row--on' : ''}`}>
+                    <button
+                      className={`rem-day-btn rem-day-btn--wide${formDays.includes(idx) ? ' rem-day-btn--on' : ''}`}
+                      onClick={() => toggleFormDay(idx)}
+                    >{label}</button>
+                    {formDays.includes(idx) && (
+                      <input
+                        type="time"
+                        className="rem-input rem-input--time"
+                        value={formDayTimes[idx] || '08:00'}
+                        onChange={e => setFormDayTime(idx, e.target.value)}
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-            <button className="rem-add-time-btn" onClick={addFormTime}>+ Add time</button>
-          </div>
+              <div className="rem-day-shortcuts">
+                <button className="rem-shortcut" onClick={() => setFormDays([...ALL_DAYS])}>Every day</button>
+                <button className="rem-shortcut" onClick={() => setFormDays([...WEEKDAYS])}>Weekdays</button>
+                <button className="rem-shortcut" onClick={() => setFormDays([0, 6])}>Weekends</button>
+              </div>
+              <button className="rem-perday-toggle" onClick={togglePerDay}>
+                ← Same time for all days
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="rem-form-label">
+                Times
+                {formTimes.map((t, i) => (
+                  <div key={i} className="rem-time-row">
+                    <input
+                      type="time"
+                      className="rem-input rem-input--time"
+                      value={t}
+                      onChange={e => setFormTime(i, e.target.value)}
+                    />
+                    {formTimes.length > 1 && (
+                      <button className="rem-icon-btn rem-icon-btn--danger rem-icon-btn--sm"
+                        onClick={() => removeFormTime(i)}>✕</button>
+                    )}
+                  </div>
+                ))}
+                <button className="rem-add-time-btn" onClick={addFormTime}>+ Add time</button>
+              </div>
 
-          <div className="rem-form-label">
-            Days
-            <div className="rem-day-row">
-              {DAY_LABELS.map((label, idx) => (
-                <button
-                  key={idx}
-                  className={`rem-day-btn${formDays.includes(idx) ? ' rem-day-btn--on' : ''}`}
-                  onClick={() => toggleFormDay(idx)}
-                >{label}</button>
-              ))}
-            </div>
-            <div className="rem-day-shortcuts">
-              <button className="rem-shortcut" onClick={() => setFormDays([...ALL_DAYS])}>Every day</button>
-              <button className="rem-shortcut" onClick={() => setFormDays([...WEEKDAYS])}>Weekdays</button>
-              <button className="rem-shortcut" onClick={() => setFormDays([0, 6])}>Weekends</button>
-            </div>
-          </div>
+              <div className="rem-form-label">
+                Days
+                <div className="rem-day-row">
+                  {DAY_LABELS.map((label, idx) => (
+                    <button
+                      key={idx}
+                      className={`rem-day-btn${formDays.includes(idx) ? ' rem-day-btn--on' : ''}`}
+                      onClick={() => toggleFormDay(idx)}
+                    >{label}</button>
+                  ))}
+                </div>
+                <div className="rem-day-shortcuts">
+                  <button className="rem-shortcut" onClick={() => setFormDays([...ALL_DAYS])}>Every day</button>
+                  <button className="rem-shortcut" onClick={() => setFormDays([...WEEKDAYS])}>Weekdays</button>
+                  <button className="rem-shortcut" onClick={() => setFormDays([0, 6])}>Weekends</button>
+                </div>
+                <button className="rem-perday-toggle" onClick={togglePerDay}>
+                  ⏱ Different times per day
+                </button>
+              </div>
+            </>
+          )}
 
           <div className="rem-form-btns">
             <button className="rem-btn-primary" onClick={editId ? saveEdit : addCustom}
-              disabled={!formDays.length || !formTimes.length}>
+              disabled={!formDays.length || (!formPerDay && !formTimes.length)}>
               {editId ? 'Save' : 'Add Reminder'}
             </button>
             <button className="rem-btn-secondary" onClick={resetForm}>Cancel</button>
