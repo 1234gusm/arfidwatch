@@ -17,11 +17,19 @@ const VITALS_METRICS = [
   { key: 'blood_oxygen_saturation__',          label: 'Blood O\u2082',unit: '%',    dp: 1, color: '#22d3ee' },
   { key: 'vo2_max_mlkgmin',                    label: 'VO\u2082 Max', unit: 'ml/kg/min', dp: 1, color: '#14b8a6' },
   { key: 'body_fat_percentage__',              label: 'Body Fat',     unit: '%',    dp: 1, color: '#eab308' },
-  { key: 'lean_body_mass_lb',                  label: 'Lean Mass',    unit: 'lb',   dp: 1, color: '#60a5fa' },
   { key: 'body_mass_index_count',              label: 'BMI',          unit: '',     dp: 1, color: '#94a3b8' },
   { key: 'body_temperature_degf',              label: 'Body Temp',    unit: '\u00b0F', dp: 1, color: '#f472b6' },
   { key: 'blood_glucose_mgdl',                label: 'Blood Glucose',unit: 'mg/dL',dp: 0, color: '#34d399' },
   { key: 'respiratory_rate_countmin',          label: 'Resp. Rate',   unit: '/min', dp: 1, color: '#67e8f9' },
+];
+
+/* Graph groupings — shown as combined charts at the top like the iHealth app */
+const GRAPH_GROUPS = [
+  { id: 'bp',    title: 'Blood Pressure', unit: 'mmHg', keys: ['blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg'], labels: ['SYS', 'DIA'] },
+  { id: 'pulse', title: 'Pulse',          unit: 'bpm',  keys: ['heart_rate_avg_countmin', 'resting_heart_rate_countmin'], labels: ['Avg', 'Resting'] },
+  { id: 'wt',    title: 'Weight',         unit: 'lb',   keys: ['weight_lb'], labels: ['Weight'], altKeys: { weight_lb: ['weight_kg'] } },
+  { id: 'hrv',   title: 'HRV',            unit: 'ms',   keys: ['heart_rate_variability_ms'], labels: ['HRV'] },
+  { id: 'spo2',  title: 'Blood O\u2082',  unit: '%',    keys: ['blood_oxygen_saturation__'], labels: ['SpO\u2082'] },
 ];
 
 const RANGE_OPTS = [
@@ -49,7 +57,7 @@ function VitalsPage({ token }) {
   const [data, setData]             = useState([]);
   const [rangeDays, setRangeDays]   = useState(90);
   const [loading, setLoading]       = useState(true);
-  const [expanded, setExpanded]     = useState(null);
+  const [cardsOpen, setCardsOpen]   = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -129,6 +137,49 @@ function VitalsPage({ token }) {
     }).filter(Boolean);
   }, [data]);
 
+  /* Build combined chart data for each graph group */
+  const graphs = useMemo(() => {
+    if (!metrics.length) return [];
+    return GRAPH_GROUPS.map(g => {
+      // collect all days present across all keys in this group
+      const allDays = new Set();
+      const resolved = g.keys.map(k => {
+        const m = metrics.find(x => x.key === k);
+        if (m) return m;
+        // check altKeys
+        const alts = g.altKeys && g.altKeys[k];
+        if (alts) {
+          for (const ak of alts) {
+            const am = metrics.find(x => x.key === ak);
+            if (am) return am;
+          }
+        }
+        return null;
+      });
+      if (resolved.every(r => !r)) return null;
+
+      resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allDays.add(d)); });
+      const sortedDays = [...allDays].sort();
+      if (sortedDays.length < 2) return null;
+
+      const chartData = sortedDays.map(day => {
+        const pt = { day: day.slice(5) }; // MM-DD for compact axis
+        resolved.forEach((m, i) => {
+          if (m && m.dayMap[day] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[day] * 100) / 100;
+        });
+        return pt;
+      });
+
+      // Compute min-max legends
+      const legends = resolved.map((m, i) => {
+        if (!m) return null;
+        return { label: g.labels[i], color: m.color, min: m.min, max: m.max, dp: m.dp };
+      }).filter(Boolean);
+
+      return { ...g, chartData, legends, resolvedMetrics: resolved.filter(Boolean) };
+    }).filter(Boolean);
+  }, [metrics]);
+
   if (!token) return <div className="vp-page"><p>Please log in.</p></div>;
 
   return (
@@ -157,83 +208,65 @@ function VitalsPage({ token }) {
 
       {!loading && metrics.length > 0 && (
         <>
-          {/* Summary chips */}
-          <div className="vp-summary">
-            {metrics.map(m => (
-              <button
-                key={m.key}
-                className={`vp-chip${expanded === m.key ? ' vp-chip--active' : ''}`}
-                style={{ borderBottomColor: m.color }}
-                onClick={() => setExpanded(expanded === m.key ? null : m.key)}
-              >
-                <strong>{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)}</strong>
-                <span>{m.unit} {m.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Expanded metric card */}
-          {expanded && (() => {
-            const m = metrics.find(x => x.key === expanded);
-            if (!m) return null;
-            return (
-              <div className="vp-detail-card" style={{ borderColor: `${m.color}55` }}>
-                <div className="vp-detail-header">
-                  <span className="vp-detail-title">{m.label}</span>
-                  <span className="vp-detail-latest">{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)} {m.unit}</span>
+          {/* ── Trend graphs (primary) ── */}
+          <div className="vp-graphs">
+            {graphs.map(g => (
+              <div key={g.id} className="vp-graph-card">
+                <div className="vp-graph-head">
+                  <span className="vp-graph-title">{g.title} <small className="vp-graph-unit">{g.unit}</small></span>
+                  <span className="vp-graph-legend">
+                    {g.legends.map((l, i) => (
+                      <span key={i} className="vp-graph-legend-item">
+                        <span className="vp-graph-dot" style={{ background: l.color }} />
+                        {l.label} {l.dp === 0 ? Math.round(l.min) : l.min.toFixed(l.dp)}–{l.dp === 0 ? Math.round(l.max) : l.max.toFixed(l.dp)}
+                      </span>
+                    ))}
+                  </span>
                 </div>
-                <div className="vp-detail-stats">
-                  <span>Avg: <strong>{m.dp === 0 ? Math.round(m.avg) : m.avg.toFixed(m.dp)}</strong></span>
-                  <span>Min: <strong>{m.dp === 0 ? Math.round(m.min) : m.min.toFixed(m.dp)}</strong></span>
-                  <span>Max: <strong>{m.dp === 0 ? Math.round(m.max) : m.max.toFixed(m.dp)}</strong></span>
-                  <span>{m.count} reading{m.count !== 1 ? 's' : ''}</span>
-                </div>
-                {m.chart.length > 1 && (
-                  <div className="vp-chart-wrap">
-                    <ResponsiveContainer width="100%" height={180}>
-                      <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-                        <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
-                        <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={40} />
-                        <Tooltip
-                          contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                          labelStyle={{ color: '#94a3b8' }}
+                <div className="vp-graph-body">
+                  <ResponsiveContainer width="100%" height={170}>
+                    <LineChart data={g.chartData} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                      <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
+                      <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
+                      <Tooltip
+                        contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                        labelStyle={{ color: '#94a3b8' }}
+                      />
+                      {g.resolvedMetrics.map((m, i) => (
+                        <Line key={m.key} type="monotone" dataKey={`v${g.keys.indexOf(m.key)}`}
+                          stroke={m.color} strokeWidth={2}
+                          dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
+                          name={g.labels[g.keys.indexOf(m.key)] || m.label}
+                          connectNulls
                         />
-                        <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={2} dot={m.chart.length < 60} name={m.label} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* All metric cards (condensed) */}
-          <div className="vp-grid">
-            {metrics.filter(m => m.key !== expanded).map(m => (
-              <div
-                key={m.key}
-                className="vp-metric-card"
-                style={{ borderLeftColor: m.color }}
-                onClick={() => setExpanded(m.key)}
-              >
-                <div className="vp-metric-label">{m.label}</div>
-                <div className="vp-metric-value">{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)} <small>{m.unit}</small></div>
-                <div className="vp-metric-sub">
-                  avg {m.dp === 0 ? Math.round(m.avg) : m.avg.toFixed(m.dp)} · {m.count} reading{m.count !== 1 ? 's' : ''}
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-                {m.chart.length > 1 && (
-                  <div className="vp-spark-wrap">
-                    <ResponsiveContainer width="100%" height={40}>
-                      <LineChart data={m.chart}>
-                        <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={1.5} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
               </div>
             ))}
           </div>
+
+          {/* ── Collapsible stat cards ── */}
+          <button className="vp-cards-toggle" onClick={() => setCardsOpen(v => !v)}>
+            {cardsOpen ? '▾ Hide Details' : '▸ Show Details'} ({metrics.length} metrics)
+          </button>
+          {cardsOpen && (
+            <div className="vp-cards">
+              {metrics.map(m => (
+                <div key={m.key} className="vp-stat-card" style={{ borderLeftColor: m.color }}>
+                  <div className="vp-stat-label">{m.label}</div>
+                  <div className="vp-stat-row">
+                    <span className="vp-stat-latest">{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)} <small>{m.unit}</small></span>
+                    <span className="vp-stat-range">
+                      {m.dp === 0 ? Math.round(m.min) : m.min.toFixed(m.dp)}–{m.dp === 0 ? Math.round(m.max) : m.max.toFixed(m.dp)} · avg {m.dp === 0 ? Math.round(m.avg) : m.avg.toFixed(m.dp)} · {m.count}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
