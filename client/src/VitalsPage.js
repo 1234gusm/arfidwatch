@@ -8,13 +8,13 @@ import { authFetch } from './auth';
 
 /* ── Metric definitions ── */
 const VITALS_METRICS = [
+  { key: 'heart_rate_avg_countmin',            label: 'Avg HR',       unit: 'bpm',  dp: 0, color: '#ef4444', altKeys: ['heart_rate', 'heartrate', 'pulse', 'heart_ratebeatsmin'] },
+  { key: 'resting_heart_rate_countmin',        label: 'Resting HR',   unit: 'bpm',  dp: 0, color: '#e74c3c' },
+  { key: 'blood_pressure_systolic_mmhg',      label: 'BP Systolic',  unit: 'mmHg', dp: 0, color: '#f97316', altKeys: ['systolic', 'systolicmmhg', 'systolic_mmhg', 'sys', 'sysmmhg'] },
+  { key: 'blood_pressure_diastolic_mmhg',     label: 'BP Diastolic', unit: 'mmHg', dp: 0, color: '#fb923c', altKeys: ['diastolic', 'diastolicmmhg', 'diastolic_mmhg', 'dia', 'diammhg'] },
+  { key: 'heart_rate_variability_ms',          label: 'HRV',          unit: 'ms',   dp: 1, color: '#9b59b6' },
   { key: 'weight_lb',                        label: 'Weight',       unit: 'lb',   dp: 1, color: '#a78bfa', altKeys: ['weight_kg'] },
   { key: 'height_cm',                        label: 'Height',       unit: 'cm',   dp: 1, color: '#818cf8', altKeys: ['height_in'] },
-  { key: 'blood_pressure_systolic_mmhg',      label: 'BP Systolic',  unit: 'mmHg', dp: 0, color: '#f97316' },
-  { key: 'blood_pressure_diastolic_mmhg',     label: 'BP Diastolic', unit: 'mmHg', dp: 0, color: '#fb923c' },
-  { key: 'heart_rate_avg_countmin',            label: 'Avg HR',       unit: 'bpm',  dp: 0, color: '#ef4444' },
-  { key: 'resting_heart_rate_countmin',        label: 'Resting HR',   unit: 'bpm',  dp: 0, color: '#e74c3c' },
-  { key: 'heart_rate_variability_ms',          label: 'HRV',          unit: 'ms',   dp: 1, color: '#9b59b6' },
   { key: 'blood_oxygen_saturation__',          label: 'Blood O\u2082',unit: '%',    dp: 1, color: '#22d3ee' },
   { key: 'vo2_max_mlkgmin',                    label: 'VO\u2082 Max', unit: 'ml/kg/min', dp: 1, color: '#14b8a6' },
   { key: 'body_fat_percentage__',              label: 'Body Fat',     unit: '%',    dp: 1, color: '#eab308' },
@@ -26,8 +26,8 @@ const VITALS_METRICS = [
 
 /* Graph groupings — shown as combined charts at the top like the iHealth app */
 const GRAPH_GROUPS = [
-  { id: 'bp',    title: 'Blood Pressure', unit: 'mmHg', keys: ['blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg'], labels: ['SYS', 'DIA'] },
-  { id: 'pulse', title: 'Pulse',          unit: 'bpm',  keys: ['heart_rate_avg_countmin', 'resting_heart_rate_countmin'], labels: ['Avg', 'Resting'] },
+  { id: 'pulse', title: 'Pulse',          unit: 'bpm',  keys: ['heart_rate_avg_countmin', 'resting_heart_rate_countmin'], labels: ['Avg', 'Resting'], altKeys: { heart_rate_avg_countmin: ['heart_rate', 'heartrate', 'pulse', 'heart_ratebeatsmin'] } },
+  { id: 'bp',    title: 'Blood Pressure', unit: 'mmHg', keys: ['blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg'], labels: ['SYS', 'DIA'], altKeys: { blood_pressure_systolic_mmhg: ['systolic', 'systolicmmhg', 'systolic_mmhg', 'sys', 'sysmmhg'], blood_pressure_diastolic_mmhg: ['diastolic', 'diastolicmmhg', 'diastolic_mmhg', 'dia', 'diammhg'] } },
   { id: 'wt',    title: 'Weight',         unit: 'lb',   keys: ['weight_lb'], labels: ['Weight'], altKeys: { weight_lb: ['weight_kg'] } },
   { id: 'hrv',   title: 'HRV',            unit: 'ms',   keys: ['heart_rate_variability_ms'], labels: ['HRV'] },
   { id: 'spo2',  title: 'Blood O\u2082',  unit: '%',    keys: ['blood_oxygen_saturation__'], labels: ['SpO\u2082'] },
