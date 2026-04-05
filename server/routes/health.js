@@ -982,14 +982,16 @@ const allowedMimeTypes = new Set([
   'text/csv',
   'application/json',
   'application/octet-stream', // some clients send this for .xlsx/.csv
+  'application/x-iwork-keynote-sffnumbers', // .numbers (Apple)
+  'application/zip', // .numbers files are ZIP archives
 ]);
 const upload = multer({
   dest: path.join(__dirname, '..', 'uploads'),
   limits: { fileSize: 10 * 1024 * 1024 },  // 10 MB
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.xlsx', '.xls', '.csv', '.json'];
+    const allowed = ['.xlsx', '.xls', '.csv', '.json', '.numbers'];
     const ext = path.extname(file.originalname || '').toLowerCase();
-    if (!allowed.includes(ext)) return cb(new Error('Only .xlsx, .xls, .csv, and .json files are allowed'));
+    if (!allowed.includes(ext)) return cb(new Error('Only .xlsx, .xls, .csv, .json, and .numbers files are allowed'));
     if (!allowedMimeTypes.has(file.mimetype)) return cb(new Error('Invalid file type'));
     cb(null, true);
   },
