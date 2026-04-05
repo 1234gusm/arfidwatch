@@ -794,6 +794,14 @@ function HealthPage({ token }) {
       bpSys:      avgSimple(getRange('blood_pressure_systolic_mmhg')),
       bpDia:      avgSimple(getRange('blood_pressure_diastolic_mmhg')),
       hrv:        avgSimple(getRange('heart_rate_variability_ms')),
+      height:     (() => {
+        const hVals = data
+          .filter(r => ['height_cm', 'height_in'].includes(canonical(r.type)))
+          .map(r => ({ v: toNum(r.value), unit: canonical(r.type) === 'height_in' ? 'in' : 'cm' }))
+          .filter(x => Number.isFinite(x.v))
+          .sort((a, b) => b.v - a.v);
+        return hVals.length ? hVals[0] : null;
+      })(),
     };
   })();
 
@@ -871,6 +879,13 @@ function HealthPage({ token }) {
             <div className="hp-overview-title">Rolling Average</div>
             {overviewData.weight != null && (
               <div className="hp-weight-badge">{overviewData.weight.toFixed(1)} {overviewData.weightUnit}</div>
+            )}
+            {overviewData.height != null && (
+              <div className="hp-weight-badge" style={{ marginLeft: 8 }}>
+                {overviewData.height.unit === 'cm'
+                  ? `${Math.round(overviewData.height.v)} cm`
+                  : `${overviewData.height.v.toFixed(1)} in`}
+              </div>
             )}
           </div>
           <div className="hp-period-row">

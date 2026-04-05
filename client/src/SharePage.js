@@ -709,6 +709,14 @@ function SharePage() {
               const isKg = !maps['weight_lb'] && maps['weight_kg'];
               return <div className="share-patient-weight">{w.toFixed(1)} {isKg ? 'kg' : 'lb'}</div>;
             })()}
+            {(() => {
+              const hMap = pick(maps, 'height_cm', 'height_in');
+              if (!hMap) return null;
+              const h = latestOf(hMap);
+              if (h == null || !Number.isFinite(h)) return null;
+              const isIn = !maps['height_cm'] && maps['height_in'];
+              return <div className="share-patient-weight" style={{ marginLeft: 8 }}>{isIn ? `${h.toFixed(1)} in` : `${Math.round(h)} cm`}</div>;
+            })()}
           </div>
           {/* Period selector — shown if user hasn't locked it */}
           {!healthInfo.period_locked ? (

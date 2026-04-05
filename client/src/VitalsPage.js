@@ -9,6 +9,7 @@ import { authFetch } from './auth';
 /* ── Metric definitions ── */
 const VITALS_METRICS = [
   { key: 'weight_lb',                        label: 'Weight',       unit: 'lb',   dp: 1, color: '#a78bfa', altKeys: ['weight_kg'] },
+  { key: 'height_cm',                        label: 'Height',       unit: 'cm',   dp: 1, color: '#818cf8', altKeys: ['height_in'] },
   { key: 'blood_pressure_systolic_mmhg',      label: 'BP Systolic',  unit: 'mmHg', dp: 0, color: '#f97316' },
   { key: 'blood_pressure_diastolic_mmhg',     label: 'BP Diastolic', unit: 'mmHg', dp: 0, color: '#fb923c' },
   { key: 'heart_rate_avg_countmin',            label: 'Avg HR',       unit: 'bpm',  dp: 0, color: '#ef4444' },
@@ -58,6 +59,8 @@ function VitalsPage({ token }) {
   const [rangeDays, setRangeDays]   = useState(90);
   const [loading, setLoading]       = useState(true);
   const [cardsOpen, setCardsOpen]   = useState(false);
+  const [expanded, setExpanded]     = useState({});    // per-graph expand state
+  const [allExpanded, setAllExpanded] = useState(false); // master toggle
 
   useEffect(() => {
     if (!token) return;
@@ -180,6 +183,15 @@ function VitalsPage({ token }) {
     }).filter(Boolean);
   }, [metrics]);
 
+  const toggleGraph = id => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  const toggleAll = () => {
+    const next = !allExpanded;
+    setAllExpanded(next);
+    const map = {};
+    graphs.forEach(g => { map[g.id] = next; });
+    setExpanded(map);
+  };
+
   if (!token) return <div className="vp-page"><p>Please log in.</p></div>;
 
   return (
@@ -208,44 +220,77 @@ function VitalsPage({ token }) {
 
       {!loading && metrics.length > 0 && (
         <>
-          {/* ── Trend graphs (primary) ── */}
-          <div className="vp-graphs">
-            {graphs.map(g => (
-              <div key={g.id} className="vp-graph-card">
-                <div className="vp-graph-head">
-                  <span className="vp-graph-title">{g.title} <small className="vp-graph-unit">{g.unit}</small></span>
-                  <span className="vp-graph-legend">
-                    {g.legends.map((l, i) => (
-                      <span key={i} className="vp-graph-legend-item">
-                        <span className="vp-graph-dot" style={{ background: l.color }} />
-                        {l.label} {l.dp === 0 ? Math.round(l.min) : l.min.toFixed(l.dp)}–{l.dp === 0 ? Math.round(l.max) : l.max.toFixed(l.dp)}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-                <div className="vp-graph-body">
-                  <ResponsiveContainer width="100%" height={170}>
-                    <LineChart data={g.chartData} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-                      <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
-                      <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
-                      <Tooltip
-                        contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                        labelStyle={{ color: '#94a3b8' }}
-                      />
-                      {g.resolvedMetrics.map((m, i) => (
-                        <Line key={m.key} type="monotone" dataKey={`v${g.keys.indexOf(m.key)}`}
-                          stroke={m.color} strokeWidth={2}
-                          dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
-                          name={g.labels[g.keys.indexOf(m.key)] || m.label}
-                          connectNulls
-                        />
+          {/* Master expand/collapse */}
+          {graphs.length > 0 && (
+            <button className="vp-master-toggle" onClick={toggleAll}>
+              {allExpanded ? '▾ Collapse All Charts' : '▸ Expand All Charts'}
+            </button>
+          )}
+
+          {/* ── Chart tiles grid ── */}
+          <div className="vp-graphs-grid">
+            {graphs.map(g => {
+              const isOpen = !!expanded[g.id];
+              return (
+                <div
+                  key={g.id}
+                  className={`vp-graph-tile${isOpen ? ' vp-graph-tile--expanded' : ''}`}
+                  onClick={() => !isOpen && toggleGraph(g.id)}
+                >
+                  <div className="vp-graph-head" onClick={isOpen ? () => toggleGraph(g.id) : undefined}>
+                    <span className="vp-graph-title">{g.title} <small className="vp-graph-unit">{g.unit}</small></span>
+                    <span className="vp-graph-legend">
+                      {g.legends.map((l, i) => (
+                        <span key={i} className="vp-graph-legend-item">
+                          <span className="vp-graph-dot" style={{ background: l.color }} />
+                          {l.label} {l.dp === 0 ? Math.round(l.min) : l.min.toFixed(l.dp)}–{l.dp === 0 ? Math.round(l.max) : l.max.toFixed(l.dp)}
+                        </span>
                       ))}
-                    </LineChart>
-                  </ResponsiveContainer>
+                    </span>
+                  </div>
+                  {/* Compact mini sparkline */}
+                  {!isOpen && (
+                    <div className="vp-graph-mini">
+                      <ResponsiveContainer width="100%" height={60}>
+                        <LineChart data={g.chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                          {g.resolvedMetrics.map((m, i) => (
+                            <Line key={m.key} type="monotone" dataKey={`v${g.keys.indexOf(m.key)}`}
+                              stroke={m.color} strokeWidth={1.5}
+                              dot={false} name={g.labels[g.keys.indexOf(m.key)] || m.label}
+                              connectNulls
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                  {/* Expanded full chart */}
+                  {isOpen && (
+                    <div className="vp-graph-body">
+                      <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={g.chartData} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                          <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
+                          <Tooltip
+                            contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                            labelStyle={{ color: '#94a3b8' }}
+                          />
+                          {g.resolvedMetrics.map((m, i) => (
+                            <Line key={m.key} type="monotone" dataKey={`v${g.keys.indexOf(m.key)}`}
+                              stroke={m.color} strokeWidth={2}
+                              dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
+                              name={g.labels[g.keys.indexOf(m.key)] || m.label}
+                              connectNulls
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* ── Collapsible stat cards ── */}

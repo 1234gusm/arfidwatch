@@ -55,6 +55,10 @@ function ProfilePage({ token }) {
   const [quickExport,       setQuickExport]       = useState(false);
   const [exporting,         setExporting]         = useState(false);
   const [exportError,       setExportError]       = useState(null);
+  const [heightVal,         setHeightVal]         = useState('');
+  const [heightUnit,        setHeightUnit]        = useState('cm');
+  const [heightEditing,     setHeightEditing]     = useState(false);
+  const [heightInput,       setHeightInput]       = useState('');
 
   const appBasePath = window.location.pathname.replace(/\/$/, '');
   const shareUrl = shareToken
@@ -77,6 +81,10 @@ function ProfilePage({ token }) {
     if (d.share_period !== undefined) setSharePeriod(d.share_period || null);
     if (d.has_ingest_key !== undefined) setHasIngestKey(!!d.has_ingest_key);
     if (d.ingest_key_last_used_at !== undefined) setIngestLastUsed(d.ingest_key_last_used_at || null);
+    if (d.height_cm !== undefined && d.height_cm) {
+      setHeightVal(d.height_cm.value);
+      setHeightUnit(d.height_cm.unit || 'cm');
+    }
   };
 
   useEffect(() => {
@@ -103,6 +111,21 @@ function ProfilePage({ token }) {
       .catch(() => {});
 
   }, [token]);
+
+  const handleSaveHeight = async () => {
+    const v = parseFloat(heightInput);
+    if (isNaN(v) || v <= 0) { setError('Enter a valid height.'); return; }
+    try {
+      const d = await callPut({ height_cm: v, height_unit: heightUnit });
+      if (d.height_cm) {
+        setHeightVal(d.height_cm.value);
+        setHeightUnit(d.height_cm.unit || 'cm');
+      }
+      setHeightEditing(false);
+      setHeightInput('');
+      showFlash('Height saved');
+    } catch { setError('Failed to save height'); }
+  };
 
   const handleSaveEmail = async () => {
     const trimmed = newEmail.trim().toLowerCase();
@@ -445,8 +468,10 @@ function ProfilePage({ token }) {
       {error  && <p className="profile-error">{error}</p>}
       {flash  && <p className="profile-flash">{flash}</p>}
 
-      {/* Account */}
+      {/* ── 1. Account ── */}
       <div className="profile-card">
+        <div className="profile-section-title" style={{ borderTop: 'none', paddingTop: 0 }}>Account</div>
+
         <div className="profile-row">
           <span className="profile-field-label">Username</span>
           {!usernameEdit ? (
@@ -454,52 +479,18 @@ function ProfilePage({ token }) {
               <span className="profile-field-value" style={{ flex: 1 }}>{username}</span>
               <button
                 className="profile-btn-secondary"
-                onClick={() => {
-                  setNewUsername(username);
-                  setUsernamePassword('');
-                  setUsernameEdit(true);
-                }}
-              >
-                Change
-              </button>
+                onClick={() => { setNewUsername(username); setUsernamePassword(''); setUsernameEdit(true); }}
+              >Change</button>
             </>
           ) : (
             <div className="profile-passcode-row" style={{ width: '100%' }}>
-              <input
-                type="text"
-                className="profile-passcode-input"
-                placeholder="New username"
-                value={newUsername}
-                onChange={e => setNewUsername(e.target.value)}
-                autoFocus
-              />
-              <input
-                type="password"
-                className="profile-passcode-input"
-                placeholder="Confirm with account password"
-                value={usernamePassword}
-                onChange={e => setUsernamePassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSaveUsername()}
-              />
+              <input type="text" className="profile-passcode-input" placeholder="New username" value={newUsername} onChange={e => setNewUsername(e.target.value)} autoFocus />
+              <input type="password" className="profile-passcode-input" placeholder="Confirm with account password" value={usernamePassword} onChange={e => setUsernamePassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSaveUsername()} />
               <button className="profile-save-btn" onClick={handleSaveUsername}>Save</button>
-              <button
-                className="profile-btn-secondary"
-                onClick={() => {
-                  setUsernameEdit(false);
-                  setNewUsername('');
-                  setUsernamePassword('');
-                }}
-              >
-                Cancel
-              </button>
+              <button className="profile-btn-secondary" onClick={() => { setUsernameEdit(false); setNewUsername(''); setUsernamePassword(''); }}>Cancel</button>
             </div>
           )}
         </div>
-        {!usernameEdit && (
-          <p className="profile-hint" style={{ marginTop: 8 }}>
-            Changing your username requires your current account password.
-          </p>
-        )}
 
         <div className="profile-section-title">Email Address</div>
         {!emailEdit ? (
@@ -518,51 +509,63 @@ function ProfilePage({ token }) {
           </div>
         ) : (
           <div className="profile-passcode-row">
-            <input
-              type="email"
-              className="profile-passcode-input"
-              placeholder="Enter email address"
-              value={newEmail}
-              onChange={e => setNewEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSaveEmail()}
-              autoFocus
-            />
+            <input type="email" className="profile-passcode-input" placeholder="Enter email address" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSaveEmail()} autoFocus />
             <button className="profile-save-btn" onClick={handleSaveEmail}>Save</button>
-            {email && (
-              <button className="profile-btn-danger" onClick={() => { setNewEmail(''); handleSaveEmail(); }}>Remove</button>
-            )}
+            {email && <button className="profile-btn-danger" onClick={() => { setNewEmail(''); handleSaveEmail(); }}>Remove</button>}
             <button className="profile-btn-secondary" onClick={() => { setEmailEdit(false); setNewEmail(''); }}>Cancel</button>
           </div>
         )}
+
+        <div className="profile-section-title">Height</div>
+        <div className="profile-row">
+          {heightVal ? (
+            <span className="profile-field-value" style={{ flex: 1 }}>
+              {heightUnit === 'in'
+                ? `${Math.floor(heightVal / 12)}′${Math.round(heightVal % 12)}″ (${heightVal} in)`
+                : `${Math.round(heightVal)} cm`}
+            </span>
+          ) : (
+            <span className="profile-hint" style={{ flex: 1 }}>Not set — syncs from auto health or set manually</span>
+          )}
+          <button className="profile-btn-secondary" onClick={() => { setHeightInput(heightVal || ''); setHeightEditing(true); }}>
+            {heightVal ? 'Change' : 'Set'}
+          </button>
+        </div>
+        {heightEditing && (
+          <div className="profile-passcode-row">
+            <input
+              type="number"
+              className="profile-passcode-input"
+              placeholder={heightUnit === 'in' ? 'Height in inches' : 'Height in cm'}
+              value={heightInput}
+              onChange={e => setHeightInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSaveHeight()}
+              autoFocus
+              step="0.1"
+              min="0"
+            />
+            <select className="profile-select" style={{ flex: '0 0 70px' }} value={heightUnit} onChange={e => setHeightUnit(e.target.value)}>
+              <option value="cm">cm</option>
+              <option value="in">in</option>
+            </select>
+            <button className="profile-save-btn" onClick={handleSaveHeight}>Save</button>
+            <button className="profile-btn-secondary" onClick={() => { setHeightEditing(false); setHeightInput(''); }}>Cancel</button>
+          </div>
+        )}
+      </div>
+
+      {/* ── 2. Security ── */}
+      <div className="profile-card">
+        <div className="profile-section-title" style={{ borderTop: 'none', paddingTop: 0 }}>Security</div>
 
         <div className="profile-section-title">Change Password</div>
         {!changingPw ? (
           <button className="profile-btn-secondary" onClick={() => setChangingPw(true)}>Change password</button>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <input
-              type="password"
-              className="profile-passcode-input"
-              placeholder="Current password"
-              value={currentPw}
-              onChange={e => setCurrentPw(e.target.value)}
-              autoFocus
-            />
-            <input
-              type="password"
-              className="profile-passcode-input"
-              placeholder="New password"
-              value={newPw}
-              onChange={e => setNewPw(e.target.value)}
-            />
-            <input
-              type="password"
-              className="profile-passcode-input"
-              placeholder="Confirm new password"
-              value={confirmPw}
-              onChange={e => setConfirmPw(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
-            />
+            <input type="password" className="profile-passcode-input" placeholder="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoFocus />
+            <input type="password" className="profile-passcode-input" placeholder="New password" value={newPw} onChange={e => setNewPw(e.target.value)} />
+            <input type="password" className="profile-passcode-input" placeholder="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleChangePassword()} />
             <div className="profile-row">
               <button className="profile-save-btn" onClick={handleChangePassword}>Save new password</button>
               <button className="profile-btn-secondary" onClick={() => { setChangingPw(false); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}>Cancel</button>
@@ -570,8 +573,8 @@ function ProfilePage({ token }) {
           </div>
         )}
 
-        <div className="profile-section-title" style={{ marginTop: 14 }}>Reset Password Via Email Code</div>
-        <p className="profile-hint" style={{ marginBottom: 8 }}>
+        <div className="profile-section-title">Reset Password Via Email Code</div>
+        <p className="profile-hint">
           Sends a verification code to your account email and lets you reset without current password.
         </p>
         <div className="profile-row">
@@ -582,117 +585,53 @@ function ProfilePage({ token }) {
         </div>
         {resetCodeSent && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {resetDevCode && (
-              <p className="profile-hint">Dev code: <strong>{resetDevCode}</strong></p>
-            )}
-            <input
-              type="text"
-              className="profile-passcode-input"
-              placeholder="Email reset code"
-              value={resetCode}
-              onChange={e => setResetCode(e.target.value)}
-            />
-            <input
-              type="password"
-              className="profile-passcode-input"
-              placeholder="New password"
-              value={resetPw}
-              onChange={e => setResetPw(e.target.value)}
-            />
-            <input
-              type="password"
-              className="profile-passcode-input"
-              placeholder="Confirm new password"
-              value={resetPwConfirm}
-              onChange={e => setResetPwConfirm(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleResetByCode()}
-            />
+            {resetDevCode && <p className="profile-hint">Dev code: <strong>{resetDevCode}</strong></p>}
+            <input type="text" className="profile-passcode-input" placeholder="Email reset code" value={resetCode} onChange={e => setResetCode(e.target.value)} />
+            <input type="password" className="profile-passcode-input" placeholder="New password" value={resetPw} onChange={e => setResetPw(e.target.value)} />
+            <input type="password" className="profile-passcode-input" placeholder="Confirm new password" value={resetPwConfirm} onChange={e => setResetPwConfirm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleResetByCode()} />
             <div className="profile-row">
-              <button className="profile-save-btn" onClick={handleResetByCode} disabled={resetBusy}>
-                {resetBusy ? 'Saving…' : 'Reset password'}
-              </button>
-              <button
-                className="profile-btn-secondary"
-                onClick={() => {
-                  setResetCodeSent(false);
-                  setResetDevCode('');
-                  setResetCode('');
-                  setResetPw('');
-                  setResetPwConfirm('');
-                }}
-              >
-                Cancel
-              </button>
+              <button className="profile-save-btn" onClick={handleResetByCode} disabled={resetBusy}>{resetBusy ? 'Saving…' : 'Reset password'}</button>
+              <button className="profile-btn-secondary" onClick={() => { setResetCodeSent(false); setResetDevCode(''); setResetCode(''); setResetPw(''); setResetPwConfirm(''); }}>Cancel</button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Doctor share link */}
+      {/* ── 3. Doctor Sharing ── */}
       <div className="profile-card">
-        <div className="profile-section-title">Doctor Share Link</div>
+        <div className="profile-section-title" style={{ borderTop: 'none', paddingTop: 0 }}>Doctor Sharing</div>
         <p className="profile-hint">
           Generate a read-only link for your doctor. They see your health summary
-          for the selected export period — no account needed.
+          for the selected period — no account needed.
         </p>
 
         {shareToken ? (
           <>
             <div className="share-link-row">
               <input className="share-link-input" readOnly value={shareUrl} />
-              <button className="profile-btn-secondary" onClick={handleCopy}>
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
+              <button className="profile-btn-secondary" onClick={handleCopy}>{copied ? 'Copied!' : 'Copy'}</button>
             </div>
-
             <div className="share-actions">
               <button className="profile-btn-secondary" onClick={handleGenerateShare}>Regenerate</button>
               <button className="profile-btn-danger" onClick={handleRemoveShare}>Remove link</button>
             </div>
 
-            <div className="profile-section-title" style={{ marginTop: 16 }}>Passcode Protection</div>
-
+            <div className="profile-section-title">Passcode Protection</div>
             {hasPasscode && !changingPasscode ? (
               <div className="profile-row">
                 <span className="profile-badge profile-badge--green">Passcode active</span>
-                <button
-                  className="profile-btn-secondary"
-                  style={{ marginLeft: 10 }}
-                  onClick={() => setChangingPasscode(true)}
-                >
-                  Change
-                </button>
-                <button
-                  className="profile-btn-danger"
-                  style={{ marginLeft: 6 }}
-                  onClick={handleClearPasscode}
-                >
-                  Remove
-                </button>
+                <button className="profile-btn-secondary" style={{ marginLeft: 10 }} onClick={() => setChangingPasscode(true)}>Change</button>
+                <button className="profile-btn-danger" style={{ marginLeft: 6 }} onClick={handleClearPasscode}>Remove</button>
               </div>
             ) : (
               <div className="profile-passcode-row">
-                <input
-                  type="password"
-                  className="profile-passcode-input"
-                  placeholder={hasPasscode ? 'New passcode' : 'Set a passcode for doctors'}
-                  value={newPasscode}
-                  onChange={e => setNewPasscode(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSetPasscode()}
-                />
+                <input type="password" className="profile-passcode-input" placeholder={hasPasscode ? 'New passcode' : 'Set a passcode for doctors'} value={newPasscode} onChange={e => setNewPasscode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSetPasscode()} />
                 <button className="profile-save-btn" onClick={handleSetPasscode}>Set</button>
-                {changingPasscode && (
-                  <button
-                    className="profile-btn-secondary"
-                    onClick={() => { setChangingPasscode(false); setNewPasscode(''); }}
-                  >
-                    Cancel
-                  </button>
-                )}
+                {changingPasscode && <button className="profile-btn-secondary" onClick={() => { setChangingPasscode(false); setNewPasscode(''); }}>Cancel</button>}
               </div>
             )}
 
-            <div className="profile-section-title" style={{ marginTop: 16 }}>Doctor View Period</div>
+            <div className="profile-section-title">Doctor View Period</div>
             <p className="profile-hint">
               Set how far back your doctor sees data. Leave it at "Doctor chooses" to let them pick.
             </p>
@@ -708,22 +647,92 @@ function ProfilePage({ token }) {
                   className={sharePeriod === opt.id ? 'profile-save-btn' : 'profile-btn-secondary'}
                   style={{ padding: '5px 13px', fontSize: '0.85rem' }}
                   onClick={() => handleSetSharePeriod(opt.id)}
-                >
-                  {opt.label}
-                </button>
+                >{opt.label}</button>
               ))}
+            </div>
+
+            <div className="profile-section-title">Shared Data</div>
+
+            <div className="profile-toggle-row" style={{ borderTop: 'none', paddingTop: 0 }}>
+              <div className="profile-toggle-info">
+                <span className="profile-toggle-label">Share journal with doctor</span>
+                <span className="profile-toggle-sub">{shareJournal ? 'Titles & mood visible' : 'Journal hidden'}</span>
+              </div>
+              <button className={`profile-toggle-switch${shareJournal ? ' profile-toggle-switch--on' : ''}`} onClick={() => handleToggleJournalShare(!shareJournal)} role="switch" aria-checked={shareJournal}><span className="profile-toggle-knob" /></button>
+            </div>
+
+            <div className="profile-toggle-row">
+              <div className="profile-toggle-info">
+                <span className="profile-toggle-label">Share food notes</span>
+                <span className="profile-toggle-sub">{shareFoodNotes ? 'Texture & taste notes visible' : 'Food notes hidden'}</span>
+              </div>
+              <button className={`profile-toggle-switch${shareFoodNotes ? ' profile-toggle-switch--on' : ''}`} onClick={() => handleToggleFoodNotesShare(!shareFoodNotes)} role="switch" aria-checked={shareFoodNotes}><span className="profile-toggle-knob" /></button>
+            </div>
+
+            <div className="profile-toggle-row">
+              <div className="profile-toggle-info">
+                <span className="profile-toggle-label">Share medication log</span>
+                <span className="profile-toggle-sub">
+                  {medStatus.count > 0
+                    ? (shareMeds ? `${medStatus.count} entries visible` : 'Medications hidden')
+                    : 'No medication entries yet'}
+                </span>
+              </div>
+              <button className={`profile-toggle-switch${shareMeds ? ' profile-toggle-switch--on' : ''}`} onClick={() => handleToggleMedsShare(!shareMeds)} role="switch" aria-checked={shareMeds} disabled={medStatus.count === 0}><span className="profile-toggle-knob" /></button>
             </div>
           </>
         ) : (
-          <button className="profile-save-btn" onClick={handleGenerateShare}>
-            Generate share link
-          </button>
+          <button className="profile-save-btn" onClick={handleGenerateShare}>Generate share link</button>
         )}
       </div>
 
-      {/* Export */}
+      {/* ── 4. Health Auto Export ── */}
       <div className="profile-card">
-        <div className="profile-section-title">Export PDF Report</div>
+        <div className="profile-section-title" style={{ borderTop: 'none', paddingTop: 0 }}>Health Auto Export API</div>
+        <p className="profile-hint">
+          Endpoint:
+          <br />
+          <code className="profile-code">https://arfidwatch.onrender.com/api/health/import</code>
+        </p>
+        <div className="profile-hint profile-setup-instructions">
+          <strong>How to set up in Health Auto Export:</strong>
+          <ol style={{ margin: '6px 0 0 0', paddingLeft: '18px', lineHeight: 1.7 }}>
+            <li>Open the <strong>Health Auto Export</strong> app and go to <strong>Automations</strong>.</li>
+            <li>Create a new automation and set <strong>Automation Type</strong> to <strong>REST API</strong>.</li>
+            <li>Paste the endpoint URL above into the URL field.</li>
+            <li>Set <strong>Data Type</strong> to <strong>Health Metrics</strong> and select <strong>All</strong> health metrics.</li>
+            <li>Under <strong>Headers</strong>, add: <code>X-INGEST-KEY</code> → your key below.</li>
+            <li>Set <strong>Content-Type</strong> to <code>application/json</code>.</li>
+            <li>Enable the automation and tap <strong>Run</strong> to sync.</li>
+          </ol>
+        </div>
+
+        <div className="profile-row" style={{ marginBottom: 8 }}>
+          <span className="profile-field-label">Connection</span>
+          <span className={`profile-badge${ingestConnection.label === 'Connected' ? ' profile-badge--green' : ''}`}>
+            {ingestConnection.label}
+          </span>
+        </div>
+        <p className="profile-hint" style={{ marginBottom: 10 }}>{ingestConnection.hint}</p>
+
+        {ingestKey ? (
+          <div className="share-link-row">
+            <input className="share-link-input" readOnly value={ingestKey} />
+            <button className="profile-btn-secondary" onClick={handleCopyIngestKey}>{ingestCopied ? 'Copied!' : 'Copy key'}</button>
+          </div>
+        ) : (
+          <p className="profile-hint">No key shown. Generate one below to connect your automation.</p>
+        )}
+
+        <div className="share-actions">
+          <button className="profile-save-btn" onClick={handleGenerateIngestKey}>{hasIngestKey ? 'Rotate key' : 'Generate key'}</button>
+          {hasIngestKey && <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>}
+        </div>
+      </div>
+
+      {/* ── 5. Export PDF ── */}
+      <div className="profile-card">
+        <div className="profile-section-title" style={{ borderTop: 'none', paddingTop: 0 }}>Export PDF Report</div>
         <p className="profile-hint">Download a full PDF of your health data &amp; journal.</p>
 
         <div className="profile-row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
@@ -754,12 +763,7 @@ function ProfilePage({ token }) {
           <div className="profile-toggle-info">
             <span className="profile-toggle-label">Include journal entries</span>
           </div>
-          <button
-            className={`profile-toggle-switch${includeJournal ? ' profile-toggle-switch--on' : ''}`}
-            onClick={() => setIncludeJournal(v => !v)}
-            role="switch"
-            aria-checked={includeJournal}
-          ><span className="profile-toggle-knob" /></button>
+          <button className={`profile-toggle-switch${includeJournal ? ' profile-toggle-switch--on' : ''}`} onClick={() => setIncludeJournal(v => !v)} role="switch" aria-checked={includeJournal}><span className="profile-toggle-knob" /></button>
         </div>
 
         <div className="profile-toggle-row">
@@ -767,12 +771,7 @@ function ProfilePage({ token }) {
             <span className="profile-toggle-label">Quick export</span>
             <span className="profile-toggle-sub">Primary metrics only, no daily tables</span>
           </div>
-          <button
-            className={`profile-toggle-switch${quickExport ? ' profile-toggle-switch--on' : ''}`}
-            onClick={() => setQuickExport(v => !v)}
-            role="switch"
-            aria-checked={quickExport}
-          ><span className="profile-toggle-knob" /></button>
+          <button className={`profile-toggle-switch${quickExport ? ' profile-toggle-switch--on' : ''}`} onClick={() => setQuickExport(v => !v)} role="switch" aria-checked={quickExport}><span className="profile-toggle-knob" /></button>
         </div>
 
         {exportError && <p className="profile-error" style={{ marginTop: 10 }}>{exportError}</p>}
@@ -780,133 +779,6 @@ function ProfilePage({ token }) {
         <button className="profile-save-btn" style={{ marginTop: 14 }} onClick={handleExport} disabled={exporting}>
           {exporting ? 'Generating…' : '⬇️ Download PDF'}
         </button>
-      </div>
-
-      {/* Food Log */}
-      <div className="profile-card">
-        <div className="profile-section-title">Health Auto Export API</div>
-        <p className="profile-hint">
-          Endpoint:
-          <br />
-          <code className="profile-code">https://arfidwatch.onrender.com/api/health/import</code>
-        </p>
-        <div className="profile-hint profile-setup-instructions">
-          <strong>How to set up in Health Auto Export:</strong>
-          <ol style={{ margin: '6px 0 0 0', paddingLeft: '18px', lineHeight: 1.7 }}>
-            <li>Open the <strong>Health Auto Export</strong> app and go to <strong>Automations</strong>.</li>
-            <li>Create a new automation and set <strong>Automation Type</strong> to <strong>REST API</strong>.</li>
-            <li>Paste the endpoint URL above into the URL field.</li>
-            <li>Set <strong>Data Type</strong> to <strong>Health Metrics</strong> and select <strong>All</strong> health metrics.</li>
-            <li>Under <strong>Headers</strong>, add: <code>X-INGEST-KEY</code> → your key below.</li>
-            <li>Set <strong>Content-Type</strong> to <code>application/json</code>.</li>
-            <li>Enable the automation and tap <strong>Run</strong> to sync.</li>
-          </ol>
-        </div>
-
-        <div className="profile-row" style={{ marginBottom: 8 }}>
-          <span className="profile-field-label">Connection</span>
-          <span className={`profile-badge${ingestConnection.label === 'Connected' ? ' profile-badge--green' : ''}`}>
-            {ingestConnection.label}
-          </span>
-        </div>
-        <p className="profile-hint" style={{ marginBottom: 10 }}>{ingestConnection.hint}</p>
-
-        {ingestKey ? (
-          <div className="share-link-row">
-            <input className="share-link-input" readOnly value={ingestKey} />
-            <button className="profile-btn-secondary" onClick={handleCopyIngestKey}>
-              {ingestCopied ? 'Copied!' : 'Copy key'}
-            </button>
-          </div>
-        ) : (
-          <p className="profile-hint">No key shown. Generate one below to connect your automation.</p>
-        )}
-
-        <div className="share-actions">
-          <button className="profile-save-btn" onClick={handleGenerateIngestKey}>
-            {hasIngestKey ? 'Rotate key' : 'Generate key'}
-          </button>
-          {hasIngestKey && (
-            <button className="profile-btn-danger" onClick={handleRevokeIngestKey}>Revoke key</button>
-          )}
-        </div>
-      </div>
-
-      <div className="profile-card">
-        <div className="profile-section-title">Doctor Share — Journal</div>
-        <p className="profile-hint">
-          When enabled, your journal entry titles and mood for the share period will be visible to your doctor on the share page. Entry text is never shared.
-        </p>
-        <div className="profile-toggle-row">
-          <div className="profile-toggle-info">
-            <span className="profile-toggle-label">Share journal with doctor</span>
-            <span className="profile-toggle-sub">
-              {shareJournal ? 'Journal visible on share page' : 'Journal hidden from share page'}
-            </span>
-          </div>
-          <button
-            className={`profile-toggle-switch${shareJournal ? ' profile-toggle-switch--on' : ''}`}
-            onClick={() => handleToggleJournalShare(!shareJournal)}
-            role="switch"
-            aria-checked={shareJournal}
-          >
-            <span className="profile-toggle-knob" />
-          </button>
-        </div>
-      </div>
-
-      <div className="profile-card">
-        <div className="profile-section-title">Doctor Share — Food Notes</div>
-        <p className="profile-hint">
-          When enabled, texture and taste notes you add to food log entries will be visible to your doctor on the share page.
-        </p>
-        <div className="profile-toggle-row">
-          <div className="profile-toggle-info">
-            <span className="profile-toggle-label">Share food notes with doctor</span>
-            <span className="profile-toggle-sub">
-              {shareFoodNotes ? 'Food notes visible on share page' : 'Food notes hidden from share page'}
-            </span>
-          </div>
-          <button
-            className={`profile-toggle-switch${shareFoodNotes ? ' profile-toggle-switch--on' : ''}`}
-            onClick={() => handleToggleFoodNotesShare(!shareFoodNotes)}
-            role="switch"
-            aria-checked={shareFoodNotes}
-          >
-            <span className="profile-toggle-knob" />
-          </button>
-        </div>
-      </div>
-
-      <div className="profile-card">
-        <div className="profile-section-title">Medication Log</div>
-        <p className="profile-hint">
-          Share medications log to your doctor.
-        </p>
-
-        {medStatus.count > 0 ? (
-          <div className="profile-toggle-row">
-            <div className="profile-toggle-info">
-              <span className="profile-toggle-label">
-                {medStatus.count.toLocaleString()} entries
-                {medStatus.earliest && medStatus.latest ? ` · ${medStatus.earliest} - ${medStatus.latest}` : ''}
-              </span>
-              <span className="profile-toggle-sub">
-                {shareMeds ? 'Medication log visible to doctor' : 'Medication log hidden from share view'}
-              </span>
-            </div>
-            <button
-              className={`profile-toggle-switch${shareMeds ? ' profile-toggle-switch--on' : ''}`}
-              onClick={() => handleToggleMedsShare(!shareMeds)}
-              role="switch"
-              aria-checked={shareMeds}
-            >
-              <span className="profile-toggle-knob" />
-            </button>
-          </div>
-        ) : (
-          <p className="profile-hint" style={{ fontStyle: 'italic' }}>No medication entries yet.</p>
-        )}
       </div>
     </div>
   );

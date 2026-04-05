@@ -89,6 +89,14 @@ router.get('/', authenticate, async (req, res) => {
       await db('user_profiles').insert({ user_id: userId, export_period: 'week' });
       profile = { export_period: 'week', share_token: null, share_passcode_hash: null };
     }
+
+    // Latest height from health_data
+    const heightRow = await db('health_data')
+      .where({ user_id: userId })
+      .whereIn('type', ['height_cm', 'height_in'])
+      .orderBy('timestamp', 'desc')
+      .first();
+
     res.json({
       username: user.username,
       email: user.email || null,
@@ -108,6 +116,7 @@ router.get('/', authenticate, async (req, res) => {
       hidden_health_types: parseJsonText(profile.hidden_health_types, null),
       health_stat_order: parseJsonText(profile.health_stat_order, null),
       med_entry_colors: parseJsonText(profile.med_entry_colors, null),
+      height_cm: heightRow ? { value: heightRow.value, unit: heightRow.type === 'height_in' ? 'in' : 'cm' } : null,
     });
   } catch (err) {
     console.error('profile GET error:', err);
@@ -135,6 +144,8 @@ router.put('/', authenticate, async (req, res) => {
       share_period,
       regenerate_ingest_key,
       clear_ingest_key,
+      height_cm,
+      height_unit,
       health_auto_export_url,
       nav_tab_order,
       nav_hidden_tabs,
@@ -249,6 +260,20 @@ router.put('/', authenticate, async (req, res) => {
       updates.ingest_key_last_used_at = null;
     }
 
+    if (height_cm !== undefined) {
+      const hVal = parseFloat(height_cm);
+      const hUnit = height_unit === 'in' ? 'height_in' : 'height_cm';
+      if (!isNaN(hVal) && hVal > 0 && hVal < 300) {
+        await db('health_data').insert({
+          user_id: userId,
+          type: hUnit,
+          value: hVal,
+          timestamp: new Date().toISOString(),
+          raw: JSON.stringify({ source: 'profile' }),
+        });
+      }
+    }
+
     if (health_auto_export_url !== undefined) {
       const normalizedUrl = health_auto_export_url ? String(health_auto_export_url).trim() : null;
       if (normalizedUrl) {
@@ -330,6 +355,13 @@ router.put('/', authenticate, async (req, res) => {
 
     const profile = await db('user_profiles').where({ user_id: userId }).first();
     const user = await db('users').where({ id: userId }).select('username', 'email').first();
+
+    const heightRow = await db('health_data')
+      .where({ user_id: userId })
+      .whereIn('type', ['height_cm', 'height_in'])
+      .orderBy('timestamp', 'desc')
+      .first();
+
     res.json({
       ok: true,
       username: user?.username || null,
@@ -350,6 +382,7 @@ router.put('/', authenticate, async (req, res) => {
       health_stat_order: parseJsonText(profile?.health_stat_order, null),
       med_entry_colors: parseJsonText(profile?.med_entry_colors, null),
       ingest_key: plainIngestKey,
+      height_cm: heightRow ? { value: heightRow.value, unit: heightRow.type === 'height_in' ? 'in' : 'cm' } : null,
     });
   } catch (err) {
     console.error('profile PUT error:', err);

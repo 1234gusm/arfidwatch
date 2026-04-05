@@ -52,56 +52,89 @@
   font-size: 0.9rem;
 }
 
-/* ── Trend graph cards (primary) ── */
-.vp-graphs {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 20px;
+/* ── Master expand/collapse toggle ── */
+.vp-master-toggle {
+  display: block;
+  width: 100%;
+  background: rgba(139,92,246,0.08);
+  border: 1px solid rgba(139,92,246,0.18);
+  border-radius: 8px;
+  color: #a78bfa;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 12px;
+  transition: background 0.15s;
 }
-.vp-graph-card {
+.vp-master-toggle:hover { background: rgba(139,92,246,0.15); }
+
+/* ── Chart tiles grid ── */
+.vp-graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.vp-graph-tile {
   background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.85));
   border: 1px solid rgba(139,92,246,0.15);
   border-radius: 12px;
-  padding: 14px 16px 10px;
+  padding: 10px 14px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.vp-graph-tile:hover:not(.vp-graph-tile--expanded) {
+  border-color: rgba(139,92,246,0.35);
+  box-shadow: 0 0 12px rgba(139,92,246,0.08);
+}
+.vp-graph-tile--expanded {
+  grid-column: 1 / -1;
+  cursor: default;
+  border-color: rgba(139,92,246,0.3);
 }
 .vp-graph-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.vp-graph-tile--expanded .vp-graph-head {
+  cursor: pointer;
 }
 .vp-graph-title {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #e2e8f0;
 }
 .vp-graph-unit {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 400;
   color: rgba(148,163,184,0.5);
 }
 .vp-graph-legend {
   display: flex;
-  gap: 12px;
-  font-size: 0.7rem;
-  color: rgba(148,163,184,0.6);
+  gap: 10px;
+  font-size: 0.65rem;
+  color: rgba(148,163,184,0.55);
 }
 .vp-graph-legend-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 .vp-graph-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
 }
-.vp-graph-body { margin-top: 2px; }
+.vp-graph-mini { margin-top: 2px; }
+.vp-graph-body { margin-top: 6px; }
 
 /* ── Collapsible stat cards ── */
 .vp-cards-toggle {
@@ -167,6 +200,10 @@
 /* Responsive */
 @media (max-width: 600px) {
   .vp-header { flex-direction: column; }
+  .vp-graphs-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vp-graph-tile { padding: 8px 10px 6px; }
+  .vp-graph-title { font-size: 0.8rem; }
+  .vp-graph-legend { gap: 6px; font-size: 0.6rem; }
   .vp-cards { grid-template-columns: 1fr 1fr; }
   .vp-graph-head { flex-direction: column; }
 }
