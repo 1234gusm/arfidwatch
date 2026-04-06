@@ -1385,3 +1385,127 @@
   .shs-stat-grid    { grid-template-columns: repeat(2, 1fr); }
   .shs-metrics-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Share Vitals — graph tiles + stat cards (sv- prefix)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sv-graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.sv-graph-tile {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px 14px 8px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.sv-graph-tile:hover { border-color: #475569; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
+.sv-graph-tile--expanded {
+  grid-column: 1 / -1;
+  cursor: default;
+}
+.sv-graph-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.sv-graph-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #e2e8f0;
+}
+.sv-graph-unit {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+.sv-graph-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+.sv-graph-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sv-graph-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.sv-graph-mini {
+  margin-top: 2px;
+}
+.sv-graph-body {
+  margin-top: 4px;
+}
+
+/* Stat cards */
+.sv-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+.sv-stat-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-left: 3px solid #64748b;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.sv-stat-card:hover { border-color: #475569; box-shadow: 0 1px 8px rgba(0,0,0,0.12); }
+.sv-stat-card--expanded {
+  grid-column: 1 / -1;
+}
+.sv-stat-label {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+.sv-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.sv-stat-latest {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.sv-stat-latest small {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+.sv-stat-range {
+  font-size: 0.7rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+.sv-stat-chart {
+  margin-top: 8px;
+  border-top: 1px solid #334155;
+  padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .sv-graphs-grid { grid-template-columns: 1fr; }
+  .sv-cards { grid-template-columns: 1fr; }
+  .sv-stat-range { display: none; }
+}

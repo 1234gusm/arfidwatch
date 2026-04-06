@@ -1,9 +1,44 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+} from 'recharts';
 import './SharePage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
+
+// ── Vitals chart config for share page (15 most important) ────────────────────
+const SHARE_VITALS = [
+  { key: 'resting_heart_rate_countmin',    label: 'Resting HR',    unit: 'bpm',   dp: 0, color: '#e74c3c' },
+  { key: 'heart_rate_avg_countmin',        label: 'Avg HR',        unit: 'bpm',   dp: 0, color: '#ef4444' },
+  { key: 'blood_pressure_systolic_mmhg',   label: 'BP Systolic',   unit: 'mmHg',  dp: 0, color: '#f97316' },
+  { key: 'blood_pressure_diastolic_mmhg',  label: 'BP Diastolic',  unit: 'mmHg',  dp: 0, color: '#fb923c' },
+  { key: 'heart_rate_variability_ms',      label: 'HRV',           unit: 'ms',    dp: 1, color: '#9b59b6' },
+  { key: 'blood_oxygen_saturation__',      label: 'Blood O\u2082', unit: '%',     dp: 1, color: '#22d3ee' },
+  { key: 'weight_lb',                      label: 'Weight',        unit: 'lb',    dp: 1, color: '#a78bfa', altKeys: ['weight_kg'] },
+  { key: 'body_fat_percentage__',          label: 'Body Fat',      unit: '%',     dp: 1, color: '#eab308' },
+  { key: 'body_mass_index_count',          label: 'BMI',           unit: '',      dp: 1, color: '#94a3b8' },
+  { key: 'body_temperature_degf',          label: 'Body Temp',     unit: '\u00b0F', dp: 1, color: '#f472b6' },
+  { key: 'blood_glucose_mgdl',            label: 'Blood Glucose', unit: 'mg/dL', dp: 0, color: '#34d399' },
+  { key: 'respiratory_rate_countmin',      label: 'Resp. Rate',    unit: '/min',  dp: 1, color: '#67e8f9' },
+  { key: 'vo2_max_mlkgmin',               label: 'VO\u2082 Max',  unit: 'ml/kg/min', dp: 1, color: '#14b8a6', altKeys: ['vo2_max_mlkg_min'] },
+  { key: 'step_count_count',              label: 'Steps',         unit: '',      dp: 0, color: '#22c55e', altKeys: ['steps'] },
+  { key: 'active_energy_kcal',            label: 'Active Energy', unit: 'kcal',  dp: 0, color: '#f59e0b' },
+];
+
+const SHARE_GRAPH_GROUPS = [
+  { id: 'pulse', title: 'Pulse',          unit: 'bpm',  keys: ['heart_rate_avg_countmin', 'resting_heart_rate_countmin'], labels: ['Avg', 'Resting'] },
+  { id: 'bp',    title: 'Blood Pressure', unit: 'mmHg', keys: ['blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg'], labels: ['SYS', 'DIA'] },
+  { id: 'wt',    title: 'Weight',         unit: 'lb',   keys: ['weight_lb'], labels: ['Weight'] },
+  { id: 'hrv',   title: 'HRV',            unit: 'ms',   keys: ['heart_rate_variability_ms'], labels: ['HRV'] },
+  { id: 'spo2',  title: 'Blood O\u2082',  unit: '%',    keys: ['blood_oxygen_saturation__'], labels: ['SpO\u2082'] },
+];
+
+const lightenHex = hex => {
+  const n = parseInt(hex.slice(1), 16);
+  return '#' + [16, 8, 0].map(s => Math.min(255, ((n >> s) & 0xFF) + Math.round((255 - ((n >> s) & 0xFF)) * 0.4)).toString(16).padStart(2, '0')).join('');
+};
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 const canonical = t => {
@@ -427,6 +462,8 @@ function SharePage() {
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
   const [sleepOpenCards, setSleepOpenCards] = useState(new Set());
+  const [vitalsExpanded, setVitalsExpanded] = useState({});
+  const [vitalsCardOpen, setVitalsCardOpen] = useState(null);
 
   const toggleSleepCard = useCallback((date) => {
     setSleepOpenCards(prev => {
@@ -503,6 +540,53 @@ function SharePage() {
     setPeriodLoading(false);
   };
 
+  // ── Vitals chart computation (must be before early returns for Rules of Hooks) ──
+  const mapsEarly = useMemo(() => buildMaps(healthInfo?.data || []), [healthInfo]);
+
+  const vitalsMetrics = useMemo(() => {
+    return SHARE_VITALS.map(m => {
+      const map = mapsEarly[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || mapsEarly[k], null) : null);
+      if (!map) return null;
+      const entries = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+      if (!entries.length) return null;
+      const vals = entries.map(([, v]) => v);
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const latest = vals[vals.length - 1];
+      const latestDay = entries[entries.length - 1][0];
+      let unit = m.unit;
+      if (m.key === 'weight_lb' && !mapsEarly['weight_lb'] && mapsEarly['weight_kg']) unit = 'kg';
+      const chart = entries.map(([day, v]) => ({ day: day.slice(5), v: Math.round(v * 100) / 100 }));
+      const dayMap = {};
+      entries.forEach(([day, v]) => { dayMap[day] = v; });
+      return { ...m, unit, map, dayMap, chart, avg, min, max, latest, latestDay, count: vals.length };
+    }).filter(Boolean);
+  }, [mapsEarly]);
+
+  const vitalsGraphs = useMemo(() => {
+    if (!vitalsMetrics.length) return [];
+    return SHARE_GRAPH_GROUPS.map(g => {
+      const resolved = g.keys.map(k => vitalsMetrics.find(x => x.key === k) || null);
+      if (resolved.every(r => !r)) return null;
+      const allDays = new Set();
+      resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allDays.add(d)); });
+      const sorted = [...allDays].sort();
+      if (!sorted.length) return null;
+      const chartData = sorted.map(day => {
+        const pt = { day: day.slice(5) };
+        resolved.forEach((m, i) => {
+          if (m && m.dayMap[day] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[day] * 100) / 100;
+        });
+        return pt;
+      });
+      const legends = resolved.map((m, i) => m ? { label: g.labels[i], color: m.color, min: m.min, max: m.max, dp: m.dp } : null).filter(Boolean);
+      return { ...g, chartData, legends, resolvedMetrics: resolved.filter(Boolean) };
+    }).filter(Boolean);
+  }, [vitalsMetrics]);
+
+  const toggleVitalsGraph = id => setVitalsExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
   if (phase === 'loading') return (
     <div className="share-page share-page--centered">
       <div className="share-spinner"><div className="share-spinner-ring" /><span>Loading\u2026</span></div>
@@ -547,7 +631,7 @@ function SharePage() {
   );
 
   // ── Data view ────────────────────────────────────────────────────────────────
-  const maps         = buildMaps(healthInfo?.data || []);
+  const maps         = mapsEarly;
   const journal      = healthInfo?.journal || [];
   const foodLog      = healthInfo?.food_log || [];
   const medications  = healthInfo?.medications || [];
@@ -800,7 +884,102 @@ function SharePage() {
         </div>
 
         {activeTab === 'vitals' && <>
-          {renderMetricSection(SECTIONS.find(s => s.id === 'body_activity'))}
+          {vitalsMetrics.length === 0 && <p className="share-empty">No vitals data for this period.</p>}
+          {vitalsMetrics.length > 0 && <>
+            {/* Graph tiles */}
+            <div className="sv-graphs-grid">
+              {vitalsGraphs.map(g => {
+                const isOpen = !!vitalsExpanded[g.id];
+                return (
+                  <div key={g.id} className={`sv-graph-tile${isOpen ? ' sv-graph-tile--expanded' : ''}`}
+                       onClick={() => !isOpen && toggleVitalsGraph(g.id)}>
+                    <div className="sv-graph-head" onClick={isOpen ? () => toggleVitalsGraph(g.id) : undefined}>
+                      <span className="sv-graph-title">{g.title} <small className="sv-graph-unit">{g.unit}</small></span>
+                      <span className="sv-graph-legend">
+                        {g.legends.map((l, i) => (
+                          <span key={i} className="sv-graph-legend-item">
+                            <span className="sv-graph-dot" style={{ background: l.color }} />
+                            {l.label} {l.dp === 0 ? Math.round(l.min) : l.min.toFixed(l.dp)}–{l.dp === 0 ? Math.round(l.max) : l.max.toFixed(l.dp)}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                    {!isOpen && (
+                      <div className="sv-graph-mini">
+                        <ResponsiveContainer width="100%" height={60}>
+                          <LineChart data={g.chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                            {g.resolvedMetrics.map((m, i) => {
+                              const ki = g.keys.indexOf(m.key);
+                              return (
+                                <Line key={m.key} type="monotone" dataKey={`v${ki}`}
+                                  stroke={m.color} strokeWidth={1.5} dot={false}
+                                  name={g.labels[ki] || m.label} connectNulls />
+                              );
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                    {isOpen && (
+                      <div className="sv-graph-body">
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={g.chartData} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
+                            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
+                            <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
+                            <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#94a3b8' }} />
+                            {g.resolvedMetrics.map((m, i) => {
+                              const ki = g.keys.indexOf(m.key);
+                              return (
+                                <Line key={m.key} type="monotone" dataKey={`v${ki}`}
+                                  stroke={m.color} strokeWidth={2}
+                                  dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
+                                  name={g.labels[ki] || m.label} connectNulls />
+                              );
+                            })}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Stat cards */}
+            <div className="sv-cards">
+              {vitalsMetrics.map(m => {
+                const isCardOpen = vitalsCardOpen === m.key;
+                return (
+                  <div key={m.key} className={`sv-stat-card${isCardOpen ? ' sv-stat-card--expanded' : ''}`}
+                       style={{ borderLeftColor: m.color }}
+                       onClick={() => setVitalsCardOpen(isCardOpen ? null : m.key)}>
+                    <div className="sv-stat-label">{m.label}</div>
+                    <div className="sv-stat-row">
+                      <span className="sv-stat-latest">{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)} <small>{m.unit}</small></span>
+                      <span className="sv-stat-range">
+                        {m.dp === 0 ? Math.round(m.min) : m.min.toFixed(m.dp)}–{m.dp === 0 ? Math.round(m.max) : m.max.toFixed(m.dp)} · avg {m.dp === 0 ? Math.round(m.avg) : m.avg.toFixed(m.dp)} · {m.count}
+                      </span>
+                    </div>
+                    {isCardOpen && (
+                      <div className="sv-stat-chart">
+                        <ResponsiveContainer width="100%" height={180}>
+                          <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
+                            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
+                            <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
+                            <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#94a3b8' }} />
+                            <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={2}
+                              dot={{ r: m.chart.length < 30 ? 3 : 0, fill: m.color }}
+                              name={m.label} connectNulls />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>}
         </>}
 
         {activeTab === 'overview' && <>
