@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import API_BASE from './apiBase';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { account } from './appwrite';
 
 function ResetPasswordPage() {
-  const location = useLocation();
-  const stateUsername = location.state?.username || '';
-  const stateEmail = location.state?.email || '';
-  const stateDevCode = location.state?.devCode || '';
-  const [username, setUsername] = useState(stateUsername);
-  const [email, setEmail] = useState(stateEmail);
-  const [code, setCode] = useState(stateDevCode);
+  const [searchParams] = useSearchParams();
+  const userId = searchParams.get('userId') || '';
+  const secret = searchParams.get('secret') || '';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
@@ -21,40 +17,30 @@ function ResetPasswordPage() {
     e.preventDefault();
     setError('');
     if (!password) { setError('Please enter a new password.'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
-    if (!username || !email || !code) {
-      setError('Username, email, and reset code are required.');
+    if (!userId || !secret) {
+      setError('Invalid recovery link. Please request a new one from the forgot-password page.');
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), email: email.trim().toLowerCase(), code: code.trim(), password }),
-      });
-      let data = {};
-      try { data = await res.json(); } catch (_) { data = { error: 'Unexpected response.' }; }
-      if (res.ok && data.ok) {
-        setDone(true);
-      } else {
-        setError(data.error || 'Password reset failed.');
-      }
-    } catch {
-      setError('Could not reach server. Please try again.');
+      await account.updateRecovery(userId, secret, password);
+      setDone(true);
+    } catch (err) {
+      setError(err?.message || 'Password reset failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!stateUsername || !stateEmail) {
+  if (!userId || !secret) {
     return (
       <div className="auth-container">
         <div className="auth-card">
           <h2>Reset password</h2>
           <p style={{ color: '#5a7a99', textAlign: 'center' }}>
-            Start from the forgot password page so we can verify your account details.
+            Use the recovery link from your email, or request a new one.
           </p>
         </div>
         <p className="auth-footer"><Link to="/forgot-password">Forgot password</Link></p>
@@ -86,38 +72,10 @@ function ResetPasswordPage() {
         {error && <div className="error-msg">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="auth-field">
-            <label>Username</label>
-            <input
-              type="text"
-              placeholder="Your username"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="auth-field">
-            <label>Email address</label>
-            <input
-              type="email"
-              placeholder="Email on your account"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="auth-field">
-            <label>Reset code</label>
-            <input
-              type="text"
-              placeholder="6-digit code from your email"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-            />
-          </div>
-          <div className="auth-field">
             <label>New password</label>
             <input
               type="password"
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoFocus

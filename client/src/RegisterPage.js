@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import API_BASE from './apiBase';
-import { setAuthToken } from './auth';
+import { account, ID } from './appwrite';
 
 function RegisterPage({ setToken }) {
   const [username, setUsername] = useState('');
@@ -13,23 +12,12 @@ function RegisterPage({ setToken }) {
   const doRegister = async () => {
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username, password, email: email.trim() || undefined }),
-      });
-      let data = {};
-      try { data = await res.json(); } catch (_) { data = { error: 'Server returned an unexpected response.' }; }
-      if (res.ok && data.ok) {
-        if (data.token) setAuthToken(data.token);
-        setToken('authenticated');
-        navigate('/');
-      } else {
-        setError(data.error || 'Registration failed');
-      }
+      await account.create(ID.unique(), email.trim(), password, username.trim());
+      await account.createEmailPasswordSession(email.trim(), password);
+      setToken('authenticated');
+      navigate('/');
     } catch (err) {
-      setError('Could not reach server. Please try again in a moment.');
+      setError(err?.message || 'Registration failed');
     }
   };
 

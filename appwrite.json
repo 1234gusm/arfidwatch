@@ -1,0 +1,34 @@
+{
+  "projectId": "69d314770014fcf64eaf",
+  "projectName": "ArfidWatch",
+  "functions": [
+    {
+      "$id": "api",
+      "name": "ArfidWatch API",
+      "runtime": "node-21.0",
+      "execute": ["any"],
+      "events": [],
+      "schedule": "",
+      "timeout": 60,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/api"
+    },
+    {
+      "$id": "push-scheduler",
+      "name": "Push Scheduler",
+      "runtime": "node-21.0",
+      "execute": [],
+      "events": [],
+      "schedule": "* * * * *",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/push-scheduler"
+    }
+  ]
+}

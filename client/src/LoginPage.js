@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import API_BASE from './apiBase';
-import { setAuthToken } from './auth';
+import { account } from './appwrite';
 
 function LoginPage({ setToken }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -12,34 +11,16 @@ function LoginPage({ setToken }) {
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
-    if (!username || !password) {
+    if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ username, password }),
-      });
-
-      let data = {};
-      try {
-        data = await res.json();
-      } catch (_) {
-        data = { error: 'Server returned an unexpected response.' };
-      }
-
-      if (res.ok && data.ok) {
-        if (data.token) setAuthToken(data.token);
-        setToken('authenticated');
-        navigate('/');
-      } else {
-        setError(data.error || 'Login failed');
-      }
+      await account.createEmailPasswordSession(email, password);
+      setToken('authenticated');
+      navigate('/');
     } catch (err) {
-      setError('Could not reach server. Please try again in a moment.');
+      setError(err?.message || 'Login failed');
     }
   };
 
@@ -52,14 +33,14 @@ function LoginPage({ setToken }) {
         {error && <div className="error-msg">{error}</div>}
         <form onSubmit={handleSubmit}>
         <div className="auth-field">
-          <label>Username or Email</label>
+          <label>Email</label>
           <input
-            type="text"
-            placeholder="Enter your username or email"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             autoFocus
-            autoComplete="username"
+            autoComplete="email"
           />
         </div>
         <div className="auth-field">
