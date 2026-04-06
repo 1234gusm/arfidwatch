@@ -1,0 +1,974 @@
+{
+  "data": [
+    {
+      "id": 130,
+      "date": "2026-04-05",
+      "time": "20:10",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-04-05T20:10:00",
+      "created_at": "2026-04-06T00:10:33.279Z"
+    },
+    {
+      "id": 131,
+      "date": "2026-04-05",
+      "time": "20:10",
+      "medication_name": "Clonazepam",
+      "dosage": "0.5mg",
+      "notes": null,
+      "taken_at": "2026-04-05T20:10:00",
+      "created_at": "2026-04-06T00:10:35.339Z"
+    },
+    {
+      "id": 132,
+      "date": "2026-04-05",
+      "time": "20:10",
+      "medication_name": "Clonidine",
+      "dosage": "0.1mg",
+      "notes": null,
+      "taken_at": "2026-04-05T20:10:00",
+      "created_at": "2026-04-06T00:10:36.233Z"
+    },
+    {
+      "id": 133,
+      "date": "2026-04-05",
+      "time": "20:10",
+      "medication_name": "Raw Probiotic",
+      "dosage": "100 Billion cfu",
+      "notes": null,
+      "taken_at": "2026-04-05T20:10:00",
+      "created_at": "2026-04-06T00:10:52.164Z"
+    },
+    {
+      "id": 134,
+      "date": "2026-04-05",
+      "time": "20:10",
+      "medication_name": "Lithium Carbonate",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-04-05T20:10:00",
+      "created_at": "2026-04-06T00:10:53.358Z"
+    },
+    {
+      "id": 128,
+      "date": "2026-04-05",
+      "time": "05:11",
+      "medication_name": "Clonidine",
+      "dosage": "0.1mg",
+      "notes": null,
+      "taken_at": "2026-04-05T05:11:00",
+      "created_at": "2026-04-05T09:12:22.133Z"
+    },
+    {
+      "id": 127,
+      "date": "2026-03-29",
+      "time": "18:02",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:02:00",
+      "created_at": "2026-03-29T22:02:22.433Z"
+    },
+    {
+      "id": 124,
+      "date": "2026-03-29",
+      "time": "18:01",
+      "medication_name": "Vitamin D3",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:01:00",
+      "created_at": "2026-03-29T22:01:02.556Z"
+    },
+    {
+      "id": 125,
+      "date": "2026-03-29",
+      "time": "18:01",
+      "medication_name": "Raw Probiotic",
+      "dosage": "100 Billion cfu",
+      "notes": null,
+      "taken_at": "2026-03-29T18:01:00",
+      "created_at": "2026-03-29T22:01:04.857Z"
+    },
+    {
+      "id": 117,
+      "date": "2026-03-29",
+      "time": "18:00",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:00:00",
+      "created_at": "2026-03-29T22:00:31.325Z"
+    },
+    {
+      "id": 118,
+      "date": "2026-03-29",
+      "time": "18:00",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:00:00",
+      "created_at": "2026-03-29T22:00:31.813Z"
+    },
+    {
+      "id": 119,
+      "date": "2026-03-29",
+      "time": "18:00",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:00:00",
+      "created_at": "2026-03-29T22:00:32.292Z"
+    },
+    {
+      "id": 120,
+      "date": "2026-03-29",
+      "time": "18:00",
+      "medication_name": "Ondansetron",
+      "dosage": "4mg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:00:00",
+      "created_at": "2026-03-29T22:00:37.061Z"
+    },
+    {
+      "id": 121,
+      "date": "2026-03-29",
+      "time": "18:00",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-29T18:00:00",
+      "created_at": "2026-03-29T22:00:40.738Z"
+    },
+    {
+      "id": 122,
+      "date": "2026-03-29",
+      "time": "18:00",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-29T18:00:00",
+      "created_at": "2026-03-29T22:00:41.855Z"
+    },
+    {
+      "id": 97,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:37.486Z"
+    },
+    {
+      "id": 98,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:40.711Z"
+    },
+    {
+      "id": 99,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:41.287Z"
+    },
+    {
+      "id": 100,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Ondansetron",
+      "dosage": "4mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:42.184Z"
+    },
+    {
+      "id": 101,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Clonazepam",
+      "dosage": "0.5mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:42.915Z"
+    },
+    {
+      "id": 102,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Caffeine",
+      "dosage": "200mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:46.048Z"
+    },
+    {
+      "id": 103,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Raw Probiotic",
+      "dosage": "100 Billion cfu",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:50.882Z"
+    },
+    {
+      "id": 104,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Vitamin D3",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:52.366Z"
+    },
+    {
+      "id": 105,
+      "date": "2026-03-20",
+      "time": "03:50",
+      "medication_name": "Lithium Carbonate",
+      "dosage": "300mg",
+      "notes": null,
+      "taken_at": "2026-03-20T03:50:00",
+      "created_at": "2026-03-20T07:50:53.303Z"
+    },
+    {
+      "id": 96,
+      "date": "2026-03-18",
+      "time": "23:21",
+      "medication_name": "Lithium Carbonate",
+      "dosage": "300mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:21:00",
+      "created_at": "2026-03-19T03:21:44.741Z"
+    },
+    {
+      "id": 90,
+      "date": "2026-03-18",
+      "time": "23:18",
+      "medication_name": "L-Theanine",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:18:00",
+      "created_at": "2026-03-19T03:18:00.257Z"
+    },
+    {
+      "id": 91,
+      "date": "2026-03-18",
+      "time": "23:18",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:18:00",
+      "created_at": "2026-03-19T03:18:02.713Z"
+    },
+    {
+      "id": 92,
+      "date": "2026-03-18",
+      "time": "23:18",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-18T23:18:00",
+      "created_at": "2026-03-19T03:18:04.886Z"
+    },
+    {
+      "id": 93,
+      "date": "2026-03-18",
+      "time": "23:18",
+      "medication_name": "Raw Probiotic",
+      "dosage": "100 Billion cfu",
+      "notes": null,
+      "taken_at": "2026-03-18T23:18:00",
+      "created_at": "2026-03-19T03:18:12.363Z"
+    },
+    {
+      "id": 94,
+      "date": "2026-03-18",
+      "time": "23:18",
+      "medication_name": "Vitamin D3",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:18:00",
+      "created_at": "2026-03-19T03:18:13.344Z"
+    },
+    {
+      "id": 84,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:17:37.445Z"
+    },
+    {
+      "id": 85,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:17:45.242Z"
+    },
+    {
+      "id": 86,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:17:45.726Z"
+    },
+    {
+      "id": 87,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:17:46.350Z"
+    },
+    {
+      "id": 88,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "Clonazepam",
+      "dosage": "0.5mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:17:49.883Z"
+    },
+    {
+      "id": 89,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "L-Tyrosine",
+      "dosage": "2250mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:17:59.048Z"
+    },
+    {
+      "id": 95,
+      "date": "2026-03-18",
+      "time": "23:17",
+      "medication_name": "Lithium Carbonate",
+      "dosage": "300mg",
+      "notes": null,
+      "taken_at": "2026-03-18T23:17:00",
+      "created_at": "2026-03-19T03:21:20.364Z"
+    },
+    {
+      "id": 81,
+      "date": "2026-03-15",
+      "time": "23:25",
+      "medication_name": "Magnesium Glycinate",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:25:00",
+      "created_at": "2026-03-16T03:25:02.311Z"
+    },
+    {
+      "id": 82,
+      "date": "2026-03-15",
+      "time": "23:25",
+      "medication_name": "Raw Probiotic",
+      "dosage": "100 Billion cfu",
+      "notes": null,
+      "taken_at": "2026-03-15T23:25:00",
+      "created_at": "2026-03-16T03:25:03.885Z"
+    },
+    {
+      "id": 83,
+      "date": "2026-03-15",
+      "time": "23:25",
+      "medication_name": "Vitamin D3",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:25:00",
+      "created_at": "2026-03-16T03:25:05.909Z"
+    },
+    {
+      "id": 73,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:44.699Z"
+    },
+    {
+      "id": 74,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:45.473Z"
+    },
+    {
+      "id": 75,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:46.405Z"
+    },
+    {
+      "id": 76,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:48.102Z"
+    },
+    {
+      "id": 77,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Ondansetron",
+      "dosage": "4mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:49.143Z"
+    },
+    {
+      "id": 78,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:56.391Z"
+    },
+    {
+      "id": 79,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:57.301Z"
+    },
+    {
+      "id": 80,
+      "date": "2026-03-15",
+      "time": "23:24",
+      "medication_name": "Caffeine",
+      "dosage": "200mg",
+      "notes": null,
+      "taken_at": "2026-03-15T23:24:00",
+      "created_at": "2026-03-16T03:24:58.252Z"
+    },
+    {
+      "id": 72,
+      "date": "2026-03-12",
+      "time": "10:20",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-12T10:20:00",
+      "created_at": "2026-03-12T14:20:18.506Z"
+    },
+    {
+      "id": 68,
+      "date": "2026-03-12",
+      "time": "09:49",
+      "medication_name": "Raw Probiotic",
+      "dosage": "100 Billion CFU",
+      "notes": null,
+      "taken_at": "2026-03-12T09:49:00",
+      "created_at": "2026-03-12T13:49:02.811Z"
+    },
+    {
+      "id": 66,
+      "date": "2026-03-11",
+      "time": "22:14",
+      "medication_name": "Magnesium Glycinate",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-11T22:14:00",
+      "created_at": "2026-03-12T02:14:19.603Z"
+    },
+    {
+      "id": 64,
+      "date": "2026-03-11",
+      "time": "22:13",
+      "medication_name": "Caffeine",
+      "dosage": "200mg",
+      "notes": null,
+      "taken_at": "2026-03-11T22:13:00",
+      "created_at": "2026-03-12T02:13:01.142Z"
+    },
+    {
+      "id": 65,
+      "date": "2026-03-11",
+      "time": "22:13",
+      "medication_name": "Glycine",
+      "dosage": "3g",
+      "notes": null,
+      "taken_at": "2026-03-11T22:13:00",
+      "created_at": "2026-03-12T02:13:45.254Z"
+    },
+    {
+      "id": 60,
+      "date": "2026-03-11",
+      "time": "22:12",
+      "medication_name": "L-Theanine",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-11T22:12:00",
+      "created_at": "2026-03-12T02:12:44.969Z"
+    },
+    {
+      "id": 61,
+      "date": "2026-03-11",
+      "time": "22:12",
+      "medication_name": "Vitamin D",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-11T22:12:00",
+      "created_at": "2026-03-12T02:12:54.353Z"
+    },
+    {
+      "id": 62,
+      "date": "2026-03-11",
+      "time": "22:12",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-11T22:12:00",
+      "created_at": "2026-03-12T02:12:54.789Z"
+    },
+    {
+      "id": 63,
+      "date": "2026-03-11",
+      "time": "22:12",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-11T22:12:00",
+      "created_at": "2026-03-12T02:12:56.681Z"
+    },
+    {
+      "id": 54,
+      "date": "2026-03-11",
+      "time": "15:08",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-11T15:08:00",
+      "created_at": "2026-03-11T19:08:01.805Z"
+    },
+    {
+      "id": 55,
+      "date": "2026-03-11",
+      "time": "15:08",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-11T15:08:00",
+      "created_at": "2026-03-11T19:08:02.492Z"
+    },
+    {
+      "id": 56,
+      "date": "2026-03-11",
+      "time": "15:08",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-11T15:08:00",
+      "created_at": "2026-03-11T19:08:02.947Z"
+    },
+    {
+      "id": 57,
+      "date": "2026-03-11",
+      "time": "15:08",
+      "medication_name": "Ativan",
+      "dosage": "1mg",
+      "notes": null,
+      "taken_at": "2026-03-11T15:08:00",
+      "created_at": "2026-03-11T19:08:06.307Z"
+    },
+    {
+      "id": 58,
+      "date": "2026-03-11",
+      "time": "15:08",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-11T15:08:00",
+      "created_at": "2026-03-11T19:08:14.445Z"
+    },
+    {
+      "id": 51,
+      "date": "2026-03-10",
+      "time": "10:42",
+      "medication_name": "Vitamin D",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:42:00",
+      "created_at": "2026-03-10T14:42:00.660Z"
+    },
+    {
+      "id": 52,
+      "date": "2026-03-10",
+      "time": "10:42",
+      "medication_name": "Caffeine",
+      "dosage": "200mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:42:00",
+      "created_at": "2026-03-10T14:42:01.626Z"
+    },
+    {
+      "id": 53,
+      "date": "2026-03-10",
+      "time": "10:42",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:42:00",
+      "created_at": "2026-03-10T14:42:05.582Z"
+    },
+    {
+      "id": 42,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:40.053Z"
+    },
+    {
+      "id": 43,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:40.982Z"
+    },
+    {
+      "id": 44,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:42.053Z"
+    },
+    {
+      "id": 45,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "Ondansetron",
+      "dosage": "4mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:44.166Z"
+    },
+    {
+      "id": 47,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "L-Tryptophan",
+      "dosage": "1250mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:46.844Z"
+    },
+    {
+      "id": 48,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "L-Theanine",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:47.641Z"
+    },
+    {
+      "id": 49,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:58.964Z"
+    },
+    {
+      "id": 50,
+      "date": "2026-03-10",
+      "time": "10:41",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-10T10:41:00",
+      "created_at": "2026-03-10T14:41:59.716Z"
+    },
+    {
+      "id": 41,
+      "date": "2026-03-06",
+      "time": "21:02",
+      "medication_name": "Cyproheptadine",
+      "dosage": "16mg",
+      "notes": null,
+      "taken_at": "2026-03-06T21:02:00",
+      "created_at": "2026-03-07T08:02:45.040Z"
+    },
+    {
+      "id": 39,
+      "date": "2026-03-06",
+      "time": "18:32",
+      "medication_name": "Ondansetron",
+      "dosage": "4mg",
+      "notes": null,
+      "taken_at": "2026-03-06T18:32:00",
+      "created_at": "2026-03-06T23:32:22.624Z"
+    },
+    {
+      "id": 36,
+      "date": "2026-03-06",
+      "time": "17:43",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-06T17:43:00",
+      "created_at": "2026-03-06T22:43:01.604Z"
+    },
+    {
+      "id": 37,
+      "date": "2026-03-06",
+      "time": "17:43",
+      "medication_name": "Vitamin D",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:43:00",
+      "created_at": "2026-03-06T22:43:02.415Z"
+    },
+    {
+      "id": 38,
+      "date": "2026-03-06",
+      "time": "17:43",
+      "medication_name": "Caffeine",
+      "dosage": "200mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:43:00",
+      "created_at": "2026-03-06T22:43:03.896Z"
+    },
+    {
+      "id": 29,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:48.906Z"
+    },
+    {
+      "id": 30,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:51.789Z"
+    },
+    {
+      "id": 31,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:53.202Z"
+    },
+    {
+      "id": 32,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "L-Tyrosine",
+      "dosage": "2250mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:55.440Z"
+    },
+    {
+      "id": 33,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "L-Tryptophan",
+      "dosage": "1250mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:56.078Z"
+    },
+    {
+      "id": 34,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "L-Theanine",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:57.639Z"
+    },
+    {
+      "id": 35,
+      "date": "2026-03-06",
+      "time": "17:42",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-06T17:42:00",
+      "created_at": "2026-03-06T22:42:59.506Z"
+    },
+    {
+      "id": 13,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Quetiapine",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:41.969Z"
+    },
+    {
+      "id": 14,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "N-Acetyl Cysteine",
+      "dosage": "2400mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:43.516Z"
+    },
+    {
+      "id": 15,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Buspirone",
+      "dosage": "20mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:44.651Z"
+    },
+    {
+      "id": 16,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Ondansetron",
+      "dosage": "4mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:45.596Z"
+    },
+    {
+      "id": 17,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Clonazepam",
+      "dosage": "0.5mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:46.811Z"
+    },
+    {
+      "id": 19,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "L-Tyrosine",
+      "dosage": "2250mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:50.199Z"
+    },
+    {
+      "id": 20,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "L-Tryptophan",
+      "dosage": "1250mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:51.053Z"
+    },
+    {
+      "id": 21,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "L-Theanine",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:52.288Z"
+    },
+    {
+      "id": 22,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Ashwagandha",
+      "dosage": "600mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:53.232Z"
+    },
+    {
+      "id": 23,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Multivitamin",
+      "dosage": null,
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:54.109Z"
+    },
+    {
+      "id": 24,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Vitamin D",
+      "dosage": "125 mcg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:55.196Z"
+    },
+    {
+      "id": 25,
+      "date": "2026-03-05",
+      "time": "21:25",
+      "medication_name": "Caffeine",
+      "dosage": "400mg",
+      "notes": null,
+      "taken_at": "2026-03-05T21:25:00",
+      "created_at": "2026-03-06T02:25:56.045Z"
+    }
+  ]
+}

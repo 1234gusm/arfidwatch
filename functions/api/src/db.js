@@ -16,7 +16,7 @@ export function createDb(databases) {
     async find(collectionId, queries = [], limit = 5000) {
       const all = [];
       let lastId = null;
-      const batch = Math.min(limit, 100);
+      const batch = Math.min(limit, 5000);
       while (all.length < limit) {
         const q = [...queries, Query.limit(batch)];
         if (lastId) q.push(Query.cursorAfter(lastId));

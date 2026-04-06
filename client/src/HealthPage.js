@@ -33,8 +33,12 @@ function HealthPage({ token }) {
   const [endDate, setEndDate] = useState(formatDate(new Date()));
   const [overviewPeriod, setOverviewPeriod] = useState(7);
 
-  const fetchData = async () => {
-    const res = await authFetch(`${API_BASE}/api/health`, {
+  const fetchData = async (start, end) => {
+    const params = new URLSearchParams();
+    if (start) params.set('start', start);
+    if (end) params.set('end', end);
+    const qs = params.toString() ? `?${params}` : '';
+    const res = await authFetch(`${API_BASE}/api/health${qs}`, {
       credentials: 'include',
     });
     const json = await res.json();
@@ -111,7 +115,7 @@ function HealthPage({ token }) {
       method: 'DELETE',
       credentials: 'include',
     });
-    fetchData();
+    fetchData(startDate, endDate);
     fetchImports();
   };
 
@@ -121,7 +125,7 @@ function HealthPage({ token }) {
       credentials: 'include',
     });
     setDeleteAllConfirm(false);
-    fetchData();
+    fetchData(startDate, endDate);
     fetchImports();
   };
 
@@ -172,7 +176,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor file');
@@ -198,7 +202,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import file: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'records' }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('Binary file import error:', err);
         alert('Error importing file');
@@ -230,7 +234,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = isIHealthCsv ? 'blood pressure records' : 'health records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('CSV import error:', err);
         alert('Error importing CSV');
@@ -250,7 +254,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import AutoSleep CSV: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'sleep records' }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('AutoSleep CSV import error:', err);
         alert('Error importing AutoSleep CSV');
@@ -274,7 +278,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor CSV');
@@ -293,7 +297,7 @@ function HealthPage({ token }) {
       if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
       const r = await res.json();
       alert(buildImportAlertMessage({ ...r, label: 'health records' }));
-      fetchData(); fetchImports(); fetchTodayFood();
+      fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
     } catch (err) {
       console.error('CSV import error:', err);
       alert('Error importing CSV');
@@ -767,9 +771,9 @@ function HealthPage({ token }) {
 
   // All hooks must be called at top level before any conditional returns
   useEffect(() => {
-    if (token) { fetchData(); fetchImports(); fetchTodayFood(); }
+    if (token) { fetchData(startDate, endDate); fetchImports(); fetchTodayFood(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, startDate, endDate]);
 
   // Early return for unauthenticated users (after all hooks)
   if (!token) {

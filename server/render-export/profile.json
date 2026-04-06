@@ -1,0 +1,42 @@
+{
+  "username": "gus",
+  "email": "mccartygus@gmail.com",
+  "export_period": "week",
+  "share_token": "13f8d15efbb29cc1947e4bfd93e4c56cc177c12a9503c4e4",
+  "has_passcode": true,
+  "share_food_log": true,
+  "share_food_notes": true,
+  "share_medications": true,
+  "share_journal": true,
+  "share_period": null,
+  "has_ingest_key": true,
+  "ingest_key_last_used_at": "2026-04-06T13:02:50.543Z",
+  "health_auto_export_url": null,
+  "nav_tab_order": null,
+  "nav_hidden_tabs": null,
+  "hidden_health_types": [
+    "swimming_stroke_count_count",
+    "wheelchair_distance_mi",
+    "trend_weight_lbs",
+    "target_calories_kcal",
+    "target_protein_g",
+    "target_fat_g",
+    "target_carbs_g",
+    "sleep_analysis_quality_hr",
+    "fell_asleep_in_hr",
+    "sleep_efficiency_percent",
+    "sleep_sessions_count",
+    "sleep_heart_rate_bpm",
+    "waking_heart_rate_bpm",
+    "sleep_hrv_ms",
+    "resp_rate_min_countmin",
+    "resp_rate_max_countmin",
+    "day_heart_rate_bpm"
+  ],
+  "health_stat_order": [],
+  "med_entry_colors": null,
+  "height_cm": {
+    "value": 107,
+    "unit": "cm"
+  }
+}

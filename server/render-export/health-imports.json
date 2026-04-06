@@ -1,0 +1,1012 @@
+{
+  "imports": [
+    {
+      "id": 173,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-06 13-02-50).csv",
+      "source": "health",
+      "file_hash": "babb8b40b6e0122251352a0e7b547e823c5e1d6a0f459793f99aff1fe7895693",
+      "imported_at": "2026-04-06T13:02:50.706Z",
+      "record_count": 480
+    },
+    {
+      "id": 172,
+      "user_id": 1,
+      "filename": "Bpdata.csv",
+      "source": "health",
+      "file_hash": "d42f1e6ca029bdbcb26657d8f9a824a47567d94d942c06a06b698f2c6479b0dc",
+      "imported_at": "2026-04-06T02:52:31.283Z",
+      "record_count": 33
+    },
+    {
+      "id": 171,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-06 02-49-50).csv",
+      "source": "health",
+      "file_hash": "ebd0f910c5b5fb6510286d6bd8ca24357dd59c8bd451281ba66af4b1dc2112ee",
+      "imported_at": "2026-04-06T02:49:50.302Z",
+      "record_count": 68
+    },
+    {
+      "id": 170,
+      "user_id": 1,
+      "filename": "MacroFactor-20260405224852.csv",
+      "source": "foodlog",
+      "file_hash": "3eec4c074903f89c9a343ce4400dead290959d860b553baceeb99de345bd8576",
+      "imported_at": "2026-04-06T02:49:15.039Z",
+      "record_count": 60
+    },
+    {
+      "id": 169,
+      "user_id": 1,
+      "filename": "MacroFactor-20260405224804.xlsx",
+      "source": "macro",
+      "file_hash": "f1695b3aa696e1916137ecd437dff72d7bafa0b2174ebc092ed88fb8f9f36163",
+      "imported_at": "2026-04-06T02:48:31.506Z",
+      "record_count": 861
+    },
+    {
+      "id": 168,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-06 02-47-41).csv",
+      "source": "health",
+      "file_hash": "b963cb90aac46fc7b038870e2f99f87ef37f24234eede731940c6796a188a8d6",
+      "imported_at": "2026-04-06T02:47:41.225Z",
+      "record_count": 0
+    },
+    {
+      "id": 167,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-06 02-13-52).csv",
+      "source": "health",
+      "file_hash": "5f1e6bc804effc0a1409e1576da4bc1fff0f0da824c8a40b7ce07c159354a582",
+      "imported_at": "2026-04-06T02:13:52.620Z",
+      "record_count": 22
+    },
+    {
+      "id": 166,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-06 01-36-36).csv",
+      "source": "health",
+      "file_hash": "91dee426c8e5ceb7ec94fc37dc8a548151a6d3dbb5d487fc667e76195059ab96",
+      "imported_at": "2026-04-06T01:36:36.299Z",
+      "record_count": 34
+    },
+    {
+      "id": 165,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-06 01-09-07).csv",
+      "source": "health",
+      "file_hash": "4ecc14f626ea1d96727e97cbeff62d4f5511af1966aab3ca66389d133d8ba5d1",
+      "imported_at": "2026-04-06T01:09:07.615Z",
+      "record_count": 278
+    },
+    {
+      "id": 164,
+      "user_id": 1,
+      "filename": "BP_Data_From_mccartygus@gmail.com_Create_at_0405 3.csv",
+      "source": "health",
+      "file_hash": "b643ea66776b4402c0e95aeadfa806c6437e5af406cb2a92aeea27475b54c5b0",
+      "imported_at": "2026-04-05T23:56:54.905Z",
+      "record_count": 27
+    },
+    {
+      "id": 163,
+      "user_id": 1,
+      "filename": "BP_Data_From_mccartygus@gmail.com_Create_at_0405 2.csv",
+      "source": "health",
+      "file_hash": "73b1ca610a2b44dbd8fcf7def6992b4883f5e50f9947a1d14d9250597adcbf2b",
+      "imported_at": "2026-04-05T23:53:49.789Z",
+      "record_count": 18
+    },
+    {
+      "id": 162,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 23-33-37).csv",
+      "source": "health",
+      "file_hash": "51c99fd0d8bc66f89de6ec630d3c83f39b94d911942d61a83d5e67f64a9a812a",
+      "imported_at": "2026-04-05T23:33:37.789Z",
+      "record_count": 226
+    },
+    {
+      "id": 160,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 23-20-27).csv",
+      "source": "health",
+      "file_hash": "26a53d91cf084ebfe6fc8c12c5838c2e8c65713e2006421710f73590c2866168",
+      "imported_at": "2026-04-05T23:20:27.280Z",
+      "record_count": 0
+    },
+    {
+      "id": 159,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 23-01-11).csv",
+      "source": "health",
+      "file_hash": "4ef63dc1d8f4bc76e5b3faf95f948baf3b5e6fa052f74d36a697168f01f96670",
+      "imported_at": "2026-04-05T23:01:11.378Z",
+      "record_count": 265
+    },
+    {
+      "id": 158,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 22-43-21).csv",
+      "source": "health",
+      "file_hash": "f7de3c93b138773db81b3a5f83fb2db83302cc0429d11c8fc209b2857c6bf7b0",
+      "imported_at": "2026-04-05T22:43:21.871Z",
+      "record_count": 301
+    },
+    {
+      "id": 155,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 21-27-09).csv",
+      "source": "health",
+      "file_hash": "fcc77d29322fd7d6103549ab410c626aebeb0d25e6fabab2b8237def00940cc1",
+      "imported_at": "2026-04-05T21:27:09.985Z",
+      "record_count": 6
+    },
+    {
+      "id": 154,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 20-59-27).csv",
+      "source": "health",
+      "file_hash": "874f96749ee5decd49542953ccdb20554dc36568433644f5e07d68ce7a172299",
+      "imported_at": "2026-04-05T20:59:27.983Z",
+      "record_count": 128
+    },
+    {
+      "id": 153,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 20-19-46).csv",
+      "source": "health",
+      "file_hash": "780db5f324ac469ec2d6d604027849e73d830cb373344bd370eefa26ff1b7ebd",
+      "imported_at": "2026-04-05T20:19:46.502Z",
+      "record_count": 177
+    },
+    {
+      "id": 152,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 19-31-02).csv",
+      "source": "health",
+      "file_hash": "e269da97d121c43b8ae7efba2a59d0501e862789f51d13f0247c2dca2ea14c91",
+      "imported_at": "2026-04-05T19:31:02.785Z",
+      "record_count": 6
+    },
+    {
+      "id": 151,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 18-29-51).csv",
+      "source": "health",
+      "file_hash": "d4d0faac289a04ac2b1a1e9180f8ad16be882a024b19aa7524e420a1c17e16cf",
+      "imported_at": "2026-04-05T18:29:51.094Z",
+      "record_count": 513
+    },
+    {
+      "id": 150,
+      "user_id": 1,
+      "filename": "MacroFactor-20260405135827.xlsx",
+      "source": "macro",
+      "file_hash": "048be9ad2725d16adaf9bf32c22c80e24a2fa94655b5db865d185409ea04be82",
+      "imported_at": "2026-04-05T17:58:51.782Z",
+      "record_count": 59
+    },
+    {
+      "id": 148,
+      "user_id": 1,
+      "filename": "AutoSleep-20260309-to-20260405.csv",
+      "source": "health",
+      "file_hash": "51f4b2aaf3c463fea3c979a6233554f527da91ced613cf5b6ec2293cbfe612da",
+      "imported_at": "2026-04-05T17:58:05.676Z",
+      "record_count": 292
+    },
+    {
+      "id": 147,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 16-10-46).csv",
+      "source": "health",
+      "file_hash": "cd1a402db635e33d4370da43d7ec535f1464da91c7e21745149931bfc4c846a4",
+      "imported_at": "2026-04-05T16:10:46.598Z",
+      "record_count": 0
+    },
+    {
+      "id": 146,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 16-04-53).csv",
+      "source": "health",
+      "file_hash": "4b48cb5a97443971f432771fbe2e9cb3005064aa06cc7781414972042884495e",
+      "imported_at": "2026-04-05T16:04:53.188Z",
+      "record_count": 128
+    },
+    {
+      "id": 145,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 15-35-16).csv",
+      "source": "health",
+      "file_hash": "8875fb4d0e25250300b52bcdf5ecf6de0e637e00124428e32d4e5aa07a84726e",
+      "imported_at": "2026-04-05T15:35:16.297Z",
+      "record_count": 484
+    },
+    {
+      "id": 144,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 10-36-30).csv",
+      "source": "health",
+      "file_hash": "126575c1f6e948f26209687541cb9a9ed1fd06fb7e187ca82b75fca9727027c8",
+      "imported_at": "2026-04-05T10:36:30.383Z",
+      "record_count": 279
+    },
+    {
+      "id": 143,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 09-52-32).csv",
+      "source": "health",
+      "file_hash": "f81952c5e8c12ef2572039469b752ceaa4da84609e37833ba81470f92df184f2",
+      "imported_at": "2026-04-05T09:52:32.189Z",
+      "record_count": 91
+    },
+    {
+      "id": 142,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 09-15-42).csv",
+      "source": "health",
+      "file_hash": "578273e9f1fccfaaef9ca8025eeb2a5030f34502bc4904e75915fb56a482df0b",
+      "imported_at": "2026-04-05T09:15:42.107Z",
+      "record_count": 159
+    },
+    {
+      "id": 141,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 08-17-29).csv",
+      "source": "health",
+      "file_hash": "6a83273b4c81a464cd00bdf4c265540c24bd59fdb7e4ae42773f5cf873662087",
+      "imported_at": "2026-04-05T08:17:29.995Z",
+      "record_count": 103
+    },
+    {
+      "id": 140,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 07-40-56).csv",
+      "source": "health",
+      "file_hash": "9b3bfebeef503908fa9999a1185293d8671b81278bbcb102b7cbbbd1bab56045",
+      "imported_at": "2026-04-05T07:40:56.055Z",
+      "record_count": 907
+    },
+    {
+      "id": 139,
+      "user_id": 1,
+      "filename": "MacroFactor-20260405005432.xlsx",
+      "source": "macro",
+      "file_hash": "ea0e86744e60c0b04b4059f5c62c41808ff01c92ef0df933e187cd2a1c6768b9",
+      "imported_at": "2026-04-05T04:55:01.876Z",
+      "record_count": 59
+    },
+    {
+      "id": 137,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 03-04-56).csv",
+      "source": "health",
+      "file_hash": "923f61679aba376b040a0d3eeb4a3cf81eb97d6e9a45214dbc044165c97a50ac",
+      "imported_at": "2026-04-05T03:04:56.930Z",
+      "record_count": 0
+    },
+    {
+      "id": 136,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 02-59-49).csv",
+      "source": "health",
+      "file_hash": "a86afdbabba967d6b26a939c074bbded7a6a5117ad53098570c0c6318c4c6b75",
+      "imported_at": "2026-04-05T02:59:49.332Z",
+      "record_count": 202
+    },
+    {
+      "id": 135,
+      "user_id": 1,
+      "filename": "Aautoslep.csv",
+      "source": "health",
+      "file_hash": "df0021ede8caa2823cd562985ddfa5c7a506f4b843f0f88e70aff07179b98598",
+      "imported_at": "2026-04-05T02:24:57.250Z",
+      "record_count": 275
+    },
+    {
+      "id": 129,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 01-12-18).csv",
+      "source": "health",
+      "file_hash": "52ab40cda71e94125350aa51cbbd17970c6354a0ed8ae59f7e109abe0bcebfe8",
+      "imported_at": "2026-04-05T01:12:18.089Z",
+      "record_count": 2
+    },
+    {
+      "id": 128,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-05 01-04-36).csv",
+      "source": "health",
+      "file_hash": "7492d0f03e5e74af2d8c49afdda45f273bcd9a43ee8e52e9f1c730f196aa3c97",
+      "imported_at": "2026-04-05T01:04:36.960Z",
+      "record_count": 172
+    },
+    {
+      "id": 127,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 21-39-22).csv",
+      "source": "health",
+      "file_hash": "18aa80621ef0750b76100b57baaec4de7c57d778180589610fdc33015edec8de",
+      "imported_at": "2026-04-04T21:39:22.222Z",
+      "record_count": 0
+    },
+    {
+      "id": 126,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 21-30-33).csv",
+      "source": "health",
+      "file_hash": "470ff6fad1acddfc67c33ab88c1e0bcc3bb0f73c8e0935c68de6eff26522a953",
+      "imported_at": "2026-04-04T21:30:33.166Z",
+      "record_count": 129
+    },
+    {
+      "id": 125,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 21-16-16).csv",
+      "source": "health",
+      "file_hash": "7d09ee087ad8f1173077f26cfa23d14de34b1250858438fe81da0bec6e70f5f8",
+      "imported_at": "2026-04-04T21:16:16.723Z",
+      "record_count": 459
+    },
+    {
+      "id": 122,
+      "user_id": 1,
+      "filename": "42.xlsx",
+      "source": "macro",
+      "file_hash": "af897f1127ab90de3fffa3762346394f0e4f93149098d515d8bb9eb7b43a3b6e",
+      "imported_at": "2026-04-04T20:43:08.809Z",
+      "record_count": 159
+    },
+    {
+      "id": 121,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 20-00-54).csv",
+      "source": "health",
+      "file_hash": "093b0a3bb55551c257120d4048ad36863858b3491bbb42e2dcdd906b80617c34",
+      "imported_at": "2026-04-04T20:00:54.221Z",
+      "record_count": 299
+    },
+    {
+      "id": 120,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 19-24-52).csv",
+      "source": "health",
+      "file_hash": "a16a194320c653981a98b62d2aa7a0a7fd92a6b5e15f1f30284d239ddaf109df",
+      "imported_at": "2026-04-04T19:24:52.052Z",
+      "record_count": 379
+    },
+    {
+      "id": 119,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 17-25-53).csv",
+      "source": "health",
+      "file_hash": "23c5666eff4abf778ba96a7064f333e8091d3793c5313278cbfeaf3f6a498071",
+      "imported_at": "2026-04-04T17:25:53.638Z",
+      "record_count": 879
+    },
+    {
+      "id": 118,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 09-54-16).csv",
+      "source": "health",
+      "file_hash": "d069fbdb6eac258cd96a62521eae3cdb6e41d4300cacc9ec587f510fcfc243a7",
+      "imported_at": "2026-04-04T09:54:16.551Z",
+      "record_count": 1576
+    },
+    {
+      "id": 117,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-04 04-00-05).csv",
+      "source": "health",
+      "file_hash": "099fa5ee1db00c3c8f7ac31b9b3ec62e5f9166b07357116a56ee2f4f254861fd",
+      "imported_at": "2026-04-04T04:00:05.599Z",
+      "record_count": 486
+    },
+    {
+      "id": 116,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-03 21-15-52).csv",
+      "source": "health",
+      "file_hash": "8e73fb2a18360a300c91d96f7c63f913c0e05632c8dff7177cb899156f70a20f",
+      "imported_at": "2026-04-03T21:15:52.926Z",
+      "record_count": 665
+    },
+    {
+      "id": 115,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-03 18-28-18).csv",
+      "source": "health",
+      "file_hash": "c385bf92223c86eb6fd5393888ccccf830e84a204e45d4c1f79a3a0024281c88",
+      "imported_at": "2026-04-03T18:28:18.619Z",
+      "record_count": 118
+    },
+    {
+      "id": 114,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-03 18-15-59).csv",
+      "source": "health",
+      "file_hash": "e3285aa00999585847ac61a21486359c6ed984dc7e80e7e32da8cc600c5d24b0",
+      "imported_at": "2026-04-03T18:15:59.835Z",
+      "record_count": 410
+    },
+    {
+      "id": 113,
+      "user_id": 1,
+      "filename": "421.csv",
+      "source": "health",
+      "file_hash": "2ab8c6c72ea4201621a259cc25ba546554cf6a53a1530cb6eea7fb34a0eb53da",
+      "imported_at": "2026-04-03T16:32:12.221Z",
+      "record_count": 261
+    },
+    {
+      "id": 112,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-03 16-31-59).csv",
+      "source": "health",
+      "file_hash": "3d17953780f41894919f55af2754b1576c9d70ca6feff9a92870a8ed10166215",
+      "imported_at": "2026-04-03T16:31:59.052Z",
+      "record_count": 1343
+    },
+    {
+      "id": 111,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-03 03-34-52).csv",
+      "source": "health",
+      "file_hash": "f64ea201f3fea318faadc31888a6b27ce2e0a2da42f225a386f261089028015a",
+      "imported_at": "2026-04-03T03:34:52.319Z",
+      "record_count": 859
+    },
+    {
+      "id": 110,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 23-55-49).csv",
+      "source": "health",
+      "file_hash": "bd1abdfdf95a8abb85cbfabbafb3c6f4cd6fe7b606f8980892cf77cb8f3e9fba",
+      "imported_at": "2026-04-02T23:55:49.330Z",
+      "record_count": 378
+    },
+    {
+      "id": 109,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 23-00-55).csv",
+      "source": "health",
+      "file_hash": "4b4b3417b03a4bd517acedacc8ebbd1e5272503f7f33c69ac3d174b1412b85d8",
+      "imported_at": "2026-04-02T23:00:55.745Z",
+      "record_count": 20
+    },
+    {
+      "id": 108,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 22-25-48).csv",
+      "source": "health",
+      "file_hash": "b159446fabf0f0ef13a99ff49a785959734505067d4f15ddf3baba3ad67621c2",
+      "imported_at": "2026-04-02T22:25:48.363Z",
+      "record_count": 11
+    },
+    {
+      "id": 107,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 21-51-09).csv",
+      "source": "health",
+      "file_hash": "4aba7f550010913e28af00522d863efb93577d1f7ead962060bfcb699bf813ec",
+      "imported_at": "2026-04-02T21:51:09.847Z",
+      "record_count": 4
+    },
+    {
+      "id": 106,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 21-16-53).csv",
+      "source": "health",
+      "file_hash": "3f76a82a1e1b2bc0159aef1de333bcc28f6a1884c123c50e568323b800fa3c57",
+      "imported_at": "2026-04-02T21:16:53.638Z",
+      "record_count": 250
+    },
+    {
+      "id": 105,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 20-39-58).csv",
+      "source": "health",
+      "file_hash": "88353f2cdcba2b7e8f1365001b4abc6708e59a0de85ad1968b4e3a76e1c30bf7",
+      "imported_at": "2026-04-02T20:39:58.440Z",
+      "record_count": 669
+    },
+    {
+      "id": 104,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 19-39-35).csv",
+      "source": "health",
+      "file_hash": "4c93754ac494f4c3108b8efc0b4ac6c070dac24f58579f770d81ad354eca8eac",
+      "imported_at": "2026-04-02T19:39:35.453Z",
+      "record_count": 1225
+    },
+    {
+      "id": 103,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 16-12-53).csv",
+      "source": "health",
+      "file_hash": "95cf4787959c8e76818334f8a744e85e34bea26110fb26dd703c1119026932c2",
+      "imported_at": "2026-04-02T16:12:53.040Z",
+      "record_count": 1125
+    },
+    {
+      "id": 102,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 13-39-37).csv",
+      "source": "health",
+      "file_hash": "41111b743f1c6c1670bc89abb5f7d1a60a805dd3dfe0ebd9493aaea93d36cf66",
+      "imported_at": "2026-04-02T13:39:37.132Z",
+      "record_count": 495
+    },
+    {
+      "id": 101,
+      "user_id": 1,
+      "filename": "M 41.xlsx",
+      "source": "macro",
+      "file_hash": "32a06b352b43a1b0cfdcfe8f6ddf69109f5437975d4cbd622a7ac4d4f15a4c3b",
+      "imported_at": "2026-04-02T13:06:10.130Z",
+      "record_count": 168
+    },
+    {
+      "id": 100,
+      "user_id": 1,
+      "filename": "AutoSleep 41.csv",
+      "source": "health",
+      "file_hash": "a179318ebf4fa745f878d577b9a606158a5efaa840565454b77faa5e08f9ddec",
+      "imported_at": "2026-04-02T13:04:54.924Z",
+      "record_count": 262
+    },
+    {
+      "id": 99,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 12-36-30).csv",
+      "source": "health",
+      "file_hash": "e57fe1c8bc408e33060a13c999d620a1a7d25aabe40d5dc6c3b8c7ad393dd603",
+      "imported_at": "2026-04-02T12:36:30.229Z",
+      "record_count": 961
+    },
+    {
+      "id": 98,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 05-00-18).csv",
+      "source": "health",
+      "file_hash": "e0d73f0d49269afa4c45665c540227eddd5a649bca590cfa55e44ccb13c745f9",
+      "imported_at": "2026-04-02T05:00:18.428Z",
+      "record_count": 31
+    },
+    {
+      "id": 97,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 04-15-30).csv",
+      "source": "health",
+      "file_hash": "015a7e2eea7e2cca9733aef91d21e9bb0f8bba54b5209429ffff6a463ccfc24d",
+      "imported_at": "2026-04-02T04:15:30.271Z",
+      "record_count": 34
+    },
+    {
+      "id": 96,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 03-01-35).csv",
+      "source": "health",
+      "file_hash": "3a5c552ec6d23cb08b8d6074a7e7f5059d31c6b001e062e713525bffbcef8ea4",
+      "imported_at": "2026-04-02T03:01:35.233Z",
+      "record_count": 681
+    },
+    {
+      "id": 95,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-02 00-45-05).csv",
+      "source": "health",
+      "file_hash": "adbb77af5d57abf9ad03557cadad768f0d70bfd1d8cf2ed40c3ac2b4b88ed35c",
+      "imported_at": "2026-04-02T00:45:05.431Z",
+      "record_count": 823
+    },
+    {
+      "id": 94,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-01 22-28-13).csv",
+      "source": "health",
+      "file_hash": "a766f0ad4b2a9910fa9caca040b54bad63979a23e76914f29108ea27c065e112",
+      "imported_at": "2026-04-01T22:28:13.641Z",
+      "record_count": 1210
+    },
+    {
+      "id": 93,
+      "user_id": 1,
+      "filename": "AutoSleep-333333398432.csv",
+      "source": "health",
+      "file_hash": "20e5d99137cb1e99b5b8bfb9ed51d073a62b34b484078c0bbbd4e39f9f3f65ea",
+      "imported_at": "2026-04-01T21:03:22.050Z",
+      "record_count": 274
+    },
+    {
+      "id": 92,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-01 18-20-24).csv",
+      "source": "health",
+      "file_hash": "5bf87e59145768723ad1d1777d02cb5d2c9d3c48684d4a0d361d69b8ab9c7bb9",
+      "imported_at": "2026-04-01T18:20:24.025Z",
+      "record_count": 1792
+    },
+    {
+      "id": 91,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-01 04-44-20).csv",
+      "source": "health",
+      "file_hash": "edc2f29a957fccab7eed23fb42aed1501a8f4665d4d2a99e48e8d793e9701305",
+      "imported_at": "2026-04-01T04:44:20.141Z",
+      "record_count": 54
+    },
+    {
+      "id": 90,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-01 01-46-54).csv",
+      "source": "health",
+      "file_hash": "2263c5ce3114bbe1966a5b4fb1449b84266260f591df45138154288cb9b422e9",
+      "imported_at": "2026-04-01T01:46:54.918Z",
+      "record_count": 121
+    },
+    {
+      "id": 89,
+      "user_id": 1,
+      "filename": "Auto Export (2026-04-01 00-17-49).csv",
+      "source": "health",
+      "file_hash": "488ca100a272c24227523cc7145c1516afe6b0bc273492327a7cdbd4d6433c1d",
+      "imported_at": "2026-04-01T00:17:49.923Z",
+      "record_count": 449
+    },
+    {
+      "id": 88,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 23-11-54).csv",
+      "source": "health",
+      "file_hash": "f00a41cc58cd126eab7cc535460d0976ab50e755c4b4a3e2a2a845ee53e44d1f",
+      "imported_at": "2026-03-31T23:11:54.519Z",
+      "record_count": 519
+    },
+    {
+      "id": 87,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 21-03-54).csv",
+      "source": "health",
+      "file_hash": "511815ca6566ea7a8225dd34274001126ed9e04a654c1715669247ce2584290d",
+      "imported_at": "2026-03-31T21:03:54.728Z",
+      "record_count": 89
+    },
+    {
+      "id": 86,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 20-53-49).csv",
+      "source": "health",
+      "file_hash": "604b66b04cb76194dce1093647bf2cb54f899792283a42d813547d4b7565c29d",
+      "imported_at": "2026-03-31T20:53:49.642Z",
+      "record_count": 582
+    },
+    {
+      "id": 85,
+      "user_id": 1,
+      "filename": "330330330.xlsx",
+      "source": "macro",
+      "file_hash": "1b86e05999d86377f8aa65b050d1d768c994a06cd66e09915663d0e40d105e72",
+      "imported_at": "2026-03-31T19:57:51.924Z",
+      "record_count": 108
+    },
+    {
+      "id": 84,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 18-59-34).csv",
+      "source": "health",
+      "file_hash": "87ee40bf35534dc67f2a7f7ff6c6682cb9b795a9db0cb444c8685148d2b8bede",
+      "imported_at": "2026-03-31T18:59:34.422Z",
+      "record_count": 1284
+    },
+    {
+      "id": 83,
+      "user_id": 1,
+      "filename": "3a.csv",
+      "source": "health",
+      "file_hash": "ac34610d168f8fc01a254b02bb0ff46a58e4649b9de15b52f1a4bbc6b08288d5",
+      "imported_at": "2026-03-31T14:53:07.980Z",
+      "record_count": 245
+    },
+    {
+      "id": 82,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 14-52-29).csv",
+      "source": "health",
+      "file_hash": "611decee8bd2bbf787c33470013f3204c50a7a122c72d5b8f33702bbcc9ad7d3",
+      "imported_at": "2026-03-31T14:52:29.751Z",
+      "record_count": 79
+    },
+    {
+      "id": 81,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 14-52-25).csv",
+      "source": "health",
+      "file_hash": "6cce5c7738d9ca08905e042f7c2f8613c37a7aa1a4613e264a9279bed6dc18c4",
+      "imported_at": "2026-03-31T14:52:25.741Z",
+      "record_count": 709
+    },
+    {
+      "id": 80,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 12-09-18).csv",
+      "source": "health",
+      "file_hash": "022e2ba7a14409321caa37fb1922072032a20499cc81afa7651ac88fa40ca328",
+      "imported_at": "2026-03-31T12:09:18.193Z",
+      "record_count": 84
+    },
+    {
+      "id": 79,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 11-44-07).csv",
+      "source": "health",
+      "file_hash": "23594c3b6cb4c5e8d1a5d2d89f7920c5bced76069db603ce26c06adfbba0cf8e",
+      "imported_at": "2026-03-31T11:44:07.889Z",
+      "record_count": 205
+    },
+    {
+      "id": 78,
+      "user_id": 1,
+      "filename": "3.csv",
+      "source": "health",
+      "file_hash": "ad3213eb9641ef7c3908013a422a4a607eaa961396eef2ac4e39f0626af97b7b",
+      "imported_at": "2026-03-31T11:42:19.111Z",
+      "record_count": 228
+    },
+    {
+      "id": 77,
+      "user_id": 1,
+      "filename": "3:3 3:3 yay.csv",
+      "source": "health",
+      "file_hash": "aa5f267c64f870d659f96ba9b581653abcfede47493d5ad26b9b761731933146",
+      "imported_at": "2026-03-31T11:41:16.969Z",
+      "record_count": 245
+    },
+    {
+      "id": 76,
+      "user_id": 1,
+      "filename": "3:3 3:3 yay.csv",
+      "source": "health",
+      "file_hash": "aa5f267c64f870d659f96ba9b581653abcfede47493d5ad26b9b761731933146",
+      "imported_at": "2026-03-31T11:40:22.609Z",
+      "record_count": 245
+    },
+    {
+      "id": 75,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 11-00-36).csv",
+      "source": "health",
+      "file_hash": "2162fa668342d280f8ea42d85e20043057512b9fe1bbedfc146104ee3cb2a26c",
+      "imported_at": "2026-03-31T11:00:36.786Z",
+      "record_count": 583
+    },
+    {
+      "id": 74,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 06-28-31).csv",
+      "source": "health",
+      "file_hash": "76454fbc5658039cdf4f751b5eccdc2dc9452da6cf2e08609c530d542a46f576",
+      "imported_at": "2026-03-31T06:28:31.181Z",
+      "record_count": 496
+    },
+    {
+      "id": 73,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 03-59-49).csv",
+      "source": "health",
+      "file_hash": "63f840b2c69e6e035c8c410e26c11ada42987fb770e6a07755f8e70c4657a424",
+      "imported_at": "2026-03-31T03:59:49.220Z",
+      "record_count": 615
+    },
+    {
+      "id": 71,
+      "user_id": 1,
+      "filename": "MacroFactor-20260330205508.xlsx",
+      "source": "macro",
+      "file_hash": "6048a5ce6e4d138eb85acab5b73d877f0a92686e38e9ac622cce46e22f65b1ce",
+      "imported_at": "2026-03-31T00:55:23.706Z",
+      "record_count": 1
+    },
+    {
+      "id": 70,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-31 00-52-33).csv",
+      "source": "health",
+      "file_hash": "38fbd2ef360fc43907df0c68d4b9322b1a4ff1e4b7226be04695fdc437e110e1",
+      "imported_at": "2026-03-31T00:52:33.029Z",
+      "record_count": 1207
+    },
+    {
+      "id": 69,
+      "user_id": 1,
+      "filename": "MacroFactor-20260330204109.xlsx",
+      "source": "macro",
+      "file_hash": "54c36fb3908f52bfefed09a37cc990ab4da27ffcf0d3653dceb9f00551631aaa",
+      "imported_at": "2026-03-31T00:41:19.768Z",
+      "record_count": 58
+    },
+    {
+      "id": 67,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-30 20-11-27).csv",
+      "source": "health",
+      "file_hash": "3f22b93ae5b86c7ac4d7442fa8cd86288e7d6b63863f30d8ce6d518a32ee4e15",
+      "imported_at": "2026-03-30T20:11:27.753Z",
+      "record_count": 721
+    },
+    {
+      "id": 66,
+      "user_id": 1,
+      "filename": "330 5.csv",
+      "source": "health",
+      "file_hash": "bf8c676f02c203cdbb12ea904a8d6518a4c6a6ac959680a8e6ef62e15a2e9494",
+      "imported_at": "2026-03-30T18:06:31.352Z",
+      "record_count": 228
+    },
+    {
+      "id": 65,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-30 18-04-42).csv",
+      "source": "health",
+      "file_hash": "1eccee4225608eb3dce15b33e749c378f48ed0e5703010ef7a046b41f3c5cf65",
+      "imported_at": "2026-03-30T18:04:42.547Z",
+      "record_count": 30
+    },
+    {
+      "id": 63,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-30 18-00-33).csv",
+      "source": "health",
+      "file_hash": "0f9b90ef6abaeb6282649cdd43ba78c3374fe730201025c3f51f271383c088c7",
+      "imported_at": "2026-03-30T18:00:33.597Z",
+      "record_count": 1879
+    },
+    {
+      "id": 61,
+      "user_id": 1,
+      "filename": "Macro 3:30 3.xlsx",
+      "source": "macro",
+      "file_hash": "d05aeb35a6c12da500727494f7c9e8c9cd6b742171cf20ba5fffa4c3e89d5002",
+      "imported_at": "2026-03-30T03:56:37.271Z",
+      "record_count": 43
+    },
+    {
+      "id": 58,
+      "user_id": 1,
+      "filename": "MacroFactor-20260329234247.xlsx",
+      "source": "macro",
+      "file_hash": "96a93240c997965e20243603ec4e592b0db27345575459c8f804eced5e26e445",
+      "imported_at": "2026-03-30T03:42:59.228Z",
+      "record_count": 58
+    },
+    {
+      "id": 56,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-30 03-22-40).csv",
+      "source": "health",
+      "file_hash": "7d9eb5b33dc773bf714cef4f609a959369b06245bfbc27dacea21b2f1d10188d",
+      "imported_at": "2026-03-30T03:22:40.270Z",
+      "record_count": 0
+    },
+    {
+      "id": 55,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-30 03-21-43).csv",
+      "source": "health",
+      "file_hash": "a50dc341210029faca06378c3e5cd7a1a131c7c421eb51ad87e17d82b4512e91",
+      "imported_at": "2026-03-30T03:21:43.389Z",
+      "record_count": 806
+    },
+    {
+      "id": 54,
+      "user_id": 1,
+      "filename": "autosleep yay.csv",
+      "source": "health",
+      "file_hash": "b41256041d35c7f61c9c18a48e138c8c5bd6ada9acbede6cae7d5aba9bdc3cb4",
+      "imported_at": "2026-03-29T22:39:13.391Z",
+      "record_count": 343
+    },
+    {
+      "id": 53,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-29 22-00-59).csv",
+      "source": "health",
+      "file_hash": "49efbc9d0b958a5cb37068ae95b0c7ad5500a1ce78795cb51373a5caeec45071",
+      "imported_at": "2026-03-29T22:00:59.623Z",
+      "record_count": 66
+    },
+    {
+      "id": 52,
+      "user_id": 1,
+      "filename": "Auto Export (2026-03-29 21-29-25).csv",
+      "source": "health",
+      "file_hash": "1c0e7704d4b44b3ddc6ea1491b46c89734f71879d30f75da66aca0933d09d664",
+      "imported_at": "2026-03-29T21:29:25.192Z",
+      "record_count": 79
+    },
+    {
+      "id": 51,
+      "user_id": 1,
+      "filename": "AutoSleep-20260302-to-20260329.csv",
+      "source": "health",
+      "file_hash": "90c73caacd21c78bc7cfd66866c1db4b7bfc0f83f3da3168424672525db02128",
+      "imported_at": "2026-03-29T16:37:04.344Z",
+      "record_count": 210
+    },
+    {
+      "id": 49,
+      "user_id": 1,
+      "filename": "3:29:26 1.xlsx",
+      "source": "macro",
+      "file_hash": "ffcb6acf4db71c2e783dcb7a942a565342ac9a295e6a156080a121d726c68176",
+      "imported_at": "2026-03-29T16:29:26.283Z",
+      "record_count": 165
+    },
+    {
+      "id": 48,
+      "user_id": 1,
+      "filename": "3:27:26 mf 2.xlsx",
+      "source": "macro",
+      "file_hash": "514ec9fa4ed361c530b1772db425c6e29517466060beff462e7ba9f4b28cfe14",
+      "imported_at": "2026-03-27T20:15:35.022Z",
+      "record_count": 390
+    },
+    {
+      "id": 44,
+      "user_id": 1,
+      "filename": "3:26:26 2.xlsx",
+      "source": "macro",
+      "file_hash": "4310265db06f0e7740a146e103a144dbead09f267c031c71b854d3ce99c2c02e",
+      "imported_at": "2026-03-26T19:27:59.964Z",
+      "record_count": 363
+    },
+    {
+      "id": 42,
+      "user_id": 1,
+      "filename": "AutoSleep-20260218-to-20260317.csv",
+      "source": "health",
+      "file_hash": "8beb8234e87f500fa8d5b424e32a4789ed0e713a11ebf07c5a54c0817f19b2f0",
+      "imported_at": "2026-03-17T17:37:24.505Z",
+      "record_count": 122
+    },
+    {
+      "id": 41,
+      "user_id": 1,
+      "filename": "3:15 2.xlsx",
+      "source": "macro",
+      "file_hash": "6b8d8aa239e06f4fb2d509bc70564696fceb9c7c9e70d33c6c1437c9581b4b04",
+      "imported_at": "2026-03-16T00:09:30.950Z",
+      "record_count": 229
+    },
+    {
+      "id": 38,
+      "user_id": 1,
+      "filename": "MacroFactor-20260312052317.xlsx",
+      "source": "macro",
+      "file_hash": "9bec7a5f480c8e5d1b9f9df586927c7bc5d657c28446df30bac0a0b53f1bc522",
+      "imported_at": "2026-03-12T11:34:45.860Z",
+      "record_count": 914
+    },
+    {
+      "id": 37,
+      "user_id": 1,
+      "filename": "HealthAutoExport-20260210-20260312.csv",
+      "source": "health",
+      "file_hash": "3ff5f0ccce00c38aaefc9111ce088b7ea95ac298d55730a935c8e2037190d710",
+      "imported_at": "2026-03-12T11:34:41.171Z",
+      "record_count": 417
+    },
+    {
+      "id": 36,
+      "user_id": 1,
+      "filename": "AutoSleep-20260213-to-20260312.csv",
+      "source": "health",
+      "file_hash": "8617ada5d7d8db73b2d66db2025f3d38da08ff66488e905d0107e043cbfade73",
+      "imported_at": "2026-03-12T11:34:37.356Z",
+      "record_count": 91
+    }
+  ]
+}

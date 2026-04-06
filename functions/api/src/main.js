@@ -23,6 +23,7 @@ export default async ({ req, res, log, error }) => {
   const path = req.path || '/';
   const method = (req.method || 'GET').toUpperCase();
   const userId = req.headers['x-appwrite-user-id'] || null;
+  log(`>>> ${method} ${path} userId=${userId}`);
 
   let body = {};
   try {

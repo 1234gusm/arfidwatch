@@ -519,6 +519,11 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     const queries = [Query.equal('user_id', userId), Query.orderAsc('timestamp')];
     if (q.start) queries.push(Query.greaterThanEqual('timestamp', q.start));
     if (q.end) queries.push(Query.lessThanEqual('timestamp', q.end));
+    // Optional type filter — e.g. ?types=heart_rate_avg_countmin,weight_lb
+    if (q.types) {
+      const types = String(q.types).split(',').map(t => t.trim()).filter(Boolean);
+      if (types.length) queries.push(Query.equal('type', types));
+    }
     const rows = await db.find('health_data', queries, 50000);
 
     // Merge supplement entries from medication log
@@ -570,18 +575,24 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       'breathing_disturbances_count', 'sleeping_wrist_temperature_degf', 'fell_asleep_in_hr',
     ];
 
-    // Fetch sleep-related records
-    const allSleepRows = await db.find('health_data', [
+    const SLEEP_ANALYSIS_TYPES = [
+      'sleep_analysis_total_sleep_hr', 'sleep_analysis_in_bed_hr', 'sleep_analysis_deep_hr',
+      'sleep_analysis_rem_hr', 'sleep_analysis_awake_hr', 'sleep_analysis_quality_hr',
+      'sleep_analysis_core_hr', 'sleep_analysis_asleep_hr',
+      'macrofactor_sleep_analysis_total_sleep_hr', 'macrofactor_sleep_analysis_in_bed_hr',
+      'macrofactor_sleep_analysis_deep_hr', 'macrofactor_sleep_analysis_rem_hr',
+      'macrofactor_sleep_analysis_awake_hr', 'macrofactor_sleep_analysis_quality_hr',
+      'macrofactor_sleep_analysis_core_hr', 'macrofactor_sleep_analysis_asleep_hr',
+    ];
+    const ALL_SLEEP_TYPES = [...SLEEP_ANALYSIS_TYPES, ...AUTOSLEEP_EXTRA];
+
+    // Fetch only sleep-related records by type (avoids fetching all 40K+ health records)
+    const rows = await db.find('health_data', [
       Query.equal('user_id', userId),
       Query.greaterThanEqual('timestamp', startIso),
       Query.lessThanEqual('timestamp', endIso),
+      Query.equal('type', ALL_SLEEP_TYPES),
     ], 50000);
-
-    // Filter in code since Appwrite can't do LIKE + IN combined
-    const rows = allSleepRows.filter(r => {
-      const t = r.type || '';
-      return t.startsWith('sleep_analysis_') || t.startsWith('macrofactor_sleep_analysis_') || AUTOSLEEP_EXTRA.includes(t);
-    });
 
     const byDay = new Map(), byDayExtra = new Map();
     for (const row of rows) {
