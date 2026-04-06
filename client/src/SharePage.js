@@ -48,6 +48,13 @@ const canonical = t => {
   return s;
 };
 
+const getSource = r => { try { return JSON.parse(String(r.raw || '{}')).source || ''; } catch (_) { return ''; } };
+const fmtLocalDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const fmtLocalDateTime = d => `${fmtLocalDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+const toLocalDate = ts => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : fmtLocalDate(d); };
+const toLocalDateTime = ts => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : fmtLocalDateTime(d); };
+const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : NaN; };
+
 // Maps post-canonical type names → the canonical key used in SECTIONS metrics.
 // Covers MacroFactor column name variants that differ from Apple Health names.
 const TYPE_ALIASES = {
@@ -544,43 +551,114 @@ function SharePage() {
   const mapsEarly = useMemo(() => buildMaps(healthInfo?.data || []), [healthInfo]);
 
   const vitalsMetrics = useMemo(() => {
+    const rawData = healthInfo?.data || [];
+    // Build key set for all vitals keys + altKeys
+    const allKeys = new Set();
+    SHARE_VITALS.forEach(m => { allKeys.add(m.key); (m.altKeys || []).forEach(k => allKeys.add(k)); });
+
+    // Split: auto health → daily averages, iHealth → individual readings
+    const autoByType = {};   // { [ct]: { [day]: { sum, count } } }
+    const ihByType = {};     // { [ct]: [{ ts, dt, day, v }] }
+    rawData.forEach(r => {
+      const ct = canonical(r.type);
+      if (!allKeys.has(ct)) return;
+      const v = toNum(r.value);
+      if (!Number.isFinite(v)) return;
+      const day = toLocalDate(r.timestamp);
+      if (!day) return;
+      if (getSource(r) === 'ihealth_csv') {
+        const dt = toLocalDateTime(r.timestamp);
+        if (!dt) return;
+        if (!ihByType[ct]) ihByType[ct] = [];
+        ihByType[ct].push({ ts: r.timestamp, dt, day, v });
+      } else {
+        if (!autoByType[ct]) autoByType[ct] = {};
+        if (!autoByType[ct][day]) autoByType[ct][day] = { sum: 0, count: 0 };
+        autoByType[ct][day].sum += v;
+        autoByType[ct][day].count += 1;
+      }
+    });
+    for (const arr of Object.values(ihByType)) arr.sort((a, b) => a.ts.localeCompare(b.ts));
+
     return SHARE_VITALS.map(m => {
-      const map = mapsEarly[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || mapsEarly[k], null) : null);
-      if (!map) return null;
-      const entries = Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
-      if (!entries.length) return null;
-      const vals = entries.map(([, v]) => v);
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const min = Math.min(...vals);
-      const max = Math.max(...vals);
-      const latest = vals[vals.length - 1];
-      const latestDay = entries[entries.length - 1][0];
+      const autoData = autoByType[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || autoByType[k], null) : null);
+      const ihData = ihByType[m.key] || (m.altKeys ? m.altKeys.reduce((f, k) => f || ihByType[k], null) : null);
+      if (!autoData && (!ihData || !ihData.length)) return null;
+
+      // Auto: daily averages
+      const autoReadings = [];
+      if (autoData) {
+        for (const [day, { sum, count }] of Object.entries(autoData))
+          autoReadings.push({ day, v: Math.round((sum / count) * 100) / 100 });
+        autoReadings.sort((a, b) => a.day.localeCompare(b.day));
+      }
+      const ihReadings = ihData || [];
+
+      const allVals = [...autoReadings.map(r => r.v), ...ihReadings.map(r => r.v)];
+      if (!allVals.length) return null;
+      const avg = allVals.reduce((a, b) => a + b, 0) / allVals.length;
+      const min = Math.min(...allVals);
+      const max = Math.max(...allVals);
+
+      const lastA = autoReadings.length ? autoReadings[autoReadings.length - 1] : null;
+      const lastI = ihReadings.length ? ihReadings[ihReadings.length - 1] : null;
+      const ihMoreRecent = lastI && (!lastA || lastI.ts > lastA.day + 'T23:59:59');
+      const latest = ihMoreRecent ? lastI.v : lastA ? lastA.v : lastI.v;
+      const latestDay = ihMoreRecent ? lastI.dt : lastA ? lastA.day : lastI.dt;
+
       let unit = m.unit;
-      if (m.key === 'weight_lb' && !mapsEarly['weight_lb'] && mapsEarly['weight_kg']) unit = 'kg';
-      const chart = entries.map(([day, v]) => ({ day: day.slice(5), v: Math.round(v * 100) / 100 }));
+      if (m.key === 'weight_lb' && !autoByType['weight_lb'] && autoByType['weight_kg']) unit = 'kg';
+
+      // Unified chart: auto → v, iHealth → vIh
+      const pts = [];
+      autoReadings.forEach(r => pts.push({ sortKey: r.day, day: r.day, v: r.v }));
+      ihReadings.forEach(r => pts.push({ sortKey: r.ts, day: r.dt, vIh: Math.round(r.v * 100) / 100 }));
+      pts.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const chart = pts.map(({ sortKey, ...rest }) => rest);
+
+      // dayMaps for graph groups
       const dayMap = {};
-      entries.forEach(([day, v]) => { dayMap[day] = v; });
-      return { ...m, unit, map, dayMap, chart, avg, min, max, latest, latestDay, count: vals.length };
+      autoReadings.forEach(r => { dayMap[r.day] = r.v; });
+      const dayMapIh = {};
+      ihReadings.forEach(r => { dayMapIh[r.dt] = r.v; });
+
+      return {
+        ...m, unit, dayMap, dayMapIh, chart, avg, min, max,
+        latest, latestDay, count: allVals.length,
+        hasAuto: autoReadings.length > 0, hasIh: ihReadings.length > 0,
+      };
     }).filter(Boolean);
-  }, [mapsEarly]);
+  }, [healthInfo]);
 
   const vitalsGraphs = useMemo(() => {
     if (!vitalsMetrics.length) return [];
     return SHARE_GRAPH_GROUPS.map(g => {
       const resolved = g.keys.map(k => vitalsMetrics.find(x => x.key === k) || null);
       if (resolved.every(r => !r)) return null;
-      const allDays = new Set();
-      resolved.forEach(m => { if (m) Object.keys(m.dayMap).forEach(d => allDays.add(d)); });
-      const sorted = [...allDays].sort();
+      // Collect all time points: dates (auto) + datetimes (iHealth)
+      const allTimes = new Set();
+      resolved.forEach(m => {
+        if (m) {
+          Object.keys(m.dayMap).forEach(d => allTimes.add(d));
+          Object.keys(m.dayMapIh).forEach(d => allTimes.add(d));
+        }
+      });
+      const sorted = [...allTimes].sort();
       if (!sorted.length) return null;
-      const chartData = sorted.map(day => {
-        const pt = { day: day.slice(5) };
+      const chartData = sorted.map(dt => {
+        const pt = { day: dt.length > 10 ? dt.slice(5) : dt.slice(5) };
         resolved.forEach((m, i) => {
-          if (m && m.dayMap[day] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[day] * 100) / 100;
+          if (m) {
+            if (m.dayMap[dt] !== undefined) pt[`v${i}`] = Math.round(m.dayMap[dt] * 100) / 100;
+            if (m.dayMapIh[dt] !== undefined) pt[`v${i}Ih`] = Math.round(m.dayMapIh[dt] * 100) / 100;
+          }
         });
         return pt;
       });
-      const legends = resolved.map((m, i) => m ? { label: g.labels[i], color: m.color, min: m.min, max: m.max, dp: m.dp } : null).filter(Boolean);
+      const legends = resolved.map((m, i) => {
+        if (!m) return null;
+        return { label: g.labels[i], color: m.color, min: m.min, max: m.max, dp: m.dp, hasIh: m.hasIh };
+      }).filter(Boolean);
       return { ...g, chartData, legends, resolvedMetrics: resolved.filter(Boolean) };
     }).filter(Boolean);
   }, [vitalsMetrics]);
@@ -911,9 +989,17 @@ function SharePage() {
                             {g.resolvedMetrics.map((m, i) => {
                               const ki = g.keys.indexOf(m.key);
                               return (
-                                <Line key={m.key} type="monotone" dataKey={`v${ki}`}
-                                  stroke={m.color} strokeWidth={1.5} dot={false}
-                                  name={g.labels[ki] || m.label} connectNulls />
+                                <React.Fragment key={m.key}>
+                                  <Line type="monotone" dataKey={`v${ki}`}
+                                    stroke={m.color} strokeWidth={1.5} dot={false}
+                                    name={g.labels[ki] || m.label} connectNulls />
+                                  {m.hasIh && (
+                                    <Line type="monotone" dataKey={`v${ki}Ih`}
+                                      stroke={lightenHex(m.color)} strokeWidth={1} strokeDasharray="3 2"
+                                      dot={false} name={`${g.labels[ki]} (Individual)`}
+                                      connectNulls={false} />
+                                  )}
+                                </React.Fragment>
                               );
                             })}
                           </LineChart>
@@ -931,10 +1017,19 @@ function SharePage() {
                             {g.resolvedMetrics.map((m, i) => {
                               const ki = g.keys.indexOf(m.key);
                               return (
-                                <Line key={m.key} type="monotone" dataKey={`v${ki}`}
-                                  stroke={m.color} strokeWidth={2}
-                                  dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
-                                  name={g.labels[ki] || m.label} connectNulls />
+                                <React.Fragment key={m.key}>
+                                  <Line type="monotone" dataKey={`v${ki}`}
+                                    stroke={m.color} strokeWidth={2}
+                                    dot={{ r: g.chartData.length < 30 ? 3 : 0, fill: m.color }}
+                                    name={m.hasIh ? `${g.labels[ki]} (Daily Avg)` : (g.labels[ki] || m.label)} connectNulls />
+                                  {m.hasIh && (
+                                    <Line type="monotone" dataKey={`v${ki}Ih`}
+                                      stroke={lightenHex(m.color)} strokeWidth={1.5} strokeDasharray="5 3"
+                                      dot={{ r: 4, fill: lightenHex(m.color), stroke: '#fff', strokeWidth: 1 }}
+                                      name={`${g.labels[ki]} (Individual)`}
+                                      connectNulls={false} />
+                                  )}
+                                </React.Fragment>
                               );
                             })}
                           </LineChart>
@@ -965,12 +1060,18 @@ function SharePage() {
                         <ResponsiveContainer width="100%" height={180}>
                           <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
-                            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
+                            <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" tickFormatter={d => d.length > 10 ? d.slice(6) : d.slice(5)} />
                             <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
                             <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#94a3b8' }} />
                             <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={2}
-                              dot={{ r: m.chart.length < 30 ? 3 : 0, fill: m.color }}
-                              name={m.label} connectNulls />
+                              dot={{ r: m.chart.filter(p => p.v != null).length < 30 ? 3 : 0, fill: m.color }}
+                              name={m.hasIh ? `${m.label} (Daily Avg)` : m.label} connectNulls />
+                            {m.hasIh && (
+                              <Line type="monotone" dataKey="vIh" stroke={lightenHex(m.color)} strokeWidth={1.5}
+                                strokeDasharray="5 3"
+                                dot={{ r: 4, fill: lightenHex(m.color), stroke: '#fff', strokeWidth: 1 }}
+                                name={`${m.label} (Individual)`} connectNulls={false} />
+                            )}
                           </LineChart>
                         </ResponsiveContainer>
                       </div>

@@ -121,7 +121,7 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
       .where({ user_id: userId })
       .where('timestamp', '>=', start.toISOString())
       .where('timestamp', '<=', end.toISOString())
-      .select('type', 'value', 'timestamp');
+      .select('type', 'value', 'timestamp', 'raw');
 
     const journalEntries = profile?.share_journal
       ? await db('journal_entries')
