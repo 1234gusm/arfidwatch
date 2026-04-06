@@ -752,10 +752,10 @@ function SharePage() {
             );
           })()}
           {(() => {
-            const rhr    = latestOf(maps['resting_heart_rate_countmin']);
-            const bpSys  = latestOf(maps['blood_pressure_systolic_mmhg']);
-            const bpDia  = latestOf(maps['blood_pressure_diastolic_mmhg']);
-            const hrv    = latestOf(maps['heart_rate_variability_ms']);
+            const rhr    = avgOf(maps['resting_heart_rate_countmin']);
+            const bpSys  = avgOf(maps['blood_pressure_systolic_mmhg']);
+            const bpDia  = avgOf(maps['blood_pressure_diastolic_mmhg']);
+            const hrv    = avgOf(maps['heart_rate_variability_ms']);
             if (rhr == null && bpSys == null && hrv == null) return null;
             return (
               <div className="share-patient-macros share-patient-vitals">
