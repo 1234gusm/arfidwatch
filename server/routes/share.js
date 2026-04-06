@@ -29,9 +29,12 @@ function authenticateShare(req, res, next) {
   }
 }
 
-function dateRangeForPeriod(period) {
-  const end = new Date();
-  const start = new Date();
+const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+function dateRangeForPeriod(period, clientToday) {
+  // Use client's local date if provided, otherwise fall back to server time
+  const end = clientToday ? new Date(clientToday + 'T23:59:59') : new Date();
+  const start = new Date(end);
   if (period === 'today') {
     start.setHours(0, 0, 0, 0);
   } else if (period === 'month') {
@@ -115,7 +118,11 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
       || profile?.export_period
       || 'week';
 
-    const { start, end } = dateRangeForPeriod(exportPeriod);
+    const clientToday = req.query.today || null;
+    const { start, end } = dateRangeForPeriod(exportPeriod, clientToday);
+
+    const startDate = fmtDate(start);
+    const endDate   = fmtDate(end);
 
     const healthData = await db('health_data')
       .where({ user_id: userId })
@@ -126,14 +133,11 @@ router.get('/:shareToken/data', authenticateShare, async (req, res) => {
     const journalEntries = profile?.share_journal
       ? await db('journal_entries')
           .where({ user_id: userId })
-          .where('date', '>=', start.toISOString())
-          .where('date', '<=', end.toISOString())
+          .where('date', '>=', startDate)
+          .where('date', '<=', endDate)
           .select('date', 'title', 'mood')
           .orderBy('date', 'asc')
       : [];
-
-    const startDate = start.toISOString().slice(0, 10);
-    const endDate   = end.toISOString().slice(0, 10);
 
     const foodLogColumns = ['date', 'meal', 'food_name', 'quantity', 'calories', 'protein_g', 'carbs_g', 'fat_g', 'note'];
     const foodLog = profile?.share_food_log

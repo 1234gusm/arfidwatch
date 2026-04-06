@@ -506,7 +506,9 @@ function SharePage() {
   }, [shareToken]);
 
   const fetchData = async (jwt, period = 'week') => {
-    const url = `${API_BASE}/api/share/${shareToken}/data?period=${encodeURIComponent(period)}`;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const url = `${API_BASE}/api/share/${shareToken}/data?period=${encodeURIComponent(period)}&today=${today}`;
     const dr = await fetch(url, { headers: { Authorization: `Bearer ${jwt}` } });
     const dd = await dr.json();
     if (!dr.ok) { setErrMsg(dd.error || 'Failed to load data.'); return false; }
