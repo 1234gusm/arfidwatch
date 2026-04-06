@@ -420,7 +420,7 @@ function SharePage() {
   const [healthInfo, setHealthInfo] = useState(null);
   const [errMsg,     setErrMsg]     = useState('');
   const [unlocking,  setUnlocking]  = useState(false);
-  const [activeTab,  setActiveTab]  = useState('overview');
+  const [activeTab,  setActiveTab]  = useState('vitals');
   const [showJournal, setShowJournal] = useState(false);
   const [showFoodNotes, setShowFoodNotes] = useState(true);
   const [shareJwt,    setShareJwt]    = useState(null);
@@ -771,9 +771,9 @@ function SharePage() {
         <div className="share-tabs-scroll">
         <div className="share-tabs">
           <button
-            className={`share-tab${activeTab === 'overview' ? ' share-tab--active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >Overview</button>
+            className={`share-tab${activeTab === 'vitals' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('vitals')}
+          >Vitals</button>
           <button
             className={`share-tab${activeTab === 'daily' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('daily')}
@@ -793,19 +793,19 @@ function SharePage() {
             >Medications{medications.length > 0 ? ` (${medications.length})` : ''}</button>
           )}
           <button
-            className={`share-tab${activeTab === 'vitals' ? ' share-tab--active' : ''}`}
-            onClick={() => setActiveTab('vitals')}
-          >Vitals</button>
+            className={`share-tab${activeTab === 'overview' ? ' share-tab--active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >Extra Stats</button>
         </div>
         </div>
-
-        {activeTab === 'overview' && <>
-        {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
-        </>}
 
         {activeTab === 'vitals' && <>
           {renderMetricSection(SECTIONS.find(s => s.id === 'body_activity'))}
           {renderMetricSection(SECTIONS.find(s => s.id === 'sleep'))}
+        </>}
+
+        {activeTab === 'overview' && <>
+        {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
         </>}
 
         {activeTab === 'log' && (() => {
