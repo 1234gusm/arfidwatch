@@ -5,7 +5,7 @@
     {
       "$id": "api",
       "name": "ArfidWatch API",
-      "runtime": "node-21.0",
+      "runtime": "node-22",
       "execute": ["any"],
       "events": [],
       "schedule": "",
@@ -19,7 +19,7 @@
     {
       "$id": "push-scheduler",
       "name": "Push Scheduler",
-      "runtime": "node-21.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [],
       "schedule": "* * * * *",

@@ -52,7 +52,7 @@ export default async ({ req, res, log, error }) => {
   webpush.setVapidDetails('mailto:noreply@arfidwatch.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
   const client = new Client()
-    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT || 'https://cloud.appwrite.io/v1')
+    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1')
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY);
 
