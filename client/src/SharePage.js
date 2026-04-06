@@ -801,7 +801,6 @@ function SharePage() {
 
         {activeTab === 'vitals' && <>
           {renderMetricSection(SECTIONS.find(s => s.id === 'body_activity'))}
-          {renderMetricSection(SECTIONS.find(s => s.id === 'sleep'))}
         </>}
 
         {activeTab === 'overview' && <>
