@@ -256,13 +256,12 @@ function SleepPage({ token }) {
     load();
   }, [token, rangeDays, refreshTick, tzOffsetMinutes]);
 
-  const { dailyRows, avgTotal, consistency, latestScore, averageScore, goalHitRate, recentAvg7, bestNight } = useMemo(() => {
+  const { dailyRows, avgTotal, consistency, averageScore, goalHitRate, recentAvg7, bestNight } = useMemo(() => {
     const sorted = [...rows].sort((a, b) => String(a.day).localeCompare(String(b.day)));
     const totals = sorted.map(d => d.total_sleep_hr).filter(v => Number.isFinite(v));
     const avg    = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : null;
     const scores = sorted.map(scoreNight).filter(v => Number.isFinite(v));
     const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
-    const latest = sorted.length ? sorted[sorted.length - 1] : null;
     const valid  = sorted.filter(n => Number.isFinite(n.total_sleep_hr));
     const hits   = valid.filter(n => n.total_sleep_hr >= 7 && n.total_sleep_hr <= 9).length;
     const rate   = valid.length ? Math.round(hits / valid.length * 100) : null;
@@ -271,7 +270,7 @@ function SleepPage({ token }) {
     const last7 = [...valid].slice(-7).map(n => n.total_sleep_hr);
     const avg7  = last7.length ? last7.reduce((a, b) => a + b, 0) / last7.length : null;
     return { dailyRows: sorted, avgTotal: avg, consistency: stdDev(totals),
-      latestScore: scoreNight(latest), averageScore: avgScore, goalHitRate: rate, recentAvg7: avg7, bestNight: best };
+      averageScore: avgScore, goalHitRate: rate, recentAvg7: avg7, bestNight: best };
   }, [rows]);
 
   const { label: avgLabel,    key: avgKey    }  = scoreBand(averageScore);

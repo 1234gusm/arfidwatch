@@ -38,7 +38,7 @@ function ProfilePage({ token }) {
   const [loading,         setLoading]         = useState(true);
   const [error,           setError]           = useState(null);
   const [flash,           setFlash]           = useState(null);
-  const [foodLogStatus,   setFoodLogStatus]   = useState({ count: 0, earliest: null, latest: null });
+  const [, setFoodLogStatus] = useState({ count: 0, earliest: null, latest: null });
   const [medStatus,       setMedStatus]       = useState({ count: 0, earliest: null, latest: null });
   const [shareFoodLog,    setShareFoodLog]    = useState(false);
   const [shareMeds,       setShareMeds]       = useState(false);
@@ -346,6 +346,7 @@ function ProfilePage({ token }) {
     });
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleClearFoodLog = async () => {
     if (!window.confirm('Remove all food log entries?')) return;
     try {
@@ -362,6 +363,7 @@ function ProfilePage({ token }) {
     } catch { setError('Failed to clear food log'); }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleToggleFoodLogShare = async (val) => {
     try {
       setShareFoodLog(val);

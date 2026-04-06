@@ -464,7 +464,7 @@ function SharePage() {
   const [unlocking,  setUnlocking]  = useState(false);
   const [activeTab,  setActiveTab]  = useState('vitals');
   const [showJournal, setShowJournal] = useState(false);
-  const [showFoodNotes, setShowFoodNotes] = useState(true);
+  const [showFoodNotes] = useState(true);
   const [shareJwt,    setShareJwt]    = useState(null);
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
