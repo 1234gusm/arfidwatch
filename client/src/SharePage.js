@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import './SharePage.css';
 import API_BASE from './apiBase';
-import { guestFetch } from './auth';
+import { authFetch } from './auth';
 import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
 
 // ── Vitals chart config for share page (15 most important) ────────────────────
@@ -494,7 +494,7 @@ function SharePage() {
   }, [healthInfo]);
 
   useEffect(() => {
-    guestFetch(`${API_BASE}/api/share/${shareToken}`)
+    authFetch(`${API_BASE}/api/share/${shareToken}`)
       .then(r => r.json())
       .then(d => {
         if (d.error) { setErrMsg(d.error); setPhase('error'); return; }
@@ -509,8 +509,8 @@ function SharePage() {
   const fetchData = async (jwt, period = 'week') => {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-    const url = `${API_BASE}/api/share/${shareToken}/data?period=${encodeURIComponent(period)}&today=${today}&share_jwt=${encodeURIComponent(jwt)}`;
-    const dr = await guestFetch(url);
+    const url = `${API_BASE}/api/share/${shareToken}/data?period=${encodeURIComponent(period)}&today=${today}`;
+    const dr = await fetch(url, { headers: { Authorization: `Bearer ${jwt}` } });
     const dd = await dr.json();
     if (!dr.ok) { setErrMsg(dd.error || 'Failed to load data.'); return false; }
     setHealthInfo(dd);
@@ -521,7 +521,7 @@ function SharePage() {
   const doUnlock = async (code, autoUnlock = false) => {
     setUnlocking(true); setErrMsg('');
     try {
-      const res = await guestFetch(`${API_BASE}/api/share/${shareToken}/unlock`, {
+      const res = await authFetch(`${API_BASE}/api/share/${shareToken}/unlock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode: code }),

@@ -1,5 +1,6 @@
-// Appwrite: no API base URL needed — all calls go through the Appwrite
-// Function via authFetch().  We keep this export so every existing
-// `${API_BASE}/api/…` template literal resolves to just `/api/…`.
-const API_BASE = '';
+const API_BASE = process.env.REACT_APP_API_URL
+  || (window.location.hostname === 'localhost'
+    ? 'http://localhost:4000'
+    : 'https://arfidwatch.onrender.com');
+
 export default API_BASE;

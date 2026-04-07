@@ -151,10 +151,7 @@ function App() {
   }, [token]);
 
   const handleLogout = async () => {
-    try {
-      const { account: acct } = await import('./appwrite');
-      await acct.deleteSession('current');
-    } catch (_) {}
+    try { await authFetch(`${API_BASE}/api/auth/logout`, { method: 'POST' }); } catch (_) {}
     clearAuthToken();
     setToken(null);
     setMobileMenuOpen(false);
