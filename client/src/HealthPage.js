@@ -824,7 +824,9 @@ function HealthPage({ token }) {
       if (!vals.length) return null;
       const byDay = {};
       vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
-      return Object.values(byDay).reduce((a, b) => a + b, 0) / (overviewPeriod || Object.keys(byDay).length || 1);
+      const dayCount = Object.keys(byDay).length;
+      if (!dayCount) return null;
+      return Object.values(byDay).reduce((a, b) => a + b, 0) / dayCount;
     };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))

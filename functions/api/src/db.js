@@ -16,7 +16,9 @@ export function createDb(databases) {
     async find(collectionId, queries = [], limit = 5000) {
       const all = [];
       let lastId = null;
-      const batch = Math.min(limit, 5000);
+      // Appwrite perf degrades badly with large batch sizes.
+      // Use 250-doc pages for fast individual requests.
+      const batch = Math.min(limit, 250);
       while (all.length < limit) {
         const q = [...queries, Query.limit(batch)];
         if (lastId) q.push(Query.cursorAfter(lastId));

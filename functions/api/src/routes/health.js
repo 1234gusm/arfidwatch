@@ -568,6 +568,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
   // ── GET /api/health/dashboard ───────────────────────────────────────────
   // Batched endpoint: returns health data, imports, today's food, and profile
   // prefs in a single function call to eliminate cold-start/round-trip overhead.
+  // Fetches in parallel with a 2000-record cap — enough for ~30–90 day views.
   if (method === 'GET' && path === '/api/health/dashboard') {
     const endIsoD = q.end && !q.end.includes('T') ? `${q.end}T23:59:59.999Z` : q.end;
     const healthQ = [Query.equal('user_id', userId), Query.orderDesc('timestamp')];
@@ -581,23 +582,23 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     if (endIsoD) medQ.push(Query.lessThanEqual('date', (endIsoD || '').slice(0, 10)));
 
     const t0 = Date.now();
-    const [rows, medEntries, imports, todayFood, profile] = await Promise.all([
-      db.find('health_data', healthQ, 5000),
-      db.find('medication_entries', medQ, 5000).catch(() => []),
-      db.find('health_imports', [Query.equal('user_id', userId), Query.orderDesc('imported_at')], 500),
+    const [rows, medEntries, importsRaw, todayFood, profile] = await Promise.all([
+      db.find('health_data', healthQ, 2000),
+      db.find('medication_entries', medQ, 2000).catch(() => []),
+      db.find('health_imports', [Query.equal('user_id', userId), Query.orderDesc('imported_at')], 100),
       db.find('food_log_entries', [
         Query.equal('user_id', userId),
         Query.equal('date', todayStr),
-      ], 500).catch(() => []),
+      ], 100).catch(() => []),
       db.findOne('user_profiles', [Query.equal('user_id', userId)]).catch(() => null),
     ]);
-    log(`dashboard: userId=${userId} rows=${rows.length} meds=${medEntries.length} imports=${imports.length} food=${todayFood.length} dbMs=${Date.now()-t0}`);
+    log(`dashboard: userId=${userId} rows=${rows.length} meds=${medEntries.length} imports=${importsRaw.length} food=${todayFood.length} dbMs=${Date.now()-t0}`);
 
     // Merge supplement entries from medication log
     const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);
     const allRows = [...rows.map(r => ({ id: r.$id, ...strip$(r) })), ...suppRows];
 
-    // Deduplicate
+    // Deduplicate to one record per (type, date) — keeps max value per day.
     const byKey = {};
     for (const r of allRows) {
       const date = (r.timestamp || '').slice(0, 10);
@@ -625,7 +626,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
 
     return res.json({
       data: dedupedRows,
-      imports: imports.map(i => ({ id: i.$id, ...strip$(i) })),
+      imports: importsRaw.map(i => ({ id: i.$id, ...strip$(i) })),
       todayFood: Object.keys(todayAgg).length > 1 ? todayAgg : null,
       prefs: {
         hidden_health_types: profile?.hidden_health_types || [],
@@ -669,8 +670,8 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
 
     const t0 = Date.now();
     const [rows, medEntries] = await Promise.all([
-      db.find('health_data', queries, 5000),
-      db.find('medication_entries', medQueries, 5000).catch(() => []),
+      db.find('health_data', queries, 2000),
+      db.find('medication_entries', medQueries, 2000).catch(() => []),
     ]);
     log(`health GET: userId=${userId} rows=${rows.length} meds=${medEntries.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'} dbMs=${Date.now()-t0}`);
 
@@ -751,7 +752,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       Query.lessThanEqual('timestamp', endIso),
       Query.equal('type', ALL_SLEEP_TYPES),
       Query.select(['type', 'value', 'timestamp']),
-    ], 5000);
+    ], 2000);
 
     const byDay = new Map(), byDayExtra = new Map();
     for (const row of rows) {
