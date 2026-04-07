@@ -3,6 +3,57 @@ import crypto from 'crypto';
 import { parse as csvParseFn } from 'csv-parse/sync';
 import { medicationEntryToHealthRow } from '../utils/supplementNutrients.js';
 
+/* ── Sub-daily type sets for pre-aggregation ────────────────────────────── */
+const SUM_TYPES = new Set([
+  'resting_energy_kcal', 'active_energy_kcal',
+  'step_count_count', 'walking_running_distance_mi', 'walking___running_distance_mi',
+  'apple_stand_time_min', 'apple_exercise_time_min', 'apple_stand_hour_count',
+  'flights_climbed_count', 'swimming_stroke_count_count',
+  'handwashing_s', 'toothbrushing_s', 'wheelchair_distance_mi',
+]);
+const AVG_TYPES = new Set([
+  'heart_rate_avg_countmin', 'heart_rate_min_countmin', 'heart_rate_max_countmin',
+  'heart_rate_variability_ms', 'resting_heart_rate_countmin',
+  'walking_heart_rate_average_countmin', 'physical_effort_kcalhrkg',
+  'environmental_audio_exposure_dbaspl', 'headphone_audio_exposure_dbaspl',
+  'walking_speed_mihr', 'walking_step_length_in',
+  'walking_asymmetry_percentage', 'walking_asymmetry_percentage__',
+  'walking_double_support_percentage', 'walking_double_support_percentage__',
+  'respiratory_rate_countmin', 'resp_rate_min_countmin', 'resp_rate_max_countmin',
+  'stair_speed__up_fts', 'stair_speed__down_fts', 'stair_speed_up_fts', 'stair_speed_down_fts',
+]);
+
+/**
+ * Pre-aggregate sub-daily Apple Health records into daily summaries.
+ * SUM types (energy, steps, distance) → summed per day.
+ * AVG types (heart rate, speed) → averaged per day.
+ * All other types pass through unchanged.
+ */
+function preAggregateDailyRecords(records) {
+  const passThrough = [];
+  const groups = {};   // key = `${type}::${date}` → { values:[], template }
+  for (const r of records) {
+    const type = r.type;
+    if (!SUM_TYPES.has(type) && !AVG_TYPES.has(type)) { passThrough.push(r); continue; }
+    const date = (r.timestamp || '').slice(0, 10);
+    if (!date) { passThrough.push(r); continue; }
+    const v = typeof r.value === 'number' ? r.value : parseFloat(r.value);
+    if (!Number.isFinite(v)) { passThrough.push(r); continue; }
+    const key = `${type}::${date}`;
+    if (!groups[key]) groups[key] = { values: [], template: r };
+    groups[key].values.push(v);
+  }
+  const aggregated = [];
+  for (const [key, g] of Object.entries(groups)) {
+    const type = key.split('::')[0];
+    const date = key.split('::')[1];
+    const sum = g.values.reduce((a, b) => a + b, 0);
+    const agg = SUM_TYPES.has(type) ? sum : sum / g.values.length;
+    aggregated.push({ ...g.template, value: agg, timestamp: `${date}T12:00:00.000Z`, raw: '' });
+  }
+  return [...passThrough, ...aggregated];
+}
+
 /* ── Helpers ported from server/routes/health.js ─────────────────────────── */
 const hashIngestKey = (key) => crypto.createHash('sha256').update(String(key)).digest('hex');
 
@@ -548,7 +599,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     if (endIsoQ) medQueries.push(Query.lessThanEqual('date', (endIsoQ || '').slice(0, 10)));
 
     const [rows, medEntries] = await Promise.all([
-      db.find('health_data', queries, 15000),
+      db.find('health_data', queries, 5000),
       db.find('medication_entries', medQueries, 5000).catch(() => []),
     ]);
     log(`health GET: userId=${userId} rows=${rows.length} meds=${medEntries.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'}`);
@@ -761,7 +812,8 @@ async function handleHealthImport({ db, storage, userId, body, req, res, log }) 
       return true;
     });
 
-    const deduped = await filterDuplicateStats(db, userId, records);
+    const dedupedRaw = await filterDuplicateStats(db, userId, records);
+    const deduped = preAggregateDailyRecords(dedupedRaw);
 
     if (_haeMetrics) {
       const now = new Date();
@@ -903,17 +955,18 @@ async function handleHealthImport({ db, storage, userId, body, req, res, log }) 
     }
 
     // Generic CSV
-    const deduped = await filterDuplicateStats(db, userId, records);
-    if (deduped.length > 0) {
+    const dedupedRaw2 = await filterDuplicateStats(db, userId, records);
+    const deduped2 = preAggregateDailyRecords(dedupedRaw2);
+    if (deduped2.length > 0) {
       const importDoc = await db.create('health_imports', {
         user_id: userId, filename: uploadFilename, source: 'health',
-        imported_at: new Date().toISOString(), record_count: deduped.length,
+        imported_at: new Date().toISOString(), record_count: deduped2.length,
         ...(fileHash ? { file_hash: fileHash } : {}),
       }, userId);
-      const tagged = deduped.map(r => ({ ...r, import_id: importDoc.$id }));
+      const tagged = deduped2.map(r => ({ ...r, import_id: importDoc.$id }));
       await db.createMany('health_data', tagged, userId);
     }
-    return res.json({ imported: deduped.length, skipped_duplicates: records.length - deduped.length, source: 'health_csv' });
+    return res.json({ imported: deduped2.length, skipped_duplicates: records.length - deduped2.length, source: 'health_csv' });
   } catch (err) {
     return res.json({ error: 'failed to parse csv', detail: err.message }, 500);
   }
