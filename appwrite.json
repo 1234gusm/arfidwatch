@@ -30,5 +30,16 @@
       "commands": "npm install",
       "path": "functions/push-scheduler"
     }
+  ],
+  "sites": [
+    {
+      "$id": "arfidwatch",
+      "name": "ArfidWatch",
+      "framework": "react",
+      "installCommand": "npm install",
+      "buildCommand": "npm run build",
+      "outputDirectory": "build",
+      "path": "client"
+    }
   ]
 }
