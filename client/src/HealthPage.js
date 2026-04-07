@@ -755,9 +755,14 @@ function HealthPage({ token }) {
   const fillGaps = (series, start, end) => {
     const byDate = {};
     series.forEach(p => { byDate[p.dateLabel] = p.value; });
+    // If no explicit range, derive from data
+    const dates = Object.keys(byDate).sort();
+    const actualStart = start || dates[0];
+    const actualEnd   = end   || dates[dates.length - 1];
+    if (!actualStart || !actualEnd) return series;
     const result = [];
-    const cur = new Date(start + 'T12:00:00');
-    const endD = new Date(end + 'T12:00:00');
+    const cur = new Date(actualStart + 'T12:00:00');
+    const endD = new Date(actualEnd + 'T12:00:00');
     while (cur <= endD) {
       const key = formatDate(cur);
       result.push({ dateLabel: key, value: byDate[key] ?? null });
@@ -1023,11 +1028,38 @@ function HealthPage({ token }) {
         <div className="date-controls">
           <label>Start: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
           <label>End: <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
-          <button onClick={() => {
-            const d = new Date();
-            const s = new Date(); s.setDate(d.getDate() - 30);
-            setStartDate(formatDate(s)); setEndDate(formatDate(d));
-          }}>Last 30 days</button>
+          <div className="hp-range-row">
+            {[
+              { id: '7',   label: '7 d' },
+              { id: '30',  label: '30 d' },
+              { id: '90',  label: '90 d' },
+              { id: '365', label: '1 y' },
+              { id: 'all', label: 'All' },
+            ].map(o => (
+              <button
+                key={o.id}
+                className={`hp-range-btn${
+                  (() => {
+                    if (o.id === 'all') return !startDate ? ' active' : '';
+                    const d = new Date(); const s = new Date();
+                    s.setDate(d.getDate() - parseInt(o.id, 10));
+                    return startDate === formatDate(s) && endDate === formatDate(d) ? ' active' : '';
+                  })()
+                }`}
+                onClick={() => {
+                  if (o.id === 'all') {
+                    setStartDate('');
+                    setEndDate('');
+                  } else {
+                    const d = new Date();
+                    const s = new Date(); s.setDate(d.getDate() - parseInt(o.id, 10));
+                    setStartDate(formatDate(s));
+                    setEndDate(formatDate(d));
+                  }
+                }}
+              >{o.label}</button>
+            ))}
+          </div>
           <button
             className="reset-order-btn"
             title="Reset card order"

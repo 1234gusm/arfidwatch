@@ -571,6 +571,25 @@
 
 .date-controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
 .date-controls input { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); color: #e2e8f0; padding:6px; border-radius:6px; }
+.hp-range-row { display:flex; gap:6px; flex-wrap:nowrap; }
+.hp-range-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.hp-range-btn:hover { background: rgba(139,92,246,0.12); color: #ddd6fe; }
+.hp-range-btn.active {
+  background: rgba(139,92,246,0.2);
+  border-color: rgba(139,92,246,0.45);
+  color: var(--primary-lighter);
+  font-weight: 600;
+}
 .mini-chart { margin-top:8px; height:90px; }
 /* True CSS grid for stat cards */
 .summary-cards-wrapper {

@@ -1,4 +1,5 @@
 import { account, functions, storage, ID } from './appwrite';
+import client from './appwrite';
 
 const FUNCTION_ID = 'api';
 const UPLOAD_BUCKET = 'uploads';
@@ -52,6 +53,49 @@ export async function authFetch(url, opts = {}) {
     inHeaders,
   );
 
+  return new FnResponse(exec);
+}
+
+/**
+ * Guest-safe fetch: bypasses the Appwrite SDK and calls the function
+ * execution REST API directly.  Use for share routes that must work
+ * for unauthenticated visitors (no Appwrite session required).
+ */
+export async function guestFetch(url, opts = {}) {
+  const path = url.replace(/^https?:\/\/[^/]+/, '');
+  const method = (opts.method || 'GET').toUpperCase();
+  const inHeaders = { ...(opts.headers || {}) };
+
+  let bodyStr = '';
+  if (opts.body != null) {
+    bodyStr = typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body);
+  }
+
+  const endpoint = client.config.endpoint;          // e.g. https://nyc.cloud.appwrite.io/v1
+  const project  = client.config.project;
+
+  const response = await fetch(
+    `${endpoint}/functions/${FUNCTION_ID}/executions`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Appwrite-Project': project,
+      },
+      body: JSON.stringify({
+        body: bodyStr,
+        async: false,
+        path,
+        method,
+        headers: inHeaders,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Function execution failed: ${response.status}`);
+  }
+  const exec = await response.json();
   return new FnResponse(exec);
 }
 
