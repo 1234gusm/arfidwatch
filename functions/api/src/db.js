@@ -41,7 +41,7 @@ export function createDb(databases) {
     },
 
     /** Batch-create with concurrency. */
-    async createMany(collectionId, dataArray, userId = null, concurrency = 15) {
+    async createMany(collectionId, dataArray, userId = null, concurrency = 50) {
       const perms = userId ? userPerms(userId) : [];
       const results = [];
       for (let i = 0; i < dataArray.length; i += concurrency) {
@@ -63,22 +63,21 @@ export function createDb(databases) {
     },
 
     /** Delete all docs matching queries. Returns count. */
-    async removeMany(collectionId, queries = [], concurrency = 15) {
+    async removeMany(collectionId, queries = [], concurrency = 50) {
       let total = 0;
-      let lastId = null;
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const q = [...queries, Query.limit(100)];
-        if (lastId) q.push(Query.cursorAfter(lastId));
+        const q = [...queries, Query.limit(250), Query.select(['$id'])];
         const r = await databases.listDocuments(DB_ID, collectionId, q);
         if (!r.documents.length) break;
+        // Delete entire batch in parallel with high concurrency
         for (let i = 0; i < r.documents.length; i += concurrency) {
           const chunk = r.documents.slice(i, i + concurrency);
           await Promise.all(chunk.map(d => databases.deleteDocument(DB_ID, collectionId, d.$id)));
         }
         total += r.documents.length;
-        if (r.documents.length < 100) break;
-        lastId = null; // reset — docs were deleted, start from beginning
+        if (r.documents.length < 250) break;
+        // No cursor needed — deleted docs are gone, next query starts fresh
       }
       return total;
     },

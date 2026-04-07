@@ -583,8 +583,8 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
 
     const t0 = Date.now();
     const [rows, medEntries, importsRaw, todayFood, profile] = await Promise.all([
-      db.find('health_data', healthQ, 2000),
-      db.find('medication_entries', medQ, 2000).catch(() => []),
+      db.find('health_data', healthQ, 5000),
+      db.find('medication_entries', medQ, 5000).catch(() => []),
       db.find('health_imports', [Query.equal('user_id', userId), Query.orderDesc('imported_at')], 100),
       db.find('food_log_entries', [
         Query.equal('user_id', userId),
@@ -614,20 +614,22 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     dedupedRows.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
 
     // Aggregate today's food into daily summary
-    const todayAgg = {};
+    // food_log_entries use: calories, protein_g, carbs_g, fat_g
+    // Client expects:       dietary_energy_kcal, protein_g, carbohydrates_g, total_fat_g
+    const todayAgg = { date: todayStr, dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
+    let anyFood = false;
     for (const row of todayFood) {
-      for (const [k, v] of Object.entries(strip$(row))) {
-        if (k === 'date' || k === 'import_id' || k === 'food_name' || k === 'meal' || k === 'quantity' || k === 'note') continue;
-        const n = parseFloat(v);
-        if (Number.isFinite(n)) todayAgg[k] = (todayAgg[k] || 0) + n;
-      }
+      const s = strip$(row);
+      const cal = parseFloat(s.calories); if (Number.isFinite(cal)) { todayAgg.dietary_energy_kcal += cal; anyFood = true; }
+      const pro = parseFloat(s.protein_g); if (Number.isFinite(pro)) { todayAgg.protein_g += pro; anyFood = true; }
+      const carb = parseFloat(s.carbs_g); if (Number.isFinite(carb)) { todayAgg.carbohydrates_g += carb; anyFood = true; }
+      const fat = parseFloat(s.fat_g); if (Number.isFinite(fat)) { todayAgg.total_fat_g += fat; anyFood = true; }
     }
-    todayAgg.date = todayStr;
 
     return res.json({
       data: dedupedRows,
       imports: importsRaw.map(i => ({ id: i.$id, ...strip$(i) })),
-      todayFood: Object.keys(todayAgg).length > 1 ? todayAgg : null,
+      todayFood: anyFood ? todayAgg : null,
       prefs: {
         hidden_health_types: profile?.hidden_health_types || [],
         health_stat_order: profile?.health_stat_order || [],
@@ -670,8 +672,8 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
 
     const t0 = Date.now();
     const [rows, medEntries] = await Promise.all([
-      db.find('health_data', queries, 2000),
-      db.find('medication_entries', medQueries, 2000).catch(() => []),
+      db.find('health_data', queries, 5000),
+      db.find('medication_entries', medQueries, 5000).catch(() => []),
     ]);
     log(`health GET: userId=${userId} rows=${rows.length} meds=${medEntries.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'} dbMs=${Date.now()-t0}`);
 
@@ -820,9 +822,11 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
 
   // ── DELETE /api/health/imports (clear all) ───────────────────────────────
   if (method === 'DELETE' && path === '/api/health/imports') {
-    await db.removeMany('health_data', [Query.equal('user_id', userId)]);
-    await db.removeMany('food_log_entries', [Query.equal('user_id', userId)]);
-    await db.removeMany('health_imports', [Query.equal('user_id', userId)]);
+    await Promise.all([
+      db.removeMany('health_data', [Query.equal('user_id', userId)]),
+      db.removeMany('food_log_entries', [Query.equal('user_id', userId)]),
+      db.removeMany('health_imports', [Query.equal('user_id', userId)]),
+    ]);
     return res.json({ ok: true });
   }
 
@@ -832,8 +836,10 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     const importId = delImportMatch[1];
     const row = await db.findOne('health_imports', [Query.equal('$id', importId), Query.equal('user_id', userId)]);
     if (!row) return res.json({ error: 'not found' }, 404);
-    await db.removeMany('health_data', [Query.equal('user_id', userId), Query.equal('import_id', importId)]);
-    await db.removeMany('food_log_entries', [Query.equal('user_id', userId), Query.equal('import_id', importId)]);
+    await Promise.all([
+      db.removeMany('health_data', [Query.equal('user_id', userId), Query.equal('import_id', importId)]),
+      db.removeMany('food_log_entries', [Query.equal('user_id', userId), Query.equal('import_id', importId)]),
+    ]);
     await db.remove('health_imports', importId);
     return res.json({ deleted: importId });
   }
