@@ -542,24 +542,38 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       }
       // If > 100, skip server filter and let client filter (rare edge case)
     }
-    const rows = await db.find('health_data', queries, 5000);
-    log(`health GET: userId=${userId} rows=${rows.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'}`);
+    // Run health data + medication queries in parallel for speed
+    let medQueries = [Query.equal('user_id', userId)];
+    if (q.start) medQueries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
+    if (endIsoQ) medQueries.push(Query.lessThanEqual('date', (endIsoQ || '').slice(0, 10)));
+
+    const [rows, medEntries] = await Promise.all([
+      db.find('health_data', queries, 15000),
+      db.find('medication_entries', medQueries, 5000).catch(() => []),
+    ]);
+    log(`health GET: userId=${userId} rows=${rows.length} meds=${medEntries.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'}`);
 
     // Merge supplement entries from medication log
-    try {
-      let medQueries = [Query.equal('user_id', userId)];
-      if (q.start) medQueries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
-      if (endIsoQ) medQueries.push(Query.lessThanEqual('date', (endIsoQ || '').slice(0, 10)));
-      const medEntries = await db.find('medication_entries', medQueries, 5000);
-      const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);
-      if (suppRows.length) {
-        const allRows = [...rows.map(r => ({ id: r.$id, ...strip$(r) })), ...suppRows];
-        allRows.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
-        return res.json({ data: allRows });
-      }
-    } catch (e) { log('supplement merge failed: ' + e.message); }
+    const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);
+    const allRows = [...rows.map(r => ({ id: r.$id, ...strip$(r) })), ...suppRows];
 
-    return res.json({ data: rows.map(r => ({ id: r.$id, ...strip$(r) })) });
+    // Deduplicate to one record per (type, date) — keeps max value per day.
+    // This matches client-side seriesFor() logic and dramatically reduces response
+    // size when sub-daily types like resting_energy_kcal have 60+ records/day.
+    const byKey = {};
+    for (const r of allRows) {
+      const date = (r.timestamp || '').slice(0, 10);
+      if (!date) continue;
+      const key = `${r.type}::${date}`;
+      const v = parseFloat(r.value);
+      if (!Number.isFinite(v)) continue;
+      if (!byKey[key] || v > parseFloat(byKey[key].value)) {
+        byKey[key] = r;
+      }
+    }
+    const dedupedRows = Object.values(byKey);
+    dedupedRows.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
+    return res.json({ data: dedupedRows });
   }
 
   // ── GET /api/health/hero ─────────────────────────────────────────────────
