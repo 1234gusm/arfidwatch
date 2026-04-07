@@ -34,23 +34,27 @@ function HealthPage({ token }) {
   const [overviewPeriod, setOverviewPeriod] = useState(7);
 
   const fetchData = async (start, end) => {
-    const params = new URLSearchParams();
-    if (start) params.set('start', start);
-    if (end) params.set('end', end);
-    const qs = params.toString() ? `?${params}` : '';
-    const res = await authFetch(`${API_BASE}/api/health${qs}`, {
-      credentials: 'include',
-    });
-    const json = await res.json();
-    setData(json.data || []);
+    try {
+      const params = new URLSearchParams();
+      if (start) params.set('start', start);
+      if (end) params.set('end', end);
+      const qs = params.toString() ? `?${params}` : '';
+      const res = await authFetch(`${API_BASE}/api/health${qs}`, {
+        credentials: 'include',
+      });
+      const json = await res.json();
+      setData(json.data || []);
+    } catch (err) { console.error('fetchData error:', err); setData([]); }
   };
 
   const fetchImports = async () => {
-    const res = await authFetch(`${API_BASE}/api/health/imports`, {
-      credentials: 'include',
-    });
-    const json = await res.json();
-    setImports(json.imports || []);
+    try {
+      const res = await authFetch(`${API_BASE}/api/health/imports`, {
+        credentials: 'include',
+      });
+      const json = await res.json();
+      setImports(json.imports || []);
+    } catch (err) { console.error('fetchImports error:', err); }
   };
 
   const fetchTodayFood = async () => {

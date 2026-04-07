@@ -515,14 +515,32 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
   if (!userId) return res.json({ error: 'authentication required' }, 401);
 
   // ── GET /api/health ─────────────────────────────────────────────────────
+  // Normalise end-date so "2026-04-06" becomes "2026-04-06T23:59:59.999Z"
+  // (ISO timestamps like "2026-04-06T12:00:00Z" > "2026-04-06" in string order,
+  //  so a bare date would exclude every record ON that day.)
+  const endIsoQ = q.end && !q.end.includes('T') ? `${q.end}T23:59:59.999Z` : q.end;
+
   if (method === 'GET' && path === '/api/health') {
     const queries = [Query.equal('user_id', userId), Query.orderAsc('timestamp')];
     if (q.start) queries.push(Query.greaterThanEqual('timestamp', q.start));
-    if (q.end) queries.push(Query.lessThanEqual('timestamp', q.end));
+    if (endIsoQ) queries.push(Query.lessThanEqual('timestamp', endIsoQ));
+    // Return only the fields the client needs (skip heavy system attrs)
+    queries.push(Query.select(['type', 'value', 'timestamp', 'raw', 'import_id']));
     // Optional type filter — e.g. ?types=heart_rate_avg_countmin,weight_lb
+    // Automatically includes macrofactor_ and apple_ prefixed variants
     if (q.types) {
-      const types = String(q.types).split(',').map(t => t.trim()).filter(Boolean);
-      if (types.length) queries.push(Query.equal('type', types));
+      const baseTypes = String(q.types).split(',').map(t => t.trim()).filter(Boolean);
+      const expanded = new Set(baseTypes);
+      for (const t of baseTypes) {
+        expanded.add(`macrofactor_${t}`);
+        expanded.add(`apple_${t}`);
+      }
+      const typeArr = [...expanded];
+      // Appwrite limits Query.equal to 100 values; batch if needed
+      if (typeArr.length <= 100) {
+        queries.push(Query.equal('type', typeArr));
+      }
+      // If > 100, skip server filter and let client filter (rare edge case)
     }
     const rows = await db.find('health_data', queries, 50000);
 
@@ -530,7 +548,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     try {
       let medQueries = [Query.equal('user_id', userId)];
       if (q.start) medQueries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
-      if (q.end) medQueries.push(Query.lessThanEqual('date', q.end.slice(0, 10)));
+      if (endIsoQ) medQueries.push(Query.lessThanEqual('date', (endIsoQ || '').slice(0, 10)));
       const medEntries = await db.find('medication_entries', medQueries, 50000);
       const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);
       if (suppRows.length) {
@@ -553,6 +571,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     ];
     const rows = await db.find('health_data', [
       Query.equal('user_id', userId), Query.equal('type', HERO_TYPES), Query.orderAsc('timestamp'),
+      Query.select(['type', 'value', 'timestamp']),
     ], 50000);
     return res.json({ data: rows.map(r => ({ id: r.$id, ...strip$(r) })) });
   }
@@ -592,6 +611,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       Query.greaterThanEqual('timestamp', startIso),
       Query.lessThanEqual('timestamp', endIso),
       Query.equal('type', ALL_SLEEP_TYPES),
+      Query.select(['type', 'value', 'timestamp']),
     ], 50000);
 
     const byDay = new Map(), byDayExtra = new Map();

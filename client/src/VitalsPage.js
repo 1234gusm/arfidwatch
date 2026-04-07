@@ -69,16 +69,12 @@ function VitalsPage({ token }) {
   const [expanded, setExpanded]     = useState({});    // per-graph expand state
   const [expandedCard, setExpandedCard] = useState(null); // per-stat-card expand
 
-  // All vitals metric types (primary + alt keys) — sent to server to avoid fetching sleep/food/etc.
+  // Primary vitals type keys (kept small to stay under Appwrite's 100-value query limit)
   const VITALS_TYPE_KEYS = useMemo(() => {
     const keys = new Set();
     VITALS_METRICS.forEach(m => {
       keys.add(m.key);
       (m.altKeys || []).forEach(k => keys.add(k));
-      // Include macrofactor_ and apple_ prefixed variants
-      keys.add(`macrofactor_${m.key}`);
-      keys.add(`apple_${m.key}`);
-      (m.altKeys || []).forEach(k => { keys.add(`macrofactor_${k}`); keys.add(`apple_${k}`); });
     });
     return [...keys];
   }, []);
@@ -92,6 +88,7 @@ function VitalsPage({ token }) {
         const startDate = rangeDays ? fmtDate((() => { const d = new Date(); d.setDate(d.getDate() - rangeDays); return d; })()) : '';
         const params = new URLSearchParams();
         if (startDate) params.set('start', startDate);
+        // Send only primary + altKeys (well under 100); server also matches macrofactor_/apple_ prefixes
         params.set('types', VITALS_TYPE_KEYS.join(','));
         const res = await authFetch(`${API_BASE}/api/health?${params}`);
         if (!res.ok) { setData([]); return; }
