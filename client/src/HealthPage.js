@@ -17,7 +17,7 @@ function HealthPage({ token }) {
   const [imports, setImports] = useState([]);
   const [todayFood, setTodayFood] = useState(null);
   const [hiddenTypes, setHiddenTypes] = useState(new Set());
-  const [expandedType, setExpandedType] = useState(null);
+  const [expandedCards, setExpandedCards] = useState(new Set());
   const [addPickerOpen, setAddPickerOpen] = useState(false);
   const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
@@ -1078,9 +1078,8 @@ function HealthPage({ token }) {
               const group = meta?.group || 'Extra Nutritional Info';
               const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               const unit = meta?.unit || '';
-              const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
-              const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
               const isDragOver = dragOver === t;
+              const isExpanded = expandedCards.has(t);
               const items = [];
               if (group !== lastGroup) {
                 lastGroup = group;
@@ -1091,43 +1090,68 @@ function HealthPage({ token }) {
               items.push(
               <div
                 key={t}
-                className={`stat-card${isDragOver ? ' drag-over' : ''}`}
+                className={`stat-card${isDragOver ? ' drag-over' : ''}${isExpanded ? ' stat-card--expanded' : ''}`}
                 draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; dragSrc.current = t; }}
                 onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOver !== t) setDragOver(t); }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
                 onDrop={e => { e.preventDefault(); handleDrop(t); }}
                 onDragEnd={() => { dragSrc.current = null; setDragOver(null); }}
-                onClick={e => { if (!e.target.closest('.stat-remove-btn')) setExpandedType(t); }}
+                onClick={e => {
+                  if (!e.target.closest('.stat-remove-btn')) {
+                    setExpandedCards(prev => {
+                      const next = new Set(prev);
+                      if (next.has(t)) next.delete(t);
+                      else next.add(t);
+                      return next;
+                    });
+                  }
+                }}
               >
                 <button
                   className="stat-remove-btn"
                   title="Hide this metric"
                   onClick={e => { e.stopPropagation(); hideType(t); }}
                 >×</button>
-                <div className="stat-title">{label}</div>
-                {statsMap[t] ? (
-                  <div className="stat-values">
-                    <div><strong>Latest:</strong> {statsMap[t].latest} {unit}</div>
-                    <div><strong>Avg:</strong> {statsMap[t].avg.toFixed(1)} {unit}</div>
-                    <div><strong>Min:</strong> {statsMap[t].min} {unit}</div>
-                    <div><strong>Max:</strong> {statsMap[t].max} {unit}</div>
-                  </div>
-                ) : (
-                  <div className="stat-empty">No data</div>
-                )}
-                {hasChartData && (
-                  <div className="mini-chart">
-                    <ResponsiveContainer width="100%" height={90}>
-                      <LineChart data={gapFilled}>
-                        <XAxis dataKey="dateLabel" hide />
-                        <YAxis hide domain={['auto', 'auto']} />
-                        <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
-                        <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={false} strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                <div className="stat-card-header">
+                  <div className="stat-title">{label}</div>
+                  {statsMap[t] ? (
+                    <div className="stat-latest-value">{statsMap[t].latest} <small>{unit}</small></div>
+                  ) : null}
+                </div>
+                {statsMap[t] && !isExpanded && (
+                  <div className="stat-summary-line">
+                    Avg {statsMap[t].avg.toFixed(1)} · Min {statsMap[t].min} · Max {statsMap[t].max} {unit}
                   </div>
                 )}
+                {!statsMap[t] && <div className="stat-empty">No data</div>}
+                {isExpanded && statsMap[t] && (() => {
+                  const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
+                  const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
+                  return (
+                    <>
+                      <div className="stat-values">
+                        <div><strong>Latest:</strong> {statsMap[t].latest} {unit}</div>
+                        <div><strong>Avg:</strong> {statsMap[t].avg.toFixed(1)} {unit}</div>
+                        <div><strong>Min:</strong> {statsMap[t].min} {unit}</div>
+                        <div><strong>Max:</strong> {statsMap[t].max} {unit}</div>
+                      </div>
+                      {hasChartData && (
+                        <div className="stat-inline-chart">
+                          <ResponsiveContainer width="100%" height={180}>
+                            <LineChart data={gapFilled} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
+                              <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} interval="preserveStartEnd" />
+                              <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} width={38} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
+                              <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} ${unit}`, label]} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} itemStyle={{ color: '#6ee7ff' }} labelStyle={{ color: '#94a3b8' }} />
+                              <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: gapFilled.filter(p => p.value !== null).length < 30 ? 2 : 0, fill: '#6ee7ff' }} strokeWidth={2} connectNulls />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               );
               return items;
@@ -1136,59 +1160,7 @@ function HealthPage({ token }) {
         </div>
       </section>
 
-      {/* Expanded metric modal */}
-      {expandedType && (() => {
-        const t = expandedType;
-        const meta = typeMeta[t];
-        const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const unit = meta?.unit || '';
-        const allData = seriesFor(t);
-        const rangeData = fillGaps(allData, startDate, endDate);
-        const s = statsMap[t];
-        return (
-          <div className="modal-overlay" onClick={() => setExpandedType(null)}>
-            <div className="modal-card" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setExpandedType(null)}>×</button>
-              <h3 className="modal-title">{label} {unit ? <span className="modal-unit">({unit})</span> : null}</h3>
-              {s && (
-                <div className="modal-stats-row">
-                  <div className="modal-stat"><span>Latest</span><strong>{s.latest} {unit}</strong></div>
-                  <div className="modal-stat"><span>Average</span><strong>{s.avg.toFixed(2)} {unit}</strong></div>
-                  <div className="modal-stat"><span>Min</span><strong>{s.min} {unit}</strong></div>
-                  <div className="modal-stat"><span>Max</span><strong>{s.max} {unit}</strong></div>
-                  <div className="modal-stat"><span>Data points</span><strong>{s.count}</strong></div>
-                </div>
-              )}
-              {rangeData.filter(p => p.value !== null).length > 1 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={rangeData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
-                    <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} />
-                    <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
-                    <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(2) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
-                    <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p style={{ color: '#9ab', marginTop: 16 }}>Not enough data in selected range.</p>
-              )}
-              <div className="modal-data-table">
-                <table>
-                  <thead><tr><th>Date</th><th>Value</th></tr></thead>
-                  <tbody>
-                    {[...rangeData].reverse().filter(p => p.value !== null).slice(0, 50).map((row, i) => (
-                      <tr key={i}>
-                        <td>{row.dateLabel}</td>
-                        <td>{typeof row.value === 'number' ? row.value.toFixed(2) : row.value} {unit}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Modal removed — charts now expand inline within stat cards */}
 
       {/* Add metrics picker modal */}
       {addPickerOpen && (

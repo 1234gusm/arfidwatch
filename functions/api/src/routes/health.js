@@ -609,15 +609,18 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     const allRows = [...rows.map(r => ({ id: r.$id, ...strip$(r) })), ...suppRows];
 
     // Deduplicate to one record per (type, date) — keeps max value per day.
-    // This matches client-side seriesFor() logic and dramatically reduces response
-    // size when sub-daily types like resting_energy_kcal have 60+ records/day.
+    // iHealth records (source=ihealth_csv in raw) are keyed by full timestamp
+    // so every individual reading is preserved for the Vitals page.
     const byKey = {};
     for (const r of allRows) {
       const date = (r.timestamp || '').slice(0, 10);
       if (!date) continue;
-      const key = `${r.type}::${date}`;
       const v = parseFloat(r.value);
       if (!Number.isFinite(v)) continue;
+      // Preserve individual iHealth readings by keying on full timestamp
+      let isIHealth = false;
+      try { isIHealth = JSON.parse(String(r.raw || '{}')).source === 'ihealth_csv'; } catch (_) {}
+      const key = isIHealth ? `${r.type}::${r.timestamp}` : `${r.type}::${date}`;
       if (!byKey[key] || v > parseFloat(byKey[key].value)) {
         byKey[key] = r;
       }
