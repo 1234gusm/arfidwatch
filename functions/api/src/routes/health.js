@@ -521,7 +521,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
   const endIsoQ = q.end && !q.end.includes('T') ? `${q.end}T23:59:59.999Z` : q.end;
 
   if (method === 'GET' && path === '/api/health') {
-    const queries = [Query.equal('user_id', userId), Query.orderAsc('timestamp')];
+    const queries = [Query.equal('user_id', userId), Query.orderDesc('timestamp')];
     if (q.start) queries.push(Query.greaterThanEqual('timestamp', q.start));
     if (endIsoQ) queries.push(Query.lessThanEqual('timestamp', endIsoQ));
     // Return only the fields the client needs (skip heavy system attrs)
@@ -542,14 +542,14 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       }
       // If > 100, skip server filter and let client filter (rare edge case)
     }
-    const rows = await db.find('health_data', queries, 50000);
+    const rows = await db.find('health_data', queries, 5000);
 
     // Merge supplement entries from medication log
     try {
       let medQueries = [Query.equal('user_id', userId)];
       if (q.start) medQueries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
       if (endIsoQ) medQueries.push(Query.lessThanEqual('date', (endIsoQ || '').slice(0, 10)));
-      const medEntries = await db.find('medication_entries', medQueries, 50000);
+      const medEntries = await db.find('medication_entries', medQueries, 5000);
       const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);
       if (suppRows.length) {
         const allRows = [...rows.map(r => ({ id: r.$id, ...strip$(r) })), ...suppRows];
