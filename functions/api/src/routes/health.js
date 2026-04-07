@@ -598,11 +598,12 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
     if (q.start) medQueries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
     if (endIsoQ) medQueries.push(Query.lessThanEqual('date', (endIsoQ || '').slice(0, 10)));
 
+    const t0 = Date.now();
     const [rows, medEntries] = await Promise.all([
       db.find('health_data', queries, 5000),
       db.find('medication_entries', medQueries, 5000).catch(() => []),
     ]);
-    log(`health GET: userId=${userId} rows=${rows.length} meds=${medEntries.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'}`);
+    log(`health GET: userId=${userId} rows=${rows.length} meds=${medEntries.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'} dbMs=${Date.now()-t0}`);
 
     // Merge supplement entries from medication log
     const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);

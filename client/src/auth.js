@@ -7,9 +7,16 @@ const UPLOAD_BUCKET = 'uploads';
 /* ── Thin Response wrapper around Appwrite Function execution result ───── */
 class FnResponse {
   constructor(exec) {
-    this.status = exec.responseStatusCode || 200;
-    this.ok = this.status >= 200 && this.status < 300;
-    this._body = exec.responseBody || '';
+    // If the function execution itself failed (crash / timeout), treat as 500
+    if (exec.status === 'failed') {
+      this.status = 500;
+      this.ok = false;
+      this._body = exec.responseBody || JSON.stringify({ error: exec.errors || 'Function execution failed' });
+    } else {
+      this.status = exec.responseStatusCode || 200;
+      this.ok = this.status >= 200 && this.status < 300;
+      this._body = exec.responseBody || '';
+    }
   }
   async json() { return JSON.parse(this._body); }
   async text() { return this._body; }

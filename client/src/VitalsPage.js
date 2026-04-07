@@ -66,6 +66,7 @@ function VitalsPage({ token }) {
   const [data, setData]             = useState([]);
   const [rangeDays, setRangeDays]   = useState(90);
   const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
   const [expanded, setExpanded]     = useState({});    // per-graph expand state
   const [expandedCard, setExpandedCard] = useState(null); // per-stat-card expand
 
@@ -84,6 +85,7 @@ function VitalsPage({ token }) {
     let active = true;
     const load = async () => {
       setLoading(true);
+      setError(null);
       try {
         const startDate = rangeDays ? fmtDate((() => { const d = new Date(); d.setDate(d.getDate() - rangeDays); return d; })()) : '';
         const params = new URLSearchParams();
@@ -91,10 +93,11 @@ function VitalsPage({ token }) {
         // Send only primary + altKeys (well under 100); server also matches macrofactor_/apple_ prefixes
         params.set('types', VITALS_TYPE_KEYS.join(','));
         const res = await authFetch(`${API_BASE}/api/health?${params}`);
-        if (!res.ok) { setData([]); return; }
+        if (!res.ok) { console.error('Vitals fetch failed:', res.status, await res.text()); setError(`Server returned ${res.status}`); setData([]); return; }
         const json = await res.json();
+        console.log('Vitals loaded:', json.data?.length, 'records');
         if (active) setData(Array.isArray(json.data) ? json.data : []);
-      } catch (_) { setData([]); }
+      } catch (e) { console.error('Vitals load error:', e); setError(e.message || 'Unknown error'); setData([]); }
       finally { if (active) setLoading(false); }
     };
     load();
@@ -326,11 +329,15 @@ function VitalsPage({ token }) {
 
       {loading && <div className="vp-loading">Loading…</div>}
 
-      {!loading && metrics.length === 0 && (
+      {!loading && error && (
+        <div className="vp-empty" style={{ color: '#f97316' }}>Error loading vitals: {error}</div>
+      )}
+
+      {!loading && !error && metrics.length === 0 && (
         <div className="vp-empty">No vitals data yet. Import health data or upload an iHealth CSV from the Health page.</div>
       )}
 
-      {!loading && metrics.length > 0 && (
+      {!loading && !error && metrics.length > 0 && (
         <>
           {/* ── Chart tiles grid ── */}
           <div className="vp-graphs-grid">
