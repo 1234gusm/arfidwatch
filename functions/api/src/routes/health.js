@@ -565,6 +565,75 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
   }
   if (!userId) return res.json({ error: 'authentication required' }, 401);
 
+  // ── GET /api/health/dashboard ───────────────────────────────────────────
+  // Batched endpoint: returns health data, imports, today's food, and profile
+  // prefs in a single function call to eliminate cold-start/round-trip overhead.
+  if (method === 'GET' && path === '/api/health/dashboard') {
+    const endIsoD = q.end && !q.end.includes('T') ? `${q.end}T23:59:59.999Z` : q.end;
+    const healthQ = [Query.equal('user_id', userId), Query.orderDesc('timestamp')];
+    if (q.start) healthQ.push(Query.greaterThanEqual('timestamp', q.start));
+    if (endIsoD) healthQ.push(Query.lessThanEqual('timestamp', endIsoD));
+    healthQ.push(Query.select(['type', 'value', 'timestamp', 'raw', 'import_id']));
+
+    const todayStr = q.today || new Date().toISOString().slice(0, 10);
+    const medQ = [Query.equal('user_id', userId)];
+    if (q.start) medQ.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
+    if (endIsoD) medQ.push(Query.lessThanEqual('date', (endIsoD || '').slice(0, 10)));
+
+    const t0 = Date.now();
+    const [rows, medEntries, imports, todayFood, profile] = await Promise.all([
+      db.find('health_data', healthQ, 5000),
+      db.find('medication_entries', medQ, 5000).catch(() => []),
+      db.find('health_imports', [Query.equal('user_id', userId), Query.orderDesc('imported_at')], 500),
+      db.find('food_log_entries', [
+        Query.equal('user_id', userId),
+        Query.equal('date', todayStr),
+      ], 500).catch(() => []),
+      db.findOne('user_profiles', [Query.equal('user_id', userId)]).catch(() => null),
+    ]);
+    log(`dashboard: userId=${userId} rows=${rows.length} meds=${medEntries.length} imports=${imports.length} food=${todayFood.length} dbMs=${Date.now()-t0}`);
+
+    // Merge supplement entries from medication log
+    const suppRows = medEntries.map(e => medicationEntryToHealthRow({ ...e, id: e.$id })).filter(Boolean);
+    const allRows = [...rows.map(r => ({ id: r.$id, ...strip$(r) })), ...suppRows];
+
+    // Deduplicate
+    const byKey = {};
+    for (const r of allRows) {
+      const date = (r.timestamp || '').slice(0, 10);
+      if (!date) continue;
+      const v = parseFloat(r.value);
+      if (!Number.isFinite(v)) continue;
+      let isIHealth = false;
+      try { isIHealth = JSON.parse(String(r.raw || '{}')).source === 'ihealth_csv'; } catch (_) {}
+      const key = isIHealth ? `${r.type}::${r.timestamp}` : `${r.type}::${date}`;
+      if (!byKey[key] || v > parseFloat(byKey[key].value)) byKey[key] = r;
+    }
+    const dedupedRows = Object.values(byKey);
+    dedupedRows.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
+
+    // Aggregate today's food into daily summary
+    const todayAgg = {};
+    for (const row of todayFood) {
+      for (const [k, v] of Object.entries(strip$(row))) {
+        if (k === 'date' || k === 'import_id' || k === 'food_name' || k === 'meal' || k === 'quantity' || k === 'note') continue;
+        const n = parseFloat(v);
+        if (Number.isFinite(n)) todayAgg[k] = (todayAgg[k] || 0) + n;
+      }
+    }
+    todayAgg.date = todayStr;
+
+    return res.json({
+      data: dedupedRows,
+      imports: imports.map(i => ({ id: i.$id, ...strip$(i) })),
+      todayFood: Object.keys(todayAgg).length > 1 ? todayAgg : null,
+      prefs: {
+        hidden_health_types: profile?.hidden_health_types || [],
+        health_stat_order: profile?.health_stat_order || [],
+      },
+    });
+  }
+
   // ── GET /api/health ─────────────────────────────────────────────────────
   // Normalise end-date so "2026-04-06" becomes "2026-04-06T23:59:59.999Z"
   // (ISO timestamps like "2026-04-06T12:00:00Z" > "2026-04-06" in string order,
@@ -978,17 +1047,20 @@ async function handleHealthImport({ db, storage, userId, body, req, res, log }) 
 
 /* ── MacroFactor Import ─────────────────────────────────────────────────── */
 async function handleMacroImport({ db, storage, userId, body, req, res, log }) {
-  // In Appwrite version, file is uploaded to Storage first.
-  // body should contain { fileId, filename, bucketId }
-  const { fileId, filename: bodyFilename, bucketId } = body;
-  if (!fileId) return res.json({ error: 'no file (fileId required)' }, 400);
+  // Support inline base64 file (faster path, no Storage round-trip) or Storage fileId
+  const { fileId, fileBase64, filename: bodyFilename, bucketId } = body;
+  if (!fileId && !fileBase64) return res.json({ error: 'no file (fileId or fileBase64 required)' }, 400);
 
   const BUCKET_ID = bucketId || 'uploads';
   let fileBuffer;
-  try {
-    fileBuffer = await storage.getFileDownload(BUCKET_ID, fileId);
-  } catch (e) {
-    return res.json({ error: 'could not read uploaded file' }, 400);
+  if (fileBase64) {
+    fileBuffer = Buffer.from(fileBase64, 'base64');
+  } else {
+    try {
+      fileBuffer = await storage.getFileDownload(BUCKET_ID, fileId);
+    } catch (e) {
+      return res.json({ error: 'could not read uploaded file' }, 400);
+    }
   }
 
   const originalFilename = bodyFilename || 'import';
@@ -1122,25 +1194,12 @@ async function handleMacroImport({ db, storage, userId, body, req, res, log }) {
 
       if (foodCol) {
         isFoodLogFile = true;
-        // Preserve notes, wipe existing, re-insert
-        const existingNotes = await db.find('food_log_entries', [
-          Query.equal('user_id', userId), Query.isNotNull('note'),
-        ], 5000);
-        const noteMap = new Map();
-        for (const n of existingNotes) {
-          const key = `${n.date}|${(n.meal || '').trim().toLowerCase()}|${(n.food_name || '').trim().toLowerCase()}`;
-          noteMap.set(key, n.note);
-        }
-        await db.removeMany('food_log_entries', [Query.equal('user_id', userId)]);
-        await db.removeMany('health_imports', [Query.equal('user_id', userId), Query.equal('source', 'foodlog')]);
-
+        // Build new entries first to determine affected date range
         const foodEntries = parsedRowsForFoodLog.map(row => {
           const datePart = dateCol ? row[dateCol] : (row.Date || row.date);
           const dateStr = normDate(datePart);
           const foodName = String(row[foodCol] || '').trim();
           if (!foodName || !dateStr) return null;
-          // Restore note if one existed
-          const noteKey = `${dateStr}|${(mealCol ? String(row[mealCol] || '') : '').trim().toLowerCase()}|${foodName.toLowerCase()}`;
           return {
             user_id: userId, import_id: null, date: dateStr,
             meal: mealCol ? String(row[mealCol] || '').trim() : timeCol ? String(row[timeCol] || '').trim() : '',
@@ -1149,9 +1208,46 @@ async function handleMacroImport({ db, storage, userId, body, req, res, log }) {
             protein_g: proteinCol ? numOrNull(row[proteinCol]) : null,
             carbs_g: carbsCol ? numOrNull(row[carbsCol]) : null,
             fat_g: fatCol ? numOrNull(row[fatCol]) : null,
-            note: noteMap.get(noteKey) || null,
+            note: null,
           };
         }).filter(Boolean);
+
+        // Determine the date range covered by the upload
+        const uploadDates = new Set(foodEntries.map(e => e.date));
+        const sortedDates = [...uploadDates].sort();
+        const minDate = sortedDates[0];
+        const maxDate = sortedDates[sortedDates.length - 1];
+
+        // Only wipe entries within the uploaded date range; preserve all others
+        if (minDate && maxDate) {
+          // Fetch existing entries in the date range to preserve notes
+          const existingInRange = await db.find('food_log_entries', [
+            Query.equal('user_id', userId),
+            Query.greaterThanEqual('date', minDate),
+            Query.lessThanEqual('date', maxDate),
+          ], 5000);
+
+          // Build note map from existing entries in range
+          const noteMap = new Map();
+          for (const n of existingInRange) {
+            if (!n.note) continue;
+            const key = `${n.date}|${(n.meal || '').trim().toLowerCase()}|${(n.food_name || '').trim().toLowerCase()}`;
+            noteMap.set(key, n.note);
+          }
+
+          // Restore notes onto new entries
+          for (const entry of foodEntries) {
+            const noteKey = `${entry.date}|${(entry.meal || '').trim().toLowerCase()}|${entry.food_name.toLowerCase()}`;
+            entry.note = noteMap.get(noteKey) || null;
+          }
+
+          // Delete only entries within the uploaded date range
+          await db.removeMany('food_log_entries', [
+            Query.equal('user_id', userId),
+            Query.greaterThanEqual('date', minDate),
+            Query.lessThanEqual('date', maxDate),
+          ]);
+        }
 
         if (foodEntries.length > 0) {
           const foodImportDoc = await db.create('health_imports', {
@@ -1190,8 +1286,8 @@ async function handleMacroImport({ db, storage, userId, body, req, res, log }) {
   } catch (err) {
     return res.json({ error: 'failed to import', detail: err.message }, 500);
   } finally {
-    // Clean up the uploaded file from Storage
-    try { await storage.deleteFile(BUCKET_ID, fileId); } catch (_) {}
+    // Clean up the uploaded file from Storage (only if we used Storage)
+    if (fileId) { try { await storage.deleteFile(BUCKET_ID, fileId); } catch (_) {} }
   }
 }
 

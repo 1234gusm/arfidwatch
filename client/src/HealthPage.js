@@ -33,6 +33,29 @@ function HealthPage({ token }) {
   const [endDate, setEndDate] = useState(formatDate(new Date()));
   const [overviewPeriod, setOverviewPeriod] = useState(7);
 
+  // Single batched dashboard fetch — replaces 4 separate network calls
+  const fetchDashboard = async (start, end) => {
+    try {
+      const params = new URLSearchParams();
+      if (start) params.set('start', start);
+      if (end) params.set('end', end);
+      params.set('today', formatDate(new Date()));
+      const qs = `?${params}`;
+      const res = await authFetch(`${API_BASE}/api/health/dashboard${qs}`, {
+        credentials: 'include',
+      });
+      const json = await res.json();
+      setData(json.data || []);
+      setImports(json.imports || []);
+      setTodayFood(json.todayFood || null);
+      if (json.prefs) {
+        setHiddenTypes(new Set(Array.isArray(json.prefs.hidden_health_types) ? json.prefs.hidden_health_types : []));
+        setStatOrder(Array.isArray(json.prefs.health_stat_order) ? json.prefs.health_stat_order : []);
+      }
+    } catch (err) { console.error('fetchDashboard error:', err); setData([]); }
+  };
+
+  // Legacy fetchers (used after individual mutations like import/delete)
   const fetchData = async (start, end) => {
     try {
       const params = new URLSearchParams();
@@ -86,30 +109,11 @@ function HealthPage({ token }) {
     }
   };
 
+  // All hooks must be called at top level before any conditional returns
   useEffect(() => {
-    if (!token) return;
-    let active = true;
-
-    const loadDashboardPrefs = async () => {
-      try {
-        const res = await authFetch(`${API_BASE}/api/profile`, {
-          credentials: 'include',
-        });
-        if (!res.ok) return;
-        const d = await res.json();
-        if (!active) return;
-        setHiddenTypes(new Set(Array.isArray(d.hidden_health_types) ? d.hidden_health_types : []));
-        setStatOrder(Array.isArray(d.health_stat_order) ? d.health_stat_order : []);
-      } catch (_) {
-        if (!active) return;
-        setHiddenTypes(new Set());
-        setStatOrder([]);
-      }
-    };
-
-    loadDashboardPrefs();
-    return () => { active = false; };
-  }, [token]);
+    if (token) { fetchDashboard(startDate, endDate); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, startDate, endDate]);
 
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
 
@@ -778,19 +782,12 @@ function HealthPage({ token }) {
     statsMap[t] = s.length ? groupStats(s) : null;
   });
 
-  // All hooks must be called at top level before any conditional returns
-  useEffect(() => {
-    if (token) { fetchData(startDate, endDate); fetchImports(); fetchTodayFood(); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, startDate, endDate]);
-
   // Early return for unauthenticated users (after all hooks)
   if (!token) {
     return <div style={{padding: '20px', textAlign:'center'}}>Please log in</div>;
   }
 
   // ── Today's nutrition summary (from food_log_entries) ─────────────────
-  const todayKey = formatDate(new Date());
   const todayNutrition = (() => {
     if (!todayFood) return { calories: null, protein: null, carbs: null, fat: null };
     const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
@@ -952,7 +949,7 @@ function HealthPage({ token }) {
               >{l}</button>
             ))}
           </div>
-          <div className="hp-overview-period-label">{overviewCutoffKey} – {todayKey}</div>
+          <div className="hp-overview-period-label">{overviewCutoffKey} – {yesterdayKey}</div>
           <div className="hp-overview-macros">
             {overviewData.kcal !== null && (
               <div className="hp-macro-chip">

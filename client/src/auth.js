@@ -38,11 +38,19 @@ export async function authFetch(url, opts = {}) {
 
   if (opts.body != null) {
     if (typeof FormData !== 'undefined' && opts.body instanceof FormData) {
-      // File upload: push to Appwrite Storage first, then tell the function
+      // File upload: for files ≤ 5 MB, send as base64 inline to skip Storage round-trip.
+      // Larger files still use Appwrite Storage as a staging area.
       const file = opts.body.get('file');
       if (file) {
-        const uploaded = await storage.createFile(UPLOAD_BUCKET, ID.unique(), file);
-        bodyStr = JSON.stringify({ fileId: uploaded.$id, filename: file.name, bucketId: UPLOAD_BUCKET });
+        const MAX_INLINE_SIZE = 5 * 1024 * 1024; // 5 MB
+        if (file.size <= MAX_INLINE_SIZE) {
+          const buf = await file.arrayBuffer();
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          bodyStr = JSON.stringify({ fileBase64: b64, filename: file.name });
+        } else {
+          const uploaded = await storage.createFile(UPLOAD_BUCKET, ID.unique(), file);
+          bodyStr = JSON.stringify({ fileId: uploaded.$id, filename: file.name, bucketId: UPLOAD_BUCKET });
+        }
       }
     } else if (typeof opts.body === 'string') {
       bodyStr = opts.body;

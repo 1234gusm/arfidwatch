@@ -70,16 +70,6 @@ function VitalsPage({ token }) {
   const [expanded, setExpanded]     = useState({});    // per-graph expand state
   const [expandedCard, setExpandedCard] = useState(null); // per-stat-card expand
 
-  // Primary vitals type keys (kept small to stay under Appwrite's 100-value query limit)
-  const VITALS_TYPE_KEYS = useMemo(() => {
-    const keys = new Set();
-    VITALS_METRICS.forEach(m => {
-      keys.add(m.key);
-      (m.altKeys || []).forEach(k => keys.add(k));
-    });
-    return [...keys];
-  }, []);
-
   useEffect(() => {
     if (!token) return;
     let active = true;
@@ -90,8 +80,8 @@ function VitalsPage({ token }) {
         const startDate = rangeDays ? fmtDate((() => { const d = new Date(); d.setDate(d.getDate() - rangeDays); return d; })()) : '';
         const params = new URLSearchParams();
         if (startDate) params.set('start', startDate);
-        // Send only primary + altKeys (well under 100); server also matches macrofactor_/apple_ prefixes
-        params.set('types', VITALS_TYPE_KEYS.join(','));
+        // Fetch all health data (no types filter) — matches Render server behavior.
+        // Client-side filtering handles type matching with altKeys + canonical().
         const res = await authFetch(`${API_BASE}/api/health?${params}`);
         if (!res.ok) { console.error('Vitals fetch failed:', res.status, await res.text()); setError(`Server returned ${res.status}`); setData([]); return; }
         const json = await res.json();
@@ -102,7 +92,7 @@ function VitalsPage({ token }) {
     };
     load();
     return () => { active = false; };
-  }, [token, rangeDays, VITALS_TYPE_KEYS]);
+  }, [token, rangeDays]);
 
   const metrics = useMemo(() => {
     // Split data: auto health → daily averages, iHealth → individual readings
