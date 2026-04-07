@@ -8,7 +8,7 @@ export async function handleFoodLog({ req, res, db, userId, body, method, path }
     const queries = [Query.equal('user_id', userId)];
     if (q.start) queries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
     if (q.end)   queries.push(Query.lessThanEqual('date', q.end.slice(0, 10)));
-    const rows = await db.find('food_log_entries', queries, 50000);
+    const rows = await db.find('food_log_entries', queries, 5000);
 
     // Aggregate by date in code (Appwrite has no GROUP BY)
     const byDate = {};
@@ -28,13 +28,13 @@ export async function handleFoodLog({ req, res, db, userId, body, method, path }
     const queries = [Query.equal('user_id', userId), Query.orderDesc('date')];
     if (q.start) queries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
     if (q.end)   queries.push(Query.lessThanEqual('date', q.end.slice(0, 10)));
-    const rows = await db.find('food_log_entries', queries, 50000);
+    const rows = await db.find('food_log_entries', queries, 5000);
     return res.json({ data: rows.map(d => ({ id: d.$id, ...strip$(d) })) });
   }
 
   // GET /api/food-log/status
   if (method === 'GET' && path === '/api/food-log/status') {
-    const rows = await db.find('food_log_entries', [Query.equal('user_id', userId), Query.select(['date']), Query.orderAsc('date')], 50000);
+    const rows = await db.find('food_log_entries', [Query.equal('user_id', userId), Query.select(['date']), Query.orderAsc('date')], 5000);
     return res.json({
       count: rows.length,
       earliest: rows.length ? rows[0].date : null,

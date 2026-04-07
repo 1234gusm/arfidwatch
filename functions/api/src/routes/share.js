@@ -19,8 +19,10 @@ function dateRangeForPeriod(period, clientToday) {
 
 function authenticateShareToken(req) {
   const auth = req.headers?.authorization;
-  if (!auth) return null;
-  const token = auth.split(' ')[1];
+  const q = req.query || {};
+  const rawToken = (auth && auth.startsWith('Bearer ')) ? auth.split(' ')[1] : q.share_jwt;
+  if (!rawToken) return null;
+  const token = rawToken;
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     if (payload.type !== 'share') return null;
@@ -30,7 +32,7 @@ function authenticateShareToken(req) {
   }
 }
 
-export async function handleShare({ req, res, db, body, method, path }) {
+export async function handleShare({ req, res, db, body, method, path, log }) {
   const q = req.query || {};
 
   // GET /api/share/:shareToken — public metadata
@@ -94,7 +96,7 @@ export async function handleShare({ req, res, db, body, method, path }) {
       Query.equal('user_id', userId),
       Query.greaterThanEqual('timestamp', start.toISOString()),
       Query.lessThanEqual('timestamp', end.toISOString()),
-    ], 50000);
+    ], 5000);
 
     const journalEntries = profile?.share_journal
       ? await db.find('journal_entries', [
@@ -102,7 +104,7 @@ export async function handleShare({ req, res, db, body, method, path }) {
           Query.greaterThanEqual('date', startDate),
           Query.lessThanEqual('date', endDate),
           Query.orderAsc('date'),
-        ], 50000)
+        ], 5000)
       : [];
 
     const foodLog = profile?.share_food_log
@@ -111,7 +113,7 @@ export async function handleShare({ req, res, db, body, method, path }) {
           Query.greaterThanEqual('date', startDate),
           Query.lessThanEqual('date', endDate),
           Query.orderAsc('date'),
-        ], 50000)
+        ], 5000)
       : [];
 
     const medications = profile?.share_medications
@@ -120,7 +122,7 @@ export async function handleShare({ req, res, db, body, method, path }) {
           Query.greaterThanEqual('date', startDate),
           Query.lessThanEqual('date', endDate),
           Query.orderAsc('date'),
-        ], 50000)
+        ], 5000)
       : [];
 
     return res.json({

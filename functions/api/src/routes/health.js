@@ -384,7 +384,7 @@ async function filterDuplicateStats(db, userId, inputRecords) {
     Query.equal('type', typeArr),
     Query.greaterThanEqual('timestamp', queryMinTs),
     Query.lessThanEqual('timestamp', queryMaxTs),
-  ], 50000);
+  ], 5000);
 
   const existingKeyCounts = new Map();
   for (const row of existing) existingKeyCounts.set(statKey(row), (existingKeyCounts.get(statKey(row)) || 0) + 1);
@@ -543,6 +543,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       // If > 100, skip server filter and let client filter (rare edge case)
     }
     const rows = await db.find('health_data', queries, 5000);
+    log(`health GET: userId=${userId} rows=${rows.length} start=${q.start||'ALL'} end=${q.end||'ALL'} types=${q.types ? 'filtered' : 'all'}`);
 
     // Merge supplement entries from medication log
     try {
@@ -570,9 +571,9 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       'sleep_analysis_total_sleep_hr',
     ];
     const rows = await db.find('health_data', [
-      Query.equal('user_id', userId), Query.equal('type', HERO_TYPES), Query.orderAsc('timestamp'),
+      Query.equal('user_id', userId), Query.equal('type', HERO_TYPES), Query.orderDesc('timestamp'),
       Query.select(['type', 'value', 'timestamp']),
-    ], 50000);
+    ], 5000);
     return res.json({ data: rows.map(r => ({ id: r.$id, ...strip$(r) })) });
   }
 
@@ -612,7 +613,7 @@ export async function handleHealth({ req, res, db, storage, userId: headerUserId
       Query.lessThanEqual('timestamp', endIso),
       Query.equal('type', ALL_SLEEP_TYPES),
       Query.select(['type', 'value', 'timestamp']),
-    ], 50000);
+    ], 5000);
 
     const byDay = new Map(), byDayExtra = new Map();
     for (const row of rows) {
@@ -1053,7 +1054,7 @@ async function handleMacroImport({ db, storage, userId, body, req, res, log }) {
         // Preserve notes, wipe existing, re-insert
         const existingNotes = await db.find('food_log_entries', [
           Query.equal('user_id', userId), Query.isNotNull('note'),
-        ], 50000);
+        ], 5000);
         const noteMap = new Map();
         for (const n of existingNotes) {
           const key = `${n.date}|${(n.meal || '').trim().toLowerCase()}|${(n.food_name || '').trim().toLowerCase()}`;

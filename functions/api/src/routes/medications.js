@@ -95,7 +95,7 @@ export async function handleMedications({ req, res, db, userId, body, method, pa
     const queries = [Query.equal('user_id', userId), Query.orderDesc('taken_at')];
     if (q.start) queries.push(Query.greaterThanEqual('date', q.start.slice(0, 10)));
     if (q.end)   queries.push(Query.lessThanEqual('date', q.end.slice(0, 10)));
-    const rows = await db.find('medication_entries', queries, 50000);
+    const rows = await db.find('medication_entries', queries, 5000);
     return res.json({
       data: rows.map(d => ({ id: d.$id, ...strip$(d), medication_name: canonicalMedicationName(d.medication_name) })),
     });
@@ -103,7 +103,7 @@ export async function handleMedications({ req, res, db, userId, body, method, pa
 
   // GET /api/medications/status
   if (method === 'GET' && path === '/api/medications/status') {
-    const rows = await db.find('medication_entries', [Query.equal('user_id', userId), Query.select(['date']), Query.orderAsc('date')], 50000);
+    const rows = await db.find('medication_entries', [Query.equal('user_id', userId), Query.select(['date']), Query.orderAsc('date')], 5000);
     return res.json({
       count: rows.length,
       earliest: rows.length ? rows[0].date : null,
@@ -114,7 +114,7 @@ export async function handleMedications({ req, res, db, userId, body, method, pa
   // GET /api/medications/names
   if (method === 'GET' && path === '/api/medications/names') {
     const search = String(q.q || '').trim().toLowerCase();
-    const userNames = await db.find('medication_entries', [Query.equal('user_id', userId), Query.select(['medication_name'])], 50000);
+    const userNames = await db.find('medication_entries', [Query.equal('user_id', userId), Query.select(['medication_name'])], 5000);
     const merged = [...medicationAutocompleteSet, ...userNames.map(r => canonicalMedicationName(r.medication_name)), ...userNames.map(r => r.medication_name)]
       .map(x => String(x || '').trim()).filter(Boolean);
     const uniq = [...new Set(merged.map(x => x.toLowerCase()))].map(lc => merged.find(v => v.toLowerCase() === lc));

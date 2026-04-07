@@ -14,7 +14,7 @@ export async function handleJournal({ req, res, db, userId, body, method, path }
     const queries = [Query.equal('user_id', userId), Query.orderDesc('$createdAt')];
     if (q.start) queries.push(Query.greaterThanEqual('date', q.start));
     if (q.end)   queries.push(Query.lessThanEqual('date', q.end));
-    const entries = await db.find('journal_entries', queries, 50000);
+    const entries = await db.find('journal_entries', queries, 5000);
     return res.json({ entries: entries.map(d => ({ id: d.$id, ...strip$(d) })) });
   }
 
