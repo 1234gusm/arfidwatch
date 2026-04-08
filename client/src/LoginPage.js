@@ -73,7 +73,7 @@ function LoginPage({ setToken }) {
         </div>
         <button type="submit" className="auth-submit">Log In</button>
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Link to="/forgot-password" style={{ fontSize: '0.84rem', color: '#5a7a99' }}>Forgot password?</Link>
+          <Link to="/forgot-password" style={{ fontSize: '0.84rem', color: 'var(--secondary)' }}>Forgot password?</Link>
         </div>
         </form>
       </div>

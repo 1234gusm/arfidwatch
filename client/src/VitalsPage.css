@@ -2,7 +2,8 @@
 .vp-page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 24px 16px 60px;
+  padding: 24px 16px;
+  padding-bottom: max(60px, env(safe-area-inset-bottom));
   color: #e2e8f0;
 }
 
@@ -238,3 +239,51 @@
   .vp-cards { grid-template-columns: 1fr 1fr; }
   .vp-graph-head { flex-direction: column; }
 }
+
+/* ── Light-theme overrides ─────────────────────────────────────────────── */
+[data-theme="light"] .vp-page { color: var(--text-dark); }
+[data-theme="light"] .vp-title { color: var(--text-light); }
+[data-theme="light"] .vp-subtitle { color: #94a3b8; }
+[data-theme="light"] .vp-range-btn {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
+  color: #475569;
+}
+[data-theme="light"] .vp-range-btn:hover { background: rgba(139,92,246,0.06); color: #7c3aed; }
+[data-theme="light"] .vp-range-btn--active {
+  background: rgba(139,92,246,0.1);
+  color: #7c3aed;
+  border-color: rgba(139,92,246,0.3);
+}
+[data-theme="light"] .vp-loading,
+[data-theme="light"] .vp-empty { color: #94a3b8; }
+[data-theme="light"] .vp-source-legend {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.06);
+  color: #64748b;
+}
+[data-theme="light"] .vp-graph-tile {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .vp-graph-tile:hover:not(.vp-graph-tile--expanded) {
+  border-color: rgba(139,92,246,0.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+[data-theme="light"] .vp-graph-tile--expanded { border-color: rgba(139,92,246,0.2); }
+[data-theme="light"] .vp-graph-title { color: var(--text-dark); }
+[data-theme="light"] .vp-graph-unit { color: #94a3b8; }
+[data-theme="light"] .vp-graph-legend { color: #64748b; }
+[data-theme="light"] .vp-stat-card {
+  background: rgba(255,255,255,0.7);
+  border-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .vp-stat-card:hover:not(.vp-stat-card--expanded) {
+  border-color: rgba(139,92,246,0.2);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .vp-stat-card--expanded { border-color: rgba(139,92,246,0.2); }
+[data-theme="light"] .vp-stat-label { color: #64748b; }
+[data-theme="light"] .vp-stat-latest { color: var(--text-dark); }
+[data-theme="light"] .vp-stat-latest small { color: #94a3b8; }
+[data-theme="light"] .vp-stat-range { color: #94a3b8; }

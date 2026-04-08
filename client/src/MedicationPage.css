@@ -466,3 +466,55 @@
   transform: scale(1.025);
   transition: transform 0.1s, border-color 0.1s;
 }
+
+/* ── Light theme ─────────────────────────────────────────────────────────── */
+[data-theme="light"] .med-title { color: var(--text-light); }
+[data-theme="light"] .med-subtitle { color: #64748b; }
+[data-theme="light"] .med-range-btn {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.1);
+  color: #64748b;
+}
+[data-theme="light"] .med-range-btn.active { background: rgba(124,58,237,0.1); color: #7c3aed; border-color: rgba(124,58,237,0.3); }
+[data-theme="light"] .med-range-btn:hover { background: rgba(124,58,237,0.06); color: #6d28d9; }
+[data-theme="light"] .med-card {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+[data-theme="light"] .med-quick-sub { color: #64748b; }
+[data-theme="light"] .med-quick-item {
+  border-color: rgba(0,0,0,0.1);
+  background: rgba(0,0,0,0.02);
+}
+[data-theme="light"] .med-quick-edit-input {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.1);
+  color: var(--text-dark);
+}
+[data-theme="light"] .med-input,
+[data-theme="light"] .med-notes {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.1);
+  color: var(--text-dark);
+}
+[data-theme="light"] .med-error { color: #dc2626; }
+[data-theme="light"] .med-loading,
+[data-theme="light"] .med-empty-state { color: #64748b; }
+[data-theme="light"] .med-day {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+[data-theme="light"] .med-day-title {
+  background: rgba(0,0,0,0.03);
+  color: var(--text-light);
+}
+[data-theme="light"] .med-item { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .med-name { color: var(--text-light); }
+[data-theme="light"] .med-dose { color: #7c3aed; }
+[data-theme="light"] .med-meta { color: #64748b; }
+[data-theme="light"] .med-name-hint { color: #64748b; }
+[data-theme="light"] .med-quick-drag-handle { border-color: rgba(0,0,0,0.1); background: rgba(124,58,237,0.06); color: #7c3aed; }
+[data-theme="light"] .med-quick-del { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); color: #dc2626; }
+[data-theme="light"] .med-del { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); color: #dc2626; }

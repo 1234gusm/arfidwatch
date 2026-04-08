@@ -20,6 +20,27 @@ const RECURRENCE_OPTIONS = [
 
 const RECURRENCE_LABELS = { daily: '🔁 Daily', weekdays: '🔁 Weekdays', weekly: '🔁 Weekly', monthly: '🔁 Monthly' };
 
+const fmt12h = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hr = parseInt(h, 10);
+  return `${hr % 12 || 12}:${m}${hr >= 12 ? 'p' : 'a'}`;
+};
+
+const relTime = (isoStr) => {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 const SMART_LISTS = [
   { id: '__inbox',     label: 'Inbox',     icon: '📥' },
   { id: '__today',     label: 'Today',     icon: '📅' },
@@ -72,9 +93,11 @@ function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const inputRef = useRef(null);
   const editInputRef = useRef(null);
   const subtaskInputRef = useRef(null);
+  const addFormRef = useRef(null);
 
   /* ── Fetch data ── */
   const fetchTasks = useCallback(async () => {
@@ -97,6 +120,35 @@ function TasksPage() {
     Promise.all([fetchTasks(), fetchLists()]).finally(() => setLoading(false));
   }, [fetchTasks, fetchLists]);
 
+  /* ── Keyboard shortcut: 'n' to add task ── */
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'n' && !showAddForm && activeList !== '__completed') {
+        e.preventDefault();
+        setShowAddForm(true);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+      if (e.key === 'Escape' && showAddForm) {
+        setShowAddForm(false); setNewTitle('');
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [showAddForm, activeList]);
+
+  /* ── Close add form on outside click ── */
+  useEffect(() => {
+    if (!showAddForm) return;
+    const handler = (e) => {
+      if (addFormRef.current && !addFormRef.current.contains(e.target)) {
+        setShowAddForm(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAddForm]);
+
   /* ── Build parent→children map ── */
   const childrenMap = useMemo(() => {
     const m = {};
@@ -115,21 +167,28 @@ function TasksPage() {
   const filtered = useMemo(() => {
     const td = todayStr();
     const topLevel = tasks.filter(t => !t.parent_id);
+    let result;
     switch (activeList) {
       case '__inbox':
-        return topLevel.filter(t => t.list_name === 'Inbox' && !t.completed);
+        result = topLevel.filter(t => t.list_name === 'Inbox' && !t.completed); break;
       case '__today':
-        return topLevel.filter(t => t.due_date === td && !t.completed);
+        result = topLevel.filter(t => t.due_date && t.due_date <= td && !t.completed)
+          .sort((a, b) => a.due_date.localeCompare(b.due_date)); break;
       case '__upcoming':
-        return topLevel.filter(t => t.due_date && t.due_date >= td && !t.completed)
-          .sort((a, b) => a.due_date.localeCompare(b.due_date));
+        result = topLevel.filter(t => t.due_date && t.due_date >= td && !t.completed)
+          .sort((a, b) => a.due_date.localeCompare(b.due_date)); break;
       case '__completed':
-        return topLevel.filter(t => t.completed)
-          .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
+        result = topLevel.filter(t => t.completed)
+          .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || '')); break;
       default:
-        return topLevel.filter(t => t.list_name === activeList && !t.completed);
+        result = topLevel.filter(t => t.list_name === activeList && !t.completed);
     }
-  }, [tasks, activeList]);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(t => t.title.toLowerCase().includes(q) || (t.notes && t.notes.toLowerCase().includes(q)));
+    }
+    return result;
+  }, [tasks, activeList, searchQuery]);
 
   /* ── Counts for sidebar badges ── */
   const counts = useMemo(() => {
@@ -137,7 +196,7 @@ function TasksPage() {
     const top = tasks.filter(t => !t.parent_id);
     return {
       __inbox: top.filter(t => t.list_name === 'Inbox' && !t.completed).length,
-      __today: top.filter(t => t.due_date === td && !t.completed).length,
+      __today: top.filter(t => t.due_date && t.due_date <= td && !t.completed).length,
       __upcoming: top.filter(t => t.due_date && t.due_date >= td && !t.completed).length,
       __completed: top.filter(t => t.completed).length,
     };
@@ -338,6 +397,17 @@ function TasksPage() {
     } catch { fetchTasks(); }
   };
 
+  const handleClearCompleted = async () => {
+    const ids = tasks.filter(t => t.completed && !t.parent_id).map(t => t.id);
+    if (!ids.length) return;
+    setTasks(prev => prev.filter(t => !t.completed));
+    try {
+      await Promise.all(ids.map(id =>
+        authFetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE', credentials: 'include' })
+      ));
+    } catch { fetchTasks(); }
+  };
+
   /* ── Render a single task item ── */
   const renderTask = (task, isSubtask = false) => {
     const children = childrenMap[task.id] || [];
@@ -346,7 +416,7 @@ function TasksPage() {
     return (
       <div key={task.id}>
         <div
-          className={`tasks-item${task.completed ? ' tasks-item--done' : ''}${editingId === task.id ? ' tasks-item--editing' : ''}${isSubtask ? ' tasks-item--subtask' : ''}${dragId === task.id ? ' tasks-item--dragging' : ''}${dragOverId === task.id ? ' tasks-item--dragover' : ''}`}
+          className={`tasks-item${task.completed ? ' tasks-item--done' : ''}${editingId === task.id ? ' tasks-item--editing' : ''}${isSubtask ? ' tasks-item--subtask' : ''}${task.priority > 0 ? ` tasks-item--p${task.priority}` : ''}${isOverdue(task.due_date) && !task.completed ? ' tasks-item--overdue' : ''}${dragId === task.id ? ' tasks-item--dragging' : ''}${dragOverId === task.id ? ' tasks-item--dragover' : ''}`}
           draggable={!isSubtask && activeList !== '__completed'}
           onDragStart={e => handleDragStart(e, task.id)}
           onDragOver={e => handleDragOver(e, task.id)}
@@ -420,12 +490,12 @@ function TasksPage() {
                 <div className="tasks-item-chips">
                   {task.due_date && (
                     <span className={`tasks-chip tasks-chip--date${isOverdue(task.due_date) && !task.completed ? ' tasks-chip--overdue' : ''}`}>
-                      {fmt(task.due_date)}{task.due_time ? ` ${task.due_time}` : ''}
+                      {fmt(task.due_date)}{task.due_time ? ` ${fmt12h(task.due_time)}` : ''}
                     </span>
                   )}
                   {task.priority > 0 && (
                     <span className="tasks-chip" style={{ color: PRIORITY_META[task.priority].color }}>
-                      {'!'.repeat(task.priority)}
+                      ⚑ {PRIORITY_META[task.priority].label}
                     </span>
                   )}
                   {task.recurrence && (
@@ -437,8 +507,16 @@ function TasksPage() {
                   {children.length > 0 && (
                     <span className="tasks-chip tasks-chip--subtasks">{completedChildren}/{children.length} subtasks</span>
                   )}
+                  {task.completed && task.completed_at && (
+                    <span className="tasks-chip tasks-chip--completed-at">✓ {relTime(task.completed_at)}</span>
+                  )}
                 </div>
                 {task.notes && <span className="tasks-item-notes">{task.notes}</span>}
+                {children.length > 0 && (
+                  <div className="tasks-progress">
+                    <div className="tasks-progress-fill" style={{ width: `${(completedChildren / children.length) * 100}%` }} />
+                  </div>
+                )}
               </div>
               <div className="tasks-item-actions">
                 {!isSubtask && !task.completed && (
@@ -487,7 +565,17 @@ function TasksPage() {
 
   const activeLabel = SMART_LISTS.find(s => s.id === activeList)?.label || activeList;
 
-  if (loading) return <div className="tasks-page"><p style={{ padding: 24, color: '#94a3b8' }}>Loading…</p></div>;
+  if (loading) return (
+    <div className="tasks-page">
+      <div className="tasks-sidebar">
+        {[...Array(5)].map((_, i) => <div key={i} className="tasks-skeleton-item" />)}
+      </div>
+      <div className="tasks-main">
+        <div className="tasks-skeleton-header" />
+        {[...Array(6)].map((_, i) => <div key={i} className="tasks-skeleton-task" />)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="tasks-page">
@@ -541,6 +629,7 @@ function TasksPage() {
         </div>
       </div>
       {sidebarOpen && <div className="tasks-overlay" onClick={() => setSidebarOpen(false)} />}
+      {editingId && <div className="tasks-edit-overlay" onClick={() => { handleSaveEdit(); }} />}
 
       {/* ── Main area ── */}
       <div className="tasks-main">
@@ -548,6 +637,15 @@ function TasksPage() {
           <button className="tasks-menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
           <h2 className="tasks-header-title">{activeLabel}</h2>
           <span className="tasks-header-count">{filtered.length}</span>
+          <div className="tasks-search-wrap">
+            <input
+              className="tasks-search"
+              placeholder="Search…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && <button className="tasks-search-clear" onClick={() => setSearchQuery('')}>✕</button>}
+          </div>
         </div>
 
         {/* ── Add task ── */}
@@ -558,7 +656,7 @@ function TasksPage() {
                 <span className="tasks-add-plus">+</span> Add a task
               </button>
             ) : (
-              <form className="tasks-add-form" onSubmit={handleAdd}>
+              <form className="tasks-add-form" onSubmit={handleAdd} ref={addFormRef}>
                 <input
                   ref={inputRef}
                   className="tasks-add-input"
@@ -597,13 +695,43 @@ function TasksPage() {
         <div className="tasks-list">
           {filtered.length === 0 && (
             <div className="tasks-empty">
-              <span className="tasks-empty-icon">{activeList === '__completed' ? '🎉' : '📭'}</span>
+              <span className="tasks-empty-icon">
+                {searchQuery ? '🔍' :
+                 activeList === '__completed' ? '🎉' :
+                 activeList === '__today' ? '☀️' :
+                 activeList === '__upcoming' ? '📅' :
+                 activeList === '__inbox' ? '✨' : '📋'}
+              </span>
               <span className="tasks-empty-text">
-                {activeList === '__completed' ? 'No completed tasks yet' : 'All clear — nothing here'}
+                {searchQuery ? 'No tasks match your search' :
+                 activeList === '__completed' ? 'No completed tasks yet' :
+                 activeList === '__today' ? 'No tasks due today — enjoy your free time!' :
+                 activeList === '__upcoming' ? 'No upcoming tasks with due dates' :
+                 activeList === '__inbox' ? 'Your inbox is empty — press N to add a task' :
+                 `No tasks in ${activeLabel}`}
               </span>
             </div>
           )}
-          {filtered.map(task => renderTask(task))}
+          {activeList === '__completed' && filtered.length > 0 && (
+            <button className="tasks-clear-completed" onClick={handleClearCompleted}>🗑️ Clear all completed</button>
+          )}
+          {activeList === '__upcoming' ? (
+            Object.entries(filtered.reduce((groups, t) => {
+              const key = t.due_date || 'No date';
+              (groups[key] = groups[key] || []).push(t);
+              return groups;
+            }, {})).map(([date, group]) => (
+              <div key={date} className="tasks-date-group">
+                <div className="tasks-date-group-header">
+                  <span className="tasks-date-group-label">{fmt(date)}</span>
+                  <span className="tasks-date-group-count">{group.length}</span>
+                </div>
+                {group.map(task => renderTask(task))}
+              </div>
+            ))
+          ) : (
+            filtered.map(task => renderTask(task))
+          )}
         </div>
       </div>
     </div>

@@ -52,7 +52,7 @@ function RegisterPage({ setToken }) {
         <div className="auth-logo"><img src={process.env.PUBLIC_URL + '/logo192.png'} alt="ArfidWatch" style={{ width: 64, height: 64, borderRadius: 12 }} /></div>
         <p className="auth-tagline">Your personal health companion</p>
         <h2>Create your account</h2>
-        <p style={{ color: '#5a7a99', fontSize: '0.87rem', textAlign: 'center', marginTop: -8, marginBottom: 18 }}>
+        <p style={{ color: 'var(--secondary)', fontSize: '0.87rem', textAlign: 'center', marginTop: -8, marginBottom: 18 }}>
           Create your account with username, email, and password.
         </p>
         {error && <div className="error-msg">{error}</div>}

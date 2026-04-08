@@ -4,6 +4,7 @@
   max-width: 860px;
   margin: 0 auto;
   padding: 20px 16px 40px;
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
   color: #e0eeff;
 }
 
@@ -739,4 +740,121 @@
   .sp-spotlight-body { flex-direction: column; align-items: flex-start; }
   .sp-spotlight-ring-col { flex-direction: row; min-width: unset; gap: 10px; align-items: center; }
 }
+
+/* ── Light theme ─────────────────────────────────────────────────────────── */
+[data-theme="light"] .sp-page { color: var(--text-dark); }
+[data-theme="light"] .sp-title { color: var(--text-light); }
+[data-theme="light"] .sp-subtitle { color: #64748b; }
+[data-theme="light"] .sp-range-btn {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.1);
+  color: #64748b;
+}
+[data-theme="light"] .sp-range-btn:hover { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-range-btn--active {
+  background: #7c3aed;
+  border-color: #8b5cf6;
+  color: #fff;
+}
+[data-theme="light"] .sp-refresh-btn {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.1);
+  color: #64748b;
+}
+[data-theme="light"] .sp-refresh-btn:hover { background: rgba(0,0,0,0.06); color: var(--text-light); }
+[data-theme="light"] .sp-loading { color: #64748b; }
+[data-theme="light"] .sp-spinner { border-color: rgba(0,0,0,0.1); border-top-color: #8b5cf6; }
+[data-theme="light"] .sp-error { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); color: #dc2626; }
+[data-theme="light"] .sp-empty { color: #94a3b8; }
+[data-theme="light"] .sp-ring-inner { background: var(--bg-body); }
+[data-theme="light"] .sp-ring-num { color: var(--text-light); }
+[data-theme="light"] .sp-ring-sub { color: #94a3b8; }
+[data-theme="light"] .sp-avg-bar-label { color: #94a3b8; }
+[data-theme="light"] .sp-section-divider { border-top-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .sp-spotlight {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+[data-theme="light"] .sp-spotlight--selected { border-color: rgba(124,58,237,0.3); }
+[data-theme="light"] .sp-spotlight-badge { color: #64748b; }
+[data-theme="light"] .sp-spotlight-badge--selected { color: #7c3aed; background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.25); }
+[data-theme="light"] .sp-spotlight-date { color: var(--text-dark); }
+[data-theme="light"] .sp-spotlight-hrs { color: var(--text-light); }
+[data-theme="light"] .sp-spotlight-inbed { color: #94a3b8; }
+[data-theme="light"] .sp-spotlight-extras { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-stat-card {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .sp-stat-label { color: #94a3b8; }
+[data-theme="light"] .sp-stat-val { color: var(--text-dark); }
+[data-theme="light"] .sp-stat-small { color: #94a3b8; }
+[data-theme="light"] .sp-stat-hint { color: #94a3b8; }
+[data-theme="light"] .sp-stage-bar { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-chip {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
+  color: #475569;
+}
+[data-theme="light"] .sp-chart-section {
+  background: rgba(255,255,255,0.7);
+  border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .sp-section-title { color: #64748b; }
+[data-theme="light"] .sp-section-count { color: #94a3b8; }
+[data-theme="light"] .sp-line-btn {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
+  color: #64748b;
+}
+[data-theme="light"] .sp-line-btn--on { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-tooltip {
+  background: #fff;
+  border-color: rgba(124,58,237,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+[data-theme="light"] .sp-tooltip-date { color: var(--text-light); }
+[data-theme="light"] .sp-tooltip-row { color: #475569; }
+[data-theme="light"] .sp-tooltip-val { color: var(--text-light); }
+[data-theme="light"] .sp-night-card {
+  background: rgba(255,255,255,0.7);
+  border-color: rgba(0,0,0,0.08);
+  border-left-color: rgba(124,58,237,0.2);
+}
+[data-theme="light"] .sp-night-card:hover { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.12); }
+[data-theme="light"] .sp-night-card--open { background: rgba(255,255,255,0.95); border-left-color: #8b5cf6; }
+[data-theme="light"] .sp-night-date { color: #64748b; }
+[data-theme="light"] .sp-night-total { color: var(--text-dark); }
+[data-theme="light"] .sp-night-inbed { color: #94a3b8; }
+[data-theme="light"] .sp-score-num { color: var(--text-dark); }
+[data-theme="light"] .sp-night-chevron { color: #94a3b8; }
+[data-theme="light"] .sp-night-extras { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-extra-item small { color: #94a3b8; }
+[data-theme="light"] .sp-extra-item strong { color: #334155; }
+[data-theme="light"] .sp-collapse-btn {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
+  color: #64748b;
+}
+[data-theme="light"] .sp-collapse-btn:hover { background: rgba(0,0,0,0.06); color: var(--text-light); }
+[data-theme="light"] .sp-ring-nav-btn {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.1);
+  color: #64748b;
+}
+[data-theme="light"] .sp-ring-nav-btn:hover:not(:disabled) { background: rgba(0,0,0,0.08); color: var(--text-light); }
+[data-theme="light"] .sp-ring-nav-pos { color: #94a3b8; }
+[data-theme="light"] .sp-donut-inner { background: var(--bg-body); }
+[data-theme="light"] .sp-donut-total { color: var(--text-light); }
+[data-theme="light"] .sp-donut-sub { color: #94a3b8; }
+[data-theme="light"] .sp-sbar-name { color: #475569; }
+[data-theme="light"] .sp-sbar-pct { color: #64748b; }
+[data-theme="light"] .sp-sbar-track { background: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-sbar-time { color: #94a3b8; }
+[data-theme="light"] .sp-sgraph { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-sgraph-metrics { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .sp-sgraph-metric small { color: #94a3b8; }
+[data-theme="light"] .sp-sgraph-metric strong { color: #334155; }
+[data-theme="light"] .sp-viewing-badge { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.25); color: #7c3aed; }
 
