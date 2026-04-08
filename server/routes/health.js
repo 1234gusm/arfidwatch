@@ -668,7 +668,8 @@ router.post('/import', rawTextParser, authenticateOrIngestKey, async (req, res) 
       });
       const headers = rows.length ? Object.keys(rows[0]) : [];
       const isAutoSleep = isAutoSleepCsvHeaders(headers);
-      const isIHealth = !isAutoSleep && isIHealthCsvHeaders(headers);
+      const isHAE = !isAutoSleep && isHealthAutoExportHeaders(headers);
+      const isIHealth = !isAutoSleep && !isHAE && isIHealthCsvHeaders(headers);
       const records = [];
 
       if (isAutoSleep) {
@@ -1131,7 +1132,11 @@ const isHealthAutoExportHeaders = (headers = []) => {
     .filter(Boolean);
   const hasSourceName = normHeaders.some(h => /^source\s*name$/.test(h));
   const hasStartDate = normHeaders.some(h => /^start\s*date$/.test(h));
-  return hasSourceName || hasStartDate;
+  // Daily aggregate format: first column is "Date/Time" + recognised metric columns
+  const hasDateTime = normHeaders.some(h => /^date\/?time$/.test(h));
+  const hasMetricCols = normHeaders.some(h =>
+    /active.energy|heart.rate|step.count|blood.oxygen|walking.*running/i.test(h));
+  return hasSourceName || hasStartDate || (hasDateTime && hasMetricCols);
 };
 
 const toRecord = (userId, typeKey, val, ts, meta = {}) => {
