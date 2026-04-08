@@ -293,6 +293,29 @@ async function setup() {
       });
     }
   });
+  // Tasks table
+  await db.schema.hasTable('tasks').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('tasks', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users').notNullable();
+        table.string('title', 500).notNullable();
+        table.text('notes').nullable();
+        table.string('due_date').nullable();   // YYYY-MM-DD
+        table.string('due_time').nullable();   // HH:mm
+        table.integer('priority').notNullable().defaultTo(0); // 0=none,1=low,2=med,3=high
+        table.string('list_name', 100).notNullable().defaultTo('Inbox');
+        table.boolean('completed').notNullable().defaultTo(false);
+        table.datetime('completed_at').nullable();
+        table.integer('sort_order').notNullable().defaultTo(0);
+        table.datetime('created_at').notNullable();
+        table.datetime('updated_at').notNullable();
+      });
+    }
+  });
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_tasks_user_list ON tasks(user_id, list_name)');
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_tasks_user_due ON tasks(user_id, due_date)');
+
   } catch (e) {
     console.error('[DB] Migration/setup error (server stays up):', e.message);
   }
