@@ -52,6 +52,51 @@
   font-size: 0.9rem;
 }
 
+/* ── Source legend ── */
+.vp-source-legend {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 6px 14px;
+  margin-bottom: 12px;
+  background: rgba(30,41,59,0.5);
+  border: 1px solid rgba(139,92,246,0.12);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+.vp-source-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vp-source-line {
+  width: 22px;
+  height: 0;
+  border-top: 2px solid;
+}
+.vp-source-line--watch {
+  border-color: #ef4444;
+}
+.vp-source-line--ihealth {
+  border-top-style: dashed;
+  border-color: #f97316;
+}
+.vp-source-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: -4px;
+}
+.vp-source-dot--watch {
+  background: #ef4444;
+}
+.vp-source-dot--ihealth {
+  background: #f97316;
+  box-shadow: 0 0 0 1.5px #fff;
+}
+
 /* ── Chart tiles grid ── */
 .vp-graphs-grid {
   display: grid;
@@ -114,6 +159,13 @@
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
+}
+.vp-graph-dot--ih {
+  box-shadow: 0 0 0 1.5px #fff;
+}
+.vp-legend-src {
+  font-style: italic;
+  opacity: 0.7;
 }
 .vp-graph-mini { margin-top: 2px; }
 .vp-graph-body { margin-top: 6px; }

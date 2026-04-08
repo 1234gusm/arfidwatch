@@ -240,6 +240,22 @@ function VitalsPage({ token }) {
 
       {!loading && metrics.length > 0 && (
         <>
+          {/* ── Source legend ── */}
+          {metrics.some(m => m.hasAuto && m.hasIh) && (
+            <div className="vp-source-legend">
+              <span className="vp-source-item">
+                <span className="vp-source-line vp-source-line--watch" />
+                <span className="vp-source-dot vp-source-dot--watch" />
+                <span>Watch &middot; Daily Avg</span>
+              </span>
+              <span className="vp-source-item">
+                <span className="vp-source-line vp-source-line--ihealth" />
+                <span className="vp-source-dot vp-source-dot--ihealth" />
+                <span>iHealth &middot; Individual</span>
+              </span>
+            </div>
+          )}
+
           {/* ── Chart tiles grid ── */}
           <div className="vp-graphs-grid">
             {graphs.map(g => {
@@ -254,10 +270,18 @@ function VitalsPage({ token }) {
                     <span className="vp-graph-title">{g.title} <small className="vp-graph-unit">{g.unit}</small></span>
                     <span className="vp-graph-legend">
                       {g.legends.map((l, i) => (
-                        <span key={i} className="vp-graph-legend-item">
-                          <span className="vp-graph-dot" style={{ background: l.color }} />
-                          {l.label} {l.dp === 0 ? Math.round(l.min) : l.min.toFixed(l.dp)}–{l.dp === 0 ? Math.round(l.max) : l.max.toFixed(l.dp)}
-                        </span>
+                        <React.Fragment key={i}>
+                          <span className="vp-graph-legend-item">
+                            <span className="vp-graph-dot" style={{ background: l.color }} />
+                            {l.label} {l.dp === 0 ? Math.round(l.min) : l.min.toFixed(l.dp)}–{l.dp === 0 ? Math.round(l.max) : l.max.toFixed(l.dp)}
+                          </span>
+                          {l.hasIh && (
+                            <span className="vp-graph-legend-item vp-graph-legend-item--ih">
+                              <span className="vp-graph-dot vp-graph-dot--ih" style={{ background: lighten(l.color) }} />
+                              {l.label} <span className="vp-legend-src">iHealth</span>
+                            </span>
+                          )}
+                        </React.Fragment>
                       ))}
                     </span>
                   </div>
