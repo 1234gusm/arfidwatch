@@ -61,8 +61,30 @@ function App() {
   const [dragOverTabId, setDragOverTabId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileNav, setIsMobileNav] = useState(() => window.innerWidth <= 900);
+  const [theme, setTheme] = useState(() => localStorage.getItem('aw_theme') || 'dark');
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('aw_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = async () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    if (token) {
+      try {
+        await authFetch(`${API_BASE}/api/profile`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: next }),
+        });
+      } catch {}
+    }
+  };
 
   /* V-2: Restore session from httpOnly cookie or in-memory token on mount */
   useEffect(() => {
@@ -140,6 +162,7 @@ function App() {
           order: data?.nav_tab_order,
           hidden: data?.nav_hidden_tabs,
         }));
+        if (data?.theme) setTheme(data.theme);
       } catch (_) {
         if (active) {
           setHealthApiUrl('');
@@ -296,6 +319,9 @@ function App() {
             })}
             <span className="nav-divider">|</span>
             <button onClick={handleLogout}>Log out</button>
+            <button type="button" className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
           </div>
         ) : (
           <div className={`nav-links${mobileMenuOpen ? ' nav-links--open' : ''}`}>

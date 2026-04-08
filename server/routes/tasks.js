@@ -5,6 +5,22 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticate);
 
+/* ── Helper: next due date for recurring tasks ── */
+function calcNextDue(currentDue, recurrence) {
+  const d = currentDue ? new Date(currentDue + 'T00:00:00') : new Date();
+  switch (recurrence) {
+    case 'daily': d.setDate(d.getDate() + 1); break;
+    case 'weekly': d.setDate(d.getDate() + 7); break;
+    case 'monthly': d.setMonth(d.getMonth() + 1); break;
+    case 'weekdays':
+      d.setDate(d.getDate() + 1);
+      while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+      break;
+    default: d.setDate(d.getDate() + 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
 /* ── GET /api/tasks — list tasks ── */
 router.get('/', async (req, res) => {
   try {
@@ -53,10 +69,16 @@ router.get('/lists', async (req, res) => {
 /* ── POST /api/tasks — create a task ── */
 router.post('/', async (req, res) => {
   try {
-    const { title, notes, due_date, due_time, priority, list_name } = req.body;
+    const { title, notes, due_date, due_time, priority, list_name, parent_id, recurrence } = req.body;
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Title required' });
+    // Validate parent belongs to same user
+    if (parent_id) {
+      const parent = await db('tasks').where({ id: parent_id, user_id: req.user.id }).first();
+      if (!parent) return res.status(400).json({ error: 'Parent task not found' });
+    }
     const maxOrder = await db('tasks').where({ user_id: req.user.id }).max('sort_order as m').first();
     const now = new Date().toISOString();
+    const validRecurrences = ['daily', 'weekly', 'monthly', 'weekdays'];
     const [id] = await db('tasks').insert({
       user_id: req.user.id,
       title: String(title).trim().slice(0, 500),
@@ -68,6 +90,8 @@ router.post('/', async (req, res) => {
       completed: false,
       completed_at: null,
       sort_order: (maxOrder?.m || 0) + 1,
+      parent_id: parent_id ? parseInt(parent_id) : null,
+      recurrence: recurrence && validRecurrences.includes(recurrence) ? recurrence : null,
       created_at: now,
       updated_at: now,
     });
@@ -91,6 +115,11 @@ router.put('/:id', async (req, res) => {
     if (req.body.due_time !== undefined) updates.due_time = req.body.due_time || null;
     if (req.body.priority !== undefined) updates.priority = Math.max(0, Math.min(3, parseInt(req.body.priority) || 0));
     if (req.body.list_name !== undefined) updates.list_name = String(req.body.list_name).trim().slice(0, 100) || 'Inbox';
+    if (req.body.parent_id !== undefined) updates.parent_id = req.body.parent_id ? parseInt(req.body.parent_id) : null;
+    if (req.body.recurrence !== undefined) {
+      const validRecurrences = ['daily', 'weekly', 'monthly', 'weekdays'];
+      updates.recurrence = req.body.recurrence && validRecurrences.includes(req.body.recurrence) ? req.body.recurrence : null;
+    }
     if (req.body.completed !== undefined) {
       updates.completed = !!req.body.completed;
       updates.completed_at = updates.completed ? new Date().toISOString() : null;
@@ -98,8 +127,34 @@ router.put('/:id', async (req, res) => {
     if (req.body.sort_order !== undefined) updates.sort_order = parseInt(req.body.sort_order) || 0;
     updates.updated_at = new Date().toISOString();
     await db('tasks').where({ id: req.params.id, user_id: req.user.id }).update(updates);
+
+    // If completing a recurring task, spawn the next occurrence
+    let spawned = null;
+    if (updates.completed && task.recurrence && !task.completed) {
+      const nextDue = calcNextDue(task.due_date, task.recurrence);
+      const maxOrder = await db('tasks').where({ user_id: req.user.id }).max('sort_order as m').first();
+      const now = new Date().toISOString();
+      const [newId] = await db('tasks').insert({
+        user_id: req.user.id,
+        title: task.title,
+        notes: task.notes,
+        due_date: nextDue,
+        due_time: task.due_time,
+        priority: task.priority,
+        list_name: task.list_name,
+        completed: false,
+        completed_at: null,
+        sort_order: (maxOrder?.m || 0) + 1,
+        parent_id: task.parent_id,
+        recurrence: task.recurrence,
+        created_at: now,
+        updated_at: now,
+      });
+      spawned = await db('tasks').where({ id: newId }).first();
+    }
+
     const updated = await db('tasks').where({ id: req.params.id }).first();
-    res.json({ task: updated });
+    res.json({ task: updated, spawned });
   } catch (e) {
     console.error('[tasks] update error:', e.message);
     res.status(500).json({ error: 'Failed to update task' });
@@ -122,9 +177,11 @@ router.put('/reorder', async (req, res) => {
   }
 });
 
-/* ── DELETE /api/tasks/:id ── */
+/* ── DELETE /api/tasks/:id — also cascades subtasks ── */
 router.delete('/:id', async (req, res) => {
   try {
+    // Delete subtasks first
+    await db('tasks').where({ parent_id: req.params.id, user_id: req.user.id }).del();
     const n = await db('tasks').where({ id: req.params.id, user_id: req.user.id }).del();
     if (n === 0) return res.status(404).json({ error: 'Task not found' });
     res.json({ ok: true });

@@ -55,6 +55,7 @@ function ProfilePage({ token }) {
   const [quickExport,       setQuickExport]       = useState(false);
   const [exporting,         setExporting]         = useState(false);
   const [exportError,       setExportError]       = useState(null);
+  const [exportingCsv,      setExportingCsv]      = useState(false);
   const [heightVal,         setHeightVal]         = useState('');
   const [heightUnit,        setHeightUnit]        = useState('cm');
   const [heightEditing,     setHeightEditing]     = useState(false);
@@ -459,6 +460,36 @@ function ProfilePage({ token }) {
       setExportError('Export error: ' + e.message);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    setExportingCsv(true); setExportError(null);
+    let start, end;
+    if (exportPeriod === 'custom') {
+      start = exportCustomStart; end = exportCustomEnd;
+    } else if (exportPeriod === 'today') {
+      start = localToday(); end = localToday();
+    } else if (exportPeriod === 'week') {
+      start = localOffset(-7); end = localToday();
+    } else {
+      start = localMonthAgo(); end = localToday();
+    }
+    const params = new URLSearchParams({ start, end });
+    try {
+      const res = await authFetch(`${API_BASE}/api/journal/export-csv?${params}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) { setExportError('CSV export failed.'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `arfidwatch_export_${start}_to_${end}.csv`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      setExportError('CSV error: ' + e.message);
+    } finally {
+      setExportingCsv(false);
     }
   };
 
@@ -884,6 +915,9 @@ function ProfilePage({ token }) {
 
         <button className="profile-save-btn" style={{ marginTop: 14 }} onClick={handleExport} disabled={exporting}>
           {exporting ? 'Generating…' : '⬇️ Download PDF'}
+        </button>
+        <button className="profile-btn-secondary" style={{ marginTop: 8, marginLeft: 8 }} onClick={handleExportCsv} disabled={exportingCsv}>
+          {exportingCsv ? 'Generating…' : '📊 Download CSV'}
         </button>
       </div>
     </div>

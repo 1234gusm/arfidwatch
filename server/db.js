@@ -308,13 +308,27 @@ async function setup() {
         table.boolean('completed').notNullable().defaultTo(false);
         table.datetime('completed_at').nullable();
         table.integer('sort_order').notNullable().defaultTo(0);
+        table.integer('parent_id').nullable();
+        table.string('recurrence').nullable();  // daily|weekly|monthly|weekdays or null
         table.datetime('created_at').notNullable();
         table.datetime('updated_at').notNullable();
       });
     }
   });
+  await db.schema.hasColumn('tasks', 'parent_id').then(exists => {
+    if (!exists) return db.schema.table('tasks', t => t.integer('parent_id').nullable());
+  });
+  await db.schema.hasColumn('tasks', 'recurrence').then(exists => {
+    if (!exists) return db.schema.table('tasks', t => t.string('recurrence').nullable());
+  });
   await db.raw('CREATE INDEX IF NOT EXISTS idx_tasks_user_list ON tasks(user_id, list_name)');
   await db.raw('CREATE INDEX IF NOT EXISTS idx_tasks_user_due ON tasks(user_id, due_date)');
+  await db.raw('CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id)');
+
+  // Theme preference
+  await db.schema.hasColumn('user_profiles', 'theme').then(exists => {
+    if (!exists) return db.schema.table('user_profiles', t => t.string('theme').nullable().defaultTo('dark'));
+  });
 
   } catch (e) {
     console.error('[DB] Migration/setup error (server stays up):', e.message);

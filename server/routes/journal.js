@@ -50,6 +50,157 @@ router.get('/export', authenticate, async (req, res) => {
   }
 });
 
+/* ── CSV Export ── */
+router.get('/export-csv', authenticate, async (req, res) => {
+  try {
+    const { start, end, type } = req.query;
+    let startStr, endStr;
+    if (start && end) {
+      startStr = start + 'T00:00:00';
+      endStr   = end   + 'T23:59:59';
+    } else {
+      const now    = new Date();
+      const startD = new Date(now);
+      startD.setDate(now.getDate() - 30);
+      startStr = startD.toISOString().slice(0, 10) + 'T00:00:00';
+      endStr   = now.toISOString().slice(0, 10)    + 'T23:59:59';
+    }
+
+    // Decide which tables to export
+    const tables = type ? type.split(',') : ['health', 'journal', 'food', 'medications', 'sleep', 'tasks'];
+    const sections = [];
+
+    if (tables.includes('health')) {
+      const rows = await db('health_data')
+        .where('user_id', req.user.id)
+        .andWhere('timestamp', '>=', startStr)
+        .andWhere('timestamp', '<=', endStr)
+        .orderBy('timestamp', 'asc');
+      if (rows.length) {
+        sections.push('## Health Data');
+        const cols = ['timestamp', 'type', 'value', 'unit', 'source'];
+        sections.push(cols.join(','));
+        for (const r of rows) {
+          sections.push(cols.map(c => csvEscape(r[c])).join(','));
+        }
+        sections.push('');
+      }
+    }
+
+    if (tables.includes('journal')) {
+      const rows = await db('journal_entries')
+        .where('user_id', req.user.id)
+        .andWhere('date', '>=', startStr)
+        .andWhere('date', '<=', endStr)
+        .orderBy('date', 'asc');
+      if (rows.length) {
+        sections.push('## Journal Entries');
+        const cols = ['date', 'mood', 'energy', 'content'];
+        sections.push(cols.join(','));
+        for (const r of rows) {
+          sections.push(cols.map(c => csvEscape(r[c])).join(','));
+        }
+        sections.push('');
+      }
+    }
+
+    if (tables.includes('food')) {
+      try {
+        const rows = await db('food_log')
+          .where('user_id', req.user.id)
+          .andWhere('date', '>=', startStr.slice(0, 10))
+          .andWhere('date', '<=', endStr.slice(0, 10))
+          .orderBy('date', 'asc');
+        if (rows.length) {
+          sections.push('## Food Log');
+          const cols = ['date', 'meal_type', 'food_name', 'calories', 'protein', 'notes'];
+          sections.push(cols.join(','));
+          for (const r of rows) {
+            sections.push(cols.map(c => csvEscape(r[c])).join(','));
+          }
+          sections.push('');
+        }
+      } catch {}
+    }
+
+    if (tables.includes('medications')) {
+      try {
+        const rows = await db('medication_logs')
+          .where('user_id', req.user.id)
+          .andWhere('date', '>=', startStr.slice(0, 10))
+          .andWhere('date', '<=', endStr.slice(0, 10))
+          .orderBy('date', 'asc');
+        if (rows.length) {
+          sections.push('## Medication Logs');
+          const cols = ['date', 'medication_name', 'dosage', 'time_taken', 'notes'];
+          sections.push(cols.join(','));
+          for (const r of rows) {
+            sections.push(cols.map(c => csvEscape(r[c])).join(','));
+          }
+          sections.push('');
+        }
+      } catch {}
+    }
+
+    if (tables.includes('sleep')) {
+      try {
+        const rows = await db('health_data')
+          .where('user_id', req.user.id)
+          .where('type', 'like', '%sleep%')
+          .andWhere('timestamp', '>=', startStr)
+          .andWhere('timestamp', '<=', endStr)
+          .orderBy('timestamp', 'asc');
+        if (rows.length) {
+          sections.push('## Sleep Data');
+          const cols = ['timestamp', 'type', 'value', 'unit'];
+          sections.push(cols.join(','));
+          for (const r of rows) {
+            sections.push(cols.map(c => csvEscape(r[c])).join(','));
+          }
+          sections.push('');
+        }
+      } catch {}
+    }
+
+    if (tables.includes('tasks')) {
+      try {
+        const rows = await db('tasks')
+          .where('user_id', req.user.id)
+          .orderBy('created_at', 'asc');
+        if (rows.length) {
+          sections.push('## Tasks');
+          const cols = ['title', 'list_name', 'priority', 'due_date', 'due_time', 'completed', 'recurrence', 'notes', 'created_at'];
+          sections.push(cols.join(','));
+          for (const r of rows) {
+            sections.push(cols.map(c => csvEscape(r[c])).join(','));
+          }
+          sections.push('');
+        }
+      } catch {}
+    }
+
+    const csv = sections.join('\n');
+    const dateLabel = `${startStr.slice(0, 10)}_to_${endStr.slice(0, 10)}`;
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="arfidwatch_export_${dateLabel}.csv"`,
+    });
+    res.send(csv);
+  } catch (err) {
+    console.error('CSV export error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+function csvEscape(val) {
+  if (val === null || val === undefined) return '';
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
 router.get('/', authenticate, async (req, res) => {
   try {
     const { start, end } = req.query;

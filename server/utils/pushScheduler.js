@@ -93,6 +93,66 @@ async function checkAndSend() {
     }
   }
 
+  // ── Task due-date push notifications ──
+  try {
+    const dueTasks = await db('tasks')
+      .where('completed', false)
+      .whereNotNull('due_date')
+      .whereNotNull('due_time')
+      .select('*');
+
+    for (const task of dueTasks) {
+      // Get user's timezone from profile or fall back to UTC
+      let tz = 'UTC';
+      try {
+        const ur = await db('user_reminders').where({ user_id: task.user_id }).first();
+        if (ur?.timezone) tz = ur.timezone;
+      } catch {}
+
+      const { time, valid } = getLocalTime(now, tz);
+      if (!valid) continue;
+      if (task.due_time !== time) continue;
+      if (task.due_date !== todayUTC) {
+        // Check if today in user's local timezone matches due_date
+        try {
+          const localDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now); // YYYY-MM-DD
+          if (task.due_date !== localDate) continue;
+        } catch { continue; }
+      }
+
+      const key = `task|${task.user_id}|${task.id}|${todayUTC}|${time}`;
+      if (fired.has(key)) continue;
+      fired.add(key);
+
+      let subs;
+      try {
+        subs = await db('push_subscriptions').where({ user_id: task.user_id }).select('*');
+      } catch { continue; }
+      if (!subs.length) continue;
+
+      const payload = JSON.stringify({
+        title: 'Task Due: ' + (task.title || 'Untitled'),
+        body: task.notes ? task.notes.slice(0, 100) : 'Your task is due now.',
+        tag: `task-${task.id}`,
+      });
+
+      for (const sub of subs) {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          );
+        } catch (err) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            db('push_subscriptions').where({ id: sub.id }).delete().catch(() => {});
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[pushScheduler] task due check error:', e.message);
+  }
+
   // Prevent unbounded growth mid-day
   if (fired.size > 1000) {
     const keep = [...fired].slice(-500);

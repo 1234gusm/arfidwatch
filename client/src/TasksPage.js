@@ -10,6 +10,16 @@ const PRIORITY_META = [
   { id: 3, label: 'High',   color: '#ef4444',       dot: '#ef4444' },
 ];
 
+const RECURRENCE_OPTIONS = [
+  { value: '',         label: 'No repeat' },
+  { value: 'daily',    label: 'Daily' },
+  { value: 'weekdays', label: 'Weekdays' },
+  { value: 'weekly',   label: 'Weekly' },
+  { value: 'monthly',  label: 'Monthly' },
+];
+
+const RECURRENCE_LABELS = { daily: '🔁 Daily', weekdays: '🔁 Weekdays', weekly: '🔁 Weekly', monthly: '🔁 Monthly' };
+
 const SMART_LISTS = [
   { id: '__inbox',     label: 'Inbox',     icon: '📥' },
   { id: '__today',     label: 'Today',     icon: '📅' },
@@ -20,24 +30,21 @@ const SMART_LISTS = [
 const fmt = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
-  const today = new Date(); today.setHours(0,0,0,0);
-  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-  if (d.getTime() === today.getTime()) return 'Today';
-  if (d.getTime() === tomorrow.getTime()) return 'Tomorrow';
-  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-  if (d.getTime() === yesterday.getTime()) return 'Yesterday';
+  const tod = new Date(); tod.setHours(0,0,0,0);
+  const tom = new Date(tod); tom.setDate(tom.getDate() + 1);
+  if (d.getTime() === tod.getTime()) return 'Today';
+  if (d.getTime() === tom.getTime()) return 'Tomorrow';
+  const yest = new Date(tod); yest.setDate(yest.getDate() - 1);
+  if (d.getTime() === yest.getTime()) return 'Yesterday';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
-const today = () => {
+const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 
-const isOverdue = (dateStr) => {
-  if (!dateStr) return false;
-  return dateStr < today();
-};
+const isOverdue = (dateStr) => dateStr && dateStr < todayStr();
 
 function TasksPage() {
   const [tasks, setTasks] = useState([]);
@@ -47,7 +54,10 @@ function TasksPage() {
   const [newDueDate, setNewDueDate] = useState('');
   const [newPriority, setNewPriority] = useState(0);
   const [newListName, setNewListName] = useState('Inbox');
+  const [newRecurrence, setNewRecurrence] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addingSubtaskOf, setAddingSubtaskOf] = useState(null);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editNotes, setEditNotes] = useState('');
@@ -55,12 +65,16 @@ function TasksPage() {
   const [editDueTime, setEditDueTime] = useState('');
   const [editPriority, setEditPriority] = useState(0);
   const [editListName, setEditListName] = useState('Inbox');
+  const [editRecurrence, setEditRecurrence] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newListInput, setNewListInput] = useState('');
   const [showNewList, setShowNewList] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
   const inputRef = useRef(null);
   const editInputRef = useRef(null);
+  const subtaskInputRef = useRef(null);
 
   /* ── Fetch data ── */
   const fetchTasks = useCallback(async () => {
@@ -83,40 +97,56 @@ function TasksPage() {
     Promise.all([fetchTasks(), fetchLists()]).finally(() => setLoading(false));
   }, [fetchTasks, fetchLists]);
 
-  /* ── Filtered tasks ── */
+  /* ── Build parent→children map ── */
+  const childrenMap = useMemo(() => {
+    const m = {};
+    tasks.forEach(t => {
+      if (t.parent_id) {
+        if (!m[t.parent_id]) m[t.parent_id] = [];
+        m[t.parent_id].push(t);
+      }
+    });
+    // Sort children by sort_order
+    Object.values(m).forEach(arr => arr.sort((a, b) => a.sort_order - b.sort_order));
+    return m;
+  }, [tasks]);
+
+  /* ── Filtered tasks (top-level only) ── */
   const filtered = useMemo(() => {
-    const todayStr = today();
+    const td = todayStr();
+    const topLevel = tasks.filter(t => !t.parent_id);
     switch (activeList) {
       case '__inbox':
-        return tasks.filter(t => t.list_name === 'Inbox' && !t.completed);
+        return topLevel.filter(t => t.list_name === 'Inbox' && !t.completed);
       case '__today':
-        return tasks.filter(t => t.due_date === todayStr && !t.completed);
+        return topLevel.filter(t => t.due_date === td && !t.completed);
       case '__upcoming':
-        return tasks.filter(t => t.due_date && t.due_date >= todayStr && !t.completed)
+        return topLevel.filter(t => t.due_date && t.due_date >= td && !t.completed)
           .sort((a, b) => a.due_date.localeCompare(b.due_date));
       case '__completed':
-        return tasks.filter(t => t.completed)
+        return topLevel.filter(t => t.completed)
           .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
       default:
-        return tasks.filter(t => t.list_name === activeList && !t.completed);
+        return topLevel.filter(t => t.list_name === activeList && !t.completed);
     }
   }, [tasks, activeList]);
 
   /* ── Counts for sidebar badges ── */
   const counts = useMemo(() => {
-    const todayStr = today();
+    const td = todayStr();
+    const top = tasks.filter(t => !t.parent_id);
     return {
-      __inbox: tasks.filter(t => t.list_name === 'Inbox' && !t.completed).length,
-      __today: tasks.filter(t => t.due_date === todayStr && !t.completed).length,
-      __upcoming: tasks.filter(t => t.due_date && t.due_date >= todayStr && !t.completed).length,
-      __completed: tasks.filter(t => t.completed).length,
+      __inbox: top.filter(t => t.list_name === 'Inbox' && !t.completed).length,
+      __today: top.filter(t => t.due_date === td && !t.completed).length,
+      __upcoming: top.filter(t => t.due_date && t.due_date >= td && !t.completed).length,
+      __completed: top.filter(t => t.completed).length,
     };
   }, [tasks]);
 
   const listCounts = useMemo(() => {
     const m = {};
     tasks.forEach(t => {
-      if (t.completed) return;
+      if (t.completed || t.parent_id) return;
       m[t.list_name] = (m[t.list_name] || 0) + 1;
     });
     return m;
@@ -134,9 +164,10 @@ function TasksPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newTitle.trim(),
-          due_date: newDueDate || (activeList === '__today' ? today() : null),
+          due_date: newDueDate || (activeList === '__today' ? todayStr() : null),
           priority: newPriority,
           list_name: listForTask,
+          recurrence: newRecurrence || null,
         }),
       });
       if (res.ok) {
@@ -145,8 +176,33 @@ function TasksPage() {
         setNewTitle('');
         setNewDueDate('');
         setNewPriority(0);
+        setNewRecurrence('');
         if (!lists.includes(listForTask)) setLists(prev => [...prev, listForTask]);
         inputRef.current?.focus();
+      }
+    } catch { }
+  };
+
+  const handleAddSubtask = async (parentId) => {
+    if (!subtaskTitle.trim()) return;
+    try {
+      const parent = tasks.find(t => t.id === parentId);
+      const res = await authFetch(`${API_BASE}/api/tasks`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: subtaskTitle.trim(),
+          parent_id: parentId,
+          list_name: parent?.list_name || 'Inbox',
+          priority: 0,
+        }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setTasks(prev => [...prev, d.task]);
+        setSubtaskTitle('');
+        setAddingSubtaskOf(null);
       }
     } catch { }
   };
@@ -155,19 +211,26 @@ function TasksPage() {
     const next = !task.completed;
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: next, completed_at: next ? new Date().toISOString() : null } : t));
     try {
-      await authFetch(`${API_BASE}/api/tasks/${task.id}`, {
+      const res = await authFetch(`${API_BASE}/api/tasks/${task.id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed: next }),
       });
+      if (res.ok) {
+        const d = await res.json();
+        // If a recurring task spawned a new occurrence, add it
+        if (d.spawned) {
+          setTasks(prev => [...prev, d.spawned]);
+        }
+      }
     } catch {
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: !next } : t));
     }
   };
 
   const handleDelete = async (id) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+    setTasks(prev => prev.filter(t => t.id !== id && t.parent_id !== id));
     if (editingId === id) setEditingId(null);
     try {
       await authFetch(`${API_BASE}/api/tasks/${id}`, {
@@ -185,6 +248,7 @@ function TasksPage() {
     setEditDueTime(task.due_time || '');
     setEditPriority(task.priority);
     setEditListName(task.list_name);
+    setEditRecurrence(task.recurrence || '');
     setTimeout(() => editInputRef.current?.focus(), 50);
   };
 
@@ -197,6 +261,7 @@ function TasksPage() {
       due_time: editDueTime || null,
       priority: editPriority,
       list_name: editListName,
+      recurrence: editRecurrence || null,
     };
     setTasks(prev => prev.map(t => t.id === editingId ? { ...t, ...body } : t));
     setEditingId(null);
@@ -218,6 +283,206 @@ function TasksPage() {
     setActiveList(name);
     setShowNewList(false);
     setNewListInput('');
+  };
+
+  /* ── Drag to reorder ── */
+  const handleDragStart = (e, taskId) => {
+    setDragId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
+  };
+
+  const handleDragOver = (e, taskId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (taskId !== dragOverId) setDragOverId(taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDragId(null);
+    setDragOverId(null);
+  };
+
+  const handleDrop = async (e, targetId) => {
+    e.preventDefault();
+    if (!dragId || dragId === targetId) { handleDragEnd(); return; }
+    const ids = filtered.map(t => t.id);
+    const fromIdx = ids.indexOf(dragId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx === -1 || toIdx === -1) { handleDragEnd(); return; }
+
+    // Reorder
+    const reordered = [...ids];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, dragId);
+
+    const order = reordered.map((id, i) => ({ id, sort_order: i }));
+    // Optimistic UI update
+    setTasks(prev => {
+      const updated = [...prev];
+      for (const o of order) {
+        const idx = updated.findIndex(t => t.id === o.id);
+        if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: o.sort_order };
+      }
+      return updated;
+    });
+    handleDragEnd();
+
+    try {
+      await authFetch(`${API_BASE}/api/tasks/reorder`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order }),
+      });
+    } catch { fetchTasks(); }
+  };
+
+  /* ── Render a single task item ── */
+  const renderTask = (task, isSubtask = false) => {
+    const children = childrenMap[task.id] || [];
+    const completedChildren = children.filter(c => c.completed).length;
+
+    return (
+      <div key={task.id}>
+        <div
+          className={`tasks-item${task.completed ? ' tasks-item--done' : ''}${editingId === task.id ? ' tasks-item--editing' : ''}${isSubtask ? ' tasks-item--subtask' : ''}${dragId === task.id ? ' tasks-item--dragging' : ''}${dragOverId === task.id ? ' tasks-item--dragover' : ''}`}
+          draggable={!isSubtask && activeList !== '__completed'}
+          onDragStart={e => handleDragStart(e, task.id)}
+          onDragOver={e => handleDragOver(e, task.id)}
+          onDrop={e => handleDrop(e, task.id)}
+          onDragEnd={handleDragEnd}
+        >
+          {editingId === task.id ? (
+            <div className="tasks-edit-panel">
+              <input
+                ref={editInputRef}
+                className="tasks-edit-title"
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSaveEdit(); if (e.key === 'Escape') setEditingId(null); }}
+              />
+              <textarea
+                className="tasks-edit-notes"
+                placeholder="Add notes…"
+                value={editNotes}
+                onChange={e => setEditNotes(e.target.value)}
+                rows={2}
+              />
+              <div className="tasks-edit-meta">
+                <label className="tasks-edit-meta-label">
+                  Due
+                  <input type="date" className="tasks-edit-meta-input" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} />
+                </label>
+                <label className="tasks-edit-meta-label">
+                  Time
+                  <input type="time" className="tasks-edit-meta-input" value={editDueTime} onChange={e => setEditDueTime(e.target.value)} />
+                </label>
+                <label className="tasks-edit-meta-label">
+                  Priority
+                  <select className="tasks-edit-meta-input" value={editPriority} onChange={e => setEditPriority(Number(e.target.value))}>
+                    {PRIORITY_META.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                </label>
+                <label className="tasks-edit-meta-label">
+                  List
+                  <select className="tasks-edit-meta-input" value={editListName} onChange={e => setEditListName(e.target.value)}>
+                    {lists.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </label>
+                <label className="tasks-edit-meta-label">
+                  Repeat
+                  <select className="tasks-edit-meta-input" value={editRecurrence} onChange={e => setEditRecurrence(e.target.value)}>
+                    {RECURRENCE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="tasks-edit-actions">
+                <button className="tasks-edit-save" onClick={handleSaveEdit}>Save</button>
+                <button className="tasks-edit-cancel" onClick={() => setEditingId(null)}>Cancel</button>
+                <button className="tasks-edit-delete" onClick={() => handleDelete(task.id)}>Delete</button>
+              </div>
+            </div>
+          ) : (
+            <div className="tasks-item-row">
+              {!isSubtask && activeList !== '__completed' && (
+                <span className="tasks-drag-handle" title="Drag to reorder">⠿</span>
+              )}
+              <button
+                className={`tasks-checkbox${task.completed ? ' tasks-checkbox--done' : ''}`}
+                style={{ borderColor: PRIORITY_META[task.priority]?.dot || '#555' }}
+                onClick={() => handleToggle(task)}
+              >
+                {task.completed && <span className="tasks-checkbox-check">✓</span>}
+              </button>
+              <div className="tasks-item-content" onClick={() => !task.completed && handleStartEdit(task)}>
+                <span className="tasks-item-title">{task.title}</span>
+                <div className="tasks-item-chips">
+                  {task.due_date && (
+                    <span className={`tasks-chip tasks-chip--date${isOverdue(task.due_date) && !task.completed ? ' tasks-chip--overdue' : ''}`}>
+                      {fmt(task.due_date)}{task.due_time ? ` ${task.due_time}` : ''}
+                    </span>
+                  )}
+                  {task.priority > 0 && (
+                    <span className="tasks-chip" style={{ color: PRIORITY_META[task.priority].color }}>
+                      {'!'.repeat(task.priority)}
+                    </span>
+                  )}
+                  {task.recurrence && (
+                    <span className="tasks-chip tasks-chip--recurrence">{RECURRENCE_LABELS[task.recurrence] || '🔁'}</span>
+                  )}
+                  {(activeList.startsWith('__') && activeList !== '__inbox' && task.list_name !== 'Inbox') && (
+                    <span className="tasks-chip tasks-chip--list">{task.list_name}</span>
+                  )}
+                  {children.length > 0 && (
+                    <span className="tasks-chip tasks-chip--subtasks">{completedChildren}/{children.length} subtasks</span>
+                  )}
+                </div>
+                {task.notes && <span className="tasks-item-notes">{task.notes}</span>}
+              </div>
+              <div className="tasks-item-actions">
+                {!isSubtask && !task.completed && (
+                  <button
+                    className="tasks-item-add-subtask"
+                    title="Add subtask"
+                    onClick={(e) => { e.stopPropagation(); setAddingSubtaskOf(addingSubtaskOf === task.id ? null : task.id); setTimeout(() => subtaskInputRef.current?.focus(), 50); }}
+                  >
+                    ＋
+                  </button>
+                )}
+                <button className="tasks-item-delete" onClick={() => handleDelete(task.id)}>✕</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Subtask add form */}
+        {addingSubtaskOf === task.id && (
+          <div className="tasks-subtask-add">
+            <input
+              ref={subtaskInputRef}
+              className="tasks-subtask-input"
+              placeholder="Subtask name…"
+              value={subtaskTitle}
+              onChange={e => setSubtaskTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleAddSubtask(task.id);
+                if (e.key === 'Escape') { setAddingSubtaskOf(null); setSubtaskTitle(''); }
+              }}
+            />
+            <button className="tasks-subtask-submit" onClick={() => handleAddSubtask(task.id)}>Add</button>
+            <button className="tasks-subtask-cancel" onClick={() => { setAddingSubtaskOf(null); setSubtaskTitle(''); }}>✕</button>
+          </div>
+        )}
+
+        {/* Render children */}
+        {children.length > 0 && (
+          <div className="tasks-children">
+            {children.map(child => renderTask(child, true))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const activeLabel = SMART_LISTS.find(s => s.id === activeList)?.label || activeList;
@@ -312,6 +577,9 @@ function TasksPage() {
                   <select className="tasks-add-priority" value={newPriority} onChange={e => setNewPriority(Number(e.target.value))}>
                     {PRIORITY_META.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
+                  <select className="tasks-add-recurrence" value={newRecurrence} onChange={e => setNewRecurrence(e.target.value)}>
+                    {RECURRENCE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
                   {activeList.startsWith('__') && (
                     <select className="tasks-add-list" value={newListName} onChange={e => setNewListName(e.target.value)}>
                       {lists.map(l => <option key={l} value={l}>{l}</option>)}
@@ -335,87 +603,7 @@ function TasksPage() {
               </span>
             </div>
           )}
-          {filtered.map(task => (
-            <div key={task.id} className={`tasks-item${task.completed ? ' tasks-item--done' : ''}${editingId === task.id ? ' tasks-item--editing' : ''}`}>
-              {editingId === task.id ? (
-                /* ── Edit mode ── */
-                <div className="tasks-edit-panel">
-                  <input
-                    ref={editInputRef}
-                    className="tasks-edit-title"
-                    value={editTitle}
-                    onChange={e => setEditTitle(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSaveEdit(); if (e.key === 'Escape') setEditingId(null); }}
-                  />
-                  <textarea
-                    className="tasks-edit-notes"
-                    placeholder="Add notes…"
-                    value={editNotes}
-                    onChange={e => setEditNotes(e.target.value)}
-                    rows={2}
-                  />
-                  <div className="tasks-edit-meta">
-                    <label className="tasks-edit-meta-label">
-                      Due
-                      <input type="date" className="tasks-edit-meta-input" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} />
-                    </label>
-                    <label className="tasks-edit-meta-label">
-                      Time
-                      <input type="time" className="tasks-edit-meta-input" value={editDueTime} onChange={e => setEditDueTime(e.target.value)} />
-                    </label>
-                    <label className="tasks-edit-meta-label">
-                      Priority
-                      <select className="tasks-edit-meta-input" value={editPriority} onChange={e => setEditPriority(Number(e.target.value))}>
-                        {PRIORITY_META.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                      </select>
-                    </label>
-                    <label className="tasks-edit-meta-label">
-                      List
-                      <select className="tasks-edit-meta-input" value={editListName} onChange={e => setEditListName(e.target.value)}>
-                        {lists.map(l => <option key={l} value={l}>{l}</option>)}
-                      </select>
-                    </label>
-                  </div>
-                  <div className="tasks-edit-actions">
-                    <button className="tasks-edit-save" onClick={handleSaveEdit}>Save</button>
-                    <button className="tasks-edit-cancel" onClick={() => setEditingId(null)}>Cancel</button>
-                    <button className="tasks-edit-delete" onClick={() => handleDelete(task.id)}>Delete</button>
-                  </div>
-                </div>
-              ) : (
-                /* ── Display mode ── */
-                <div className="tasks-item-row">
-                  <button
-                    className={`tasks-checkbox${task.completed ? ' tasks-checkbox--done' : ''}`}
-                    style={{ borderColor: PRIORITY_META[task.priority]?.dot || '#555' }}
-                    onClick={() => handleToggle(task)}
-                  >
-                    {task.completed && <span className="tasks-checkbox-check">✓</span>}
-                  </button>
-                  <div className="tasks-item-content" onClick={() => !task.completed && handleStartEdit(task)}>
-                    <span className="tasks-item-title">{task.title}</span>
-                    <div className="tasks-item-chips">
-                      {task.due_date && (
-                        <span className={`tasks-chip tasks-chip--date${isOverdue(task.due_date) && !task.completed ? ' tasks-chip--overdue' : ''}`}>
-                          {fmt(task.due_date)}{task.due_time ? ` ${task.due_time}` : ''}
-                        </span>
-                      )}
-                      {task.priority > 0 && (
-                        <span className="tasks-chip" style={{ color: PRIORITY_META[task.priority].color }}>
-                          {'!'.repeat(task.priority)}
-                        </span>
-                      )}
-                      {(activeList.startsWith('__') && activeList !== '__inbox' && task.list_name !== 'Inbox') && (
-                        <span className="tasks-chip tasks-chip--list">{task.list_name}</span>
-                      )}
-                    </div>
-                    {task.notes && <span className="tasks-item-notes">{task.notes}</span>}
-                  </div>
-                  <button className="tasks-item-delete" onClick={() => handleDelete(task.id)}>✕</button>
-                </div>
-              )}
-            </div>
-          ))}
+          {filtered.map(task => renderTask(task))}
         </div>
       </div>
     </div>

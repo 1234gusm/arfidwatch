@@ -117,6 +117,7 @@ router.get('/', authenticate, async (req, res) => {
       health_stat_order: parseJsonText(profile.health_stat_order, null),
       med_entry_colors: parseJsonText(profile.med_entry_colors, null),
       height_cm: heightRow ? { value: heightRow.value, unit: heightRow.type === 'height_in' ? 'in' : 'cm' } : null,
+      theme: profile.theme || 'dark',
     });
   } catch (err) {
     console.error('profile GET error:', err);
@@ -152,6 +153,7 @@ router.put('/', authenticate, async (req, res) => {
       hidden_health_types,
       health_stat_order,
       med_entry_colors,
+      theme,
     } = req.body;
     const updates = {};
     const userUpdates = {};
@@ -305,6 +307,11 @@ router.put('/', authenticate, async (req, res) => {
       updates.health_auto_export_url = normalizedUrl;
     }
 
+    if (theme !== undefined) {
+      const validThemes = ['dark', 'light'];
+      if (validThemes.includes(theme)) updates.theme = theme;
+    }
+
     try {
       if (nav_tab_order !== undefined) {
         updates.nav_tab_order = nav_tab_order === null
@@ -383,6 +390,7 @@ router.put('/', authenticate, async (req, res) => {
       med_entry_colors: parseJsonText(profile?.med_entry_colors, null),
       ingest_key: plainIngestKey,
       height_cm: heightRow ? { value: heightRow.value, unit: heightRow.type === 'height_in' ? 'in' : 'cm' } : null,
+      theme: profile?.theme || 'dark',
     });
   } catch (err) {
     console.error('profile PUT error:', err);
