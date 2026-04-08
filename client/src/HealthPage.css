@@ -273,19 +273,10 @@
 }
 .stat-card:hover .stat-remove-btn { opacity: 1; }
 
-.stat-title { font-weight: 700; color: #c4b5fd; margin-bottom: 0; font-size: 0.82rem; letter-spacing: 0.03em; padding-right: 18px; }
+.stat-title { font-weight: 700; color: #c4b5fd; margin-bottom: 6px; font-size: 0.82rem; letter-spacing: 0.03em; padding-right: 18px; }
 .stat-values div { color: #cbd5e1; margin: 4px 0; font-size: 0.88rem; }
 .stat-values strong { color: #f1f5f9; }
 .stat-empty { color: #64748b; font-style: italic; }
-
-/* Condensed card header — title + latest value side by side */
-.stat-card-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.stat-latest-value { color: #f1f5f9; font-size: 1rem; font-weight: 600; white-space: nowrap; }
-.stat-latest-value small { color: var(--primary-lighter); font-size: 0.72rem; font-weight: 400; margin-left: 2px; }
-.stat-summary-line { color: #94a3b8; font-size: 0.75rem; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Expanded inline chart area */
-.stat-inline-chart { margin-top: 12px; }
-.stat-card--expanded { min-width: 280px; flex: 1 1 100%; }
 
 /* Expanded metric modal */
 .modal-overlay {
@@ -580,25 +571,6 @@
 
 .date-controls { display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
 .date-controls input { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); color: #e2e8f0; padding:6px; border-radius:6px; }
-.hp-range-row { display:flex; gap:6px; flex-wrap:nowrap; }
-.hp-range-btn {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #94a3b8;
-  border-radius: 20px;
-  padding: 5px 14px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-.hp-range-btn:hover { background: rgba(139,92,246,0.12); color: #ddd6fe; }
-.hp-range-btn.active {
-  background: rgba(139,92,246,0.2);
-  border-color: rgba(139,92,246,0.45);
-  color: var(--primary-lighter);
-  font-weight: 600;
-}
 .mini-chart { margin-top:8px; height:90px; }
 /* True CSS grid for stat cards */
 .summary-cards-wrapper {

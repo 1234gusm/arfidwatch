@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts';
 import './VitalsPage.css';
 import API_BASE from './apiBase';
@@ -66,7 +65,6 @@ function VitalsPage({ token }) {
   const [data, setData]             = useState([]);
   const [rangeDays, setRangeDays]   = useState(90);
   const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
   const [expanded, setExpanded]     = useState({});    // per-graph expand state
   const [expandedCard, setExpandedCard] = useState(null); // per-stat-card expand
 
@@ -75,19 +73,14 @@ function VitalsPage({ token }) {
     let active = true;
     const load = async () => {
       setLoading(true);
-      setError(null);
       try {
         const startDate = rangeDays ? fmtDate((() => { const d = new Date(); d.setDate(d.getDate() - rangeDays); return d; })()) : '';
-        const params = new URLSearchParams();
-        if (startDate) params.set('start', startDate);
-        // Fetch all health data (no types filter) — matches Render server behavior.
-        // Client-side filtering handles type matching with altKeys + canonical().
-        const res = await authFetch(`${API_BASE}/api/health?${params}`);
-        if (!res.ok) { console.error('Vitals fetch failed:', res.status, await res.text()); setError(`Server returned ${res.status}`); setData([]); return; }
+        const qs = startDate ? `?start=${startDate}` : '';
+        const res = await authFetch(`${API_BASE}/api/health${qs}`);
+        if (!res.ok) { setData([]); return; }
         const json = await res.json();
-        console.log('Vitals loaded:', json.data?.length, 'records');
         if (active) setData(Array.isArray(json.data) ? json.data : []);
-      } catch (e) { console.error('Vitals load error:', e); setError(e.message || 'Unknown error'); setData([]); }
+      } catch (_) { setData([]); }
       finally { if (active) setLoading(false); }
     };
     load();
@@ -217,33 +210,6 @@ function VitalsPage({ token }) {
     }).filter(Boolean);
   }, [metrics]);
 
-  /* ── Weight hero chart: every individual reading, NO averaging ── */
-  const weightChart = useMemo(() => {
-    const weightKeys = new Set(['weight_lb', 'weight_kg']);
-    const points = data
-      .filter(r => weightKeys.has(canonical(r.type)))
-      .map(r => {
-        let v = toNum(r.value);
-        if (!Number.isFinite(v)) return null;
-        if (canonical(r.type) === 'weight_kg') v = Math.round(v * 2.20462 * 100) / 100;
-        else v = Math.round(v * 100) / 100;
-        const d = new Date(r.timestamp);
-        if (!Number.isFinite(d.getTime())) return null;
-        return { date: d, dateLabel: fmtDate(d), value: v };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.date - b.date);
-    if (points.length < 2) return null;
-    const vals = points.map(p => p.value);
-    return {
-      points,
-      latest: vals[vals.length - 1],
-      min: Math.min(...vals),
-      max: Math.max(...vals),
-      count: vals.length,
-    };
-  }, [data]);
-
   const toggleGraph = id => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
   if (!token) return <div className="vp-page"><p>Please log in.</p></div>;
@@ -266,68 +232,13 @@ function VitalsPage({ token }) {
         </div>
       </div>
 
-      {/* ── Weight hero chart — exact readings, no averages ── */}
-      {weightChart && (
-        <div className="vp-weight-hero">
-          <div className="vp-weight-hero-header">
-            <div className="vp-weight-hero-title">Weight</div>
-            <div className="vp-weight-hero-latest">
-              {weightChart.latest.toFixed(1)} <span>lb</span>
-            </div>
-          </div>
-          <div className="vp-weight-hero-stats">
-            <span>Min {weightChart.min.toFixed(1)}</span>
-            <span>Max {weightChart.max.toFixed(1)}</span>
-            <span>{weightChart.count} readings</span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={weightChart.points} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-              <XAxis
-                dataKey="dateLabel"
-                tick={{ fill: '#64748b', fontSize: 11 }}
-                tickLine={{ stroke: 'rgba(148,163,184,0.12)' }}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fill: '#64748b', fontSize: 11 }}
-                domain={[Math.floor(weightChart.min - Math.max((weightChart.max - weightChart.min) * 0.15, 0.5)),
-                         Math.ceil(weightChart.max + Math.max((weightChart.max - weightChart.min) * 0.15, 0.5))]}
-                width={42}
-                tickLine={{ stroke: 'rgba(148,163,184,0.12)' }}
-              />
-              <ReferenceLine y={weightChart.latest} stroke="rgba(167,139,250,0.25)" strokeDasharray="4 4" />
-              <Tooltip
-                formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} lb`, 'Weight']}
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                itemStyle={{ color: '#a78bfa' }}
-                labelStyle={{ color: '#94a3b8' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#a78bfa"
-                dot={{ r: 3, fill: '#a78bfa', strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: '#c4b5fd', stroke: '#fff', strokeWidth: 1 }}
-                strokeWidth={2.5}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
       {loading && <div className="vp-loading">Loading…</div>}
 
-      {!loading && error && (
-        <div className="vp-empty" style={{ color: '#f97316' }}>Error loading vitals: {error}</div>
-      )}
-
-      {!loading && !error && metrics.length === 0 && (
+      {!loading && metrics.length === 0 && (
         <div className="vp-empty">No vitals data yet. Import health data or upload an iHealth CSV from the Health page.</div>
       )}
 
-      {!loading && !error && metrics.length > 0 && (
+      {!loading && metrics.length > 0 && (
         <>
           {/* ── Chart tiles grid ── */}
           <div className="vp-graphs-grid">

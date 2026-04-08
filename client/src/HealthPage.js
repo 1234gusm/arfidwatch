@@ -17,7 +17,7 @@ function HealthPage({ token }) {
   const [imports, setImports] = useState([]);
   const [todayFood, setTodayFood] = useState(null);
   const [hiddenTypes, setHiddenTypes] = useState(new Set());
-  const [expandedCards, setExpandedCards] = useState(new Set());
+  const [expandedType, setExpandedType] = useState(null);
   const [addPickerOpen, setAddPickerOpen] = useState(false);
   const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
@@ -33,51 +33,20 @@ function HealthPage({ token }) {
   const [endDate, setEndDate] = useState(formatDate(new Date()));
   const [overviewPeriod, setOverviewPeriod] = useState(7);
 
-  // Single batched dashboard fetch — replaces 4 separate network calls
-  const fetchDashboard = async (start, end) => {
-    try {
-      const params = new URLSearchParams();
-      if (start) params.set('start', start);
-      if (end) params.set('end', end);
-      params.set('today', formatDate(new Date()));
-      const qs = `?${params}`;
-      const res = await authFetch(`${API_BASE}/api/health/dashboard${qs}`, {
-        credentials: 'include',
-      });
-      const json = await res.json();
-      setData(json.data || []);
-      setImports(json.imports || []);
-      setTodayFood(json.todayFood || null);
-      if (json.prefs) {
-        setHiddenTypes(new Set(Array.isArray(json.prefs.hidden_health_types) ? json.prefs.hidden_health_types : []));
-        setStatOrder(Array.isArray(json.prefs.health_stat_order) ? json.prefs.health_stat_order : []);
-      }
-    } catch (err) { console.error('fetchDashboard error:', err); setData([]); }
-  };
-
-  // Legacy fetchers (used after individual mutations like import/delete)
-  const fetchData = async (start, end) => {
-    try {
-      const params = new URLSearchParams();
-      if (start) params.set('start', start);
-      if (end) params.set('end', end);
-      const qs = params.toString() ? `?${params}` : '';
-      const res = await authFetch(`${API_BASE}/api/health${qs}`, {
-        credentials: 'include',
-      });
-      const json = await res.json();
-      setData(json.data || []);
-    } catch (err) { console.error('fetchData error:', err); setData([]); }
+  const fetchData = async () => {
+    const res = await authFetch(`${API_BASE}/api/health`, {
+      credentials: 'include',
+    });
+    const json = await res.json();
+    setData(json.data || []);
   };
 
   const fetchImports = async () => {
-    try {
-      const res = await authFetch(`${API_BASE}/api/health/imports`, {
-        credentials: 'include',
-      });
-      const json = await res.json();
-      setImports(json.imports || []);
-    } catch (err) { console.error('fetchImports error:', err); }
+    const res = await authFetch(`${API_BASE}/api/health/imports`, {
+      credentials: 'include',
+    });
+    const json = await res.json();
+    setImports(json.imports || []);
   };
 
   const fetchTodayFood = async () => {
@@ -109,11 +78,30 @@ function HealthPage({ token }) {
     }
   };
 
-  // All hooks must be called at top level before any conditional returns
   useEffect(() => {
-    if (token) { fetchDashboard(startDate, endDate); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, startDate, endDate]);
+    if (!token) return;
+    let active = true;
+
+    const loadDashboardPrefs = async () => {
+      try {
+        const res = await authFetch(`${API_BASE}/api/profile`, {
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!active) return;
+        setHiddenTypes(new Set(Array.isArray(d.hidden_health_types) ? d.hidden_health_types : []));
+        setStatOrder(Array.isArray(d.health_stat_order) ? d.health_stat_order : []);
+      } catch (_) {
+        if (!active) return;
+        setHiddenTypes(new Set());
+        setStatOrder([]);
+      }
+    };
+
+    loadDashboardPrefs();
+    return () => { active = false; };
+  }, [token]);
 
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
 
@@ -123,7 +111,7 @@ function HealthPage({ token }) {
       method: 'DELETE',
       credentials: 'include',
     });
-    fetchData(startDate, endDate);
+    fetchData();
     fetchImports();
   };
 
@@ -133,7 +121,7 @@ function HealthPage({ token }) {
       credentials: 'include',
     });
     setDeleteAllConfirm(false);
-    fetchData(startDate, endDate);
+    fetchData();
     fetchImports();
   };
 
@@ -184,7 +172,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor file');
@@ -210,7 +198,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import file: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'records' }));
-        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('Binary file import error:', err);
         alert('Error importing file');
@@ -242,7 +230,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = isIHealthCsv ? 'blood pressure records' : 'health records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('CSV import error:', err);
         alert('Error importing CSV');
@@ -262,7 +250,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import AutoSleep CSV: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'sleep records' }));
-        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('AutoSleep CSV import error:', err);
         alert('Error importing AutoSleep CSV');
@@ -286,7 +274,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor CSV');
@@ -305,7 +293,7 @@ function HealthPage({ token }) {
       if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
       const r = await res.json();
       alert(buildImportAlertMessage({ ...r, label: 'health records' }));
-      fetchData(startDate, endDate); fetchImports(); fetchTodayFood();
+      fetchData(); fetchImports(); fetchTodayFood();
     } catch (err) {
       console.error('CSV import error:', err);
       alert('Error importing CSV');
@@ -759,14 +747,9 @@ function HealthPage({ token }) {
   const fillGaps = (series, start, end) => {
     const byDate = {};
     series.forEach(p => { byDate[p.dateLabel] = p.value; });
-    // If no explicit range, derive from data
-    const dates = Object.keys(byDate).sort();
-    const actualStart = start || dates[0];
-    const actualEnd   = end   || dates[dates.length - 1];
-    if (!actualStart || !actualEnd) return series;
     const result = [];
-    const cur = new Date(actualStart + 'T12:00:00');
-    const endD = new Date(actualEnd + 'T12:00:00');
+    const cur = new Date(start + 'T12:00:00');
+    const endD = new Date(end + 'T12:00:00');
     while (cur <= endD) {
       const key = formatDate(cur);
       result.push({ dateLabel: key, value: byDate[key] ?? null });
@@ -782,12 +765,19 @@ function HealthPage({ token }) {
     statsMap[t] = s.length ? groupStats(s) : null;
   });
 
+  // All hooks must be called at top level before any conditional returns
+  useEffect(() => {
+    if (token) { fetchData(); fetchImports(); fetchTodayFood(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   // Early return for unauthenticated users (after all hooks)
   if (!token) {
     return <div style={{padding: '20px', textAlign:'center'}}>Please log in</div>;
   }
 
   // ── Today's nutrition summary (from food_log_entries) ─────────────────
+  const todayKey = formatDate(new Date());
   const todayNutrition = (() => {
     if (!todayFood) return { calories: null, protein: null, carbs: null, fat: null };
     const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
@@ -824,9 +814,7 @@ function HealthPage({ token }) {
       if (!vals.length) return null;
       const byDay = {};
       vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
-      const dayCount = Object.keys(byDay).length;
-      if (!dayCount) return null;
-      return Object.values(byDay).reduce((a, b) => a + b, 0) / dayCount;
+      return Object.values(byDay).reduce((a, b) => a + b, 0) / (overviewPeriod || Object.keys(byDay).length || 1);
     };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
@@ -951,7 +939,7 @@ function HealthPage({ token }) {
               >{l}</button>
             ))}
           </div>
-          <div className="hp-overview-period-label">{overviewCutoffKey} – {yesterdayKey}</div>
+          <div className="hp-overview-period-label">{overviewCutoffKey} – {todayKey}</div>
           <div className="hp-overview-macros">
             {overviewData.kcal !== null && (
               <div className="hp-macro-chip">
@@ -1027,38 +1015,11 @@ function HealthPage({ token }) {
         <div className="date-controls">
           <label>Start: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
           <label>End: <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
-          <div className="hp-range-row">
-            {[
-              { id: '7',   label: '7 d' },
-              { id: '30',  label: '30 d' },
-              { id: '90',  label: '90 d' },
-              { id: '365', label: '1 y' },
-              { id: 'all', label: 'All' },
-            ].map(o => (
-              <button
-                key={o.id}
-                className={`hp-range-btn${
-                  (() => {
-                    if (o.id === 'all') return !startDate ? ' active' : '';
-                    const d = new Date(); const s = new Date();
-                    s.setDate(d.getDate() - parseInt(o.id, 10));
-                    return startDate === formatDate(s) && endDate === formatDate(d) ? ' active' : '';
-                  })()
-                }`}
-                onClick={() => {
-                  if (o.id === 'all') {
-                    setStartDate('');
-                    setEndDate('');
-                  } else {
-                    const d = new Date();
-                    const s = new Date(); s.setDate(d.getDate() - parseInt(o.id, 10));
-                    setStartDate(formatDate(s));
-                    setEndDate(formatDate(d));
-                  }
-                }}
-              >{o.label}</button>
-            ))}
-          </div>
+          <button onClick={() => {
+            const d = new Date();
+            const s = new Date(); s.setDate(d.getDate() - 30);
+            setStartDate(formatDate(s)); setEndDate(formatDate(d));
+          }}>Last 30 days</button>
           <button
             className="reset-order-btn"
             title="Reset card order"
@@ -1077,8 +1038,9 @@ function HealthPage({ token }) {
               const group = meta?.group || 'Extra Nutritional Info';
               const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               const unit = meta?.unit || '';
+              const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
+              const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
               const isDragOver = dragOver === t;
-              const isExpanded = expandedCards.has(t);
               const items = [];
               if (group !== lastGroup) {
                 lastGroup = group;
@@ -1089,68 +1051,43 @@ function HealthPage({ token }) {
               items.push(
               <div
                 key={t}
-                className={`stat-card${isDragOver ? ' drag-over' : ''}${isExpanded ? ' stat-card--expanded' : ''}`}
+                className={`stat-card${isDragOver ? ' drag-over' : ''}`}
                 draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; dragSrc.current = t; }}
                 onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOver !== t) setDragOver(t); }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
                 onDrop={e => { e.preventDefault(); handleDrop(t); }}
                 onDragEnd={() => { dragSrc.current = null; setDragOver(null); }}
-                onClick={e => {
-                  if (!e.target.closest('.stat-remove-btn')) {
-                    setExpandedCards(prev => {
-                      const next = new Set(prev);
-                      if (next.has(t)) next.delete(t);
-                      else next.add(t);
-                      return next;
-                    });
-                  }
-                }}
+                onClick={e => { if (!e.target.closest('.stat-remove-btn')) setExpandedType(t); }}
               >
                 <button
                   className="stat-remove-btn"
                   title="Hide this metric"
                   onClick={e => { e.stopPropagation(); hideType(t); }}
                 >×</button>
-                <div className="stat-card-header">
-                  <div className="stat-title">{label}</div>
-                  {statsMap[t] ? (
-                    <div className="stat-latest-value">{statsMap[t].latest} <small>{unit}</small></div>
-                  ) : null}
-                </div>
-                {statsMap[t] && !isExpanded && (
-                  <div className="stat-summary-line">
-                    Avg {statsMap[t].avg.toFixed(1)} · Min {statsMap[t].min} · Max {statsMap[t].max} {unit}
+                <div className="stat-title">{label}</div>
+                {statsMap[t] ? (
+                  <div className="stat-values">
+                    <div><strong>Latest:</strong> {statsMap[t].latest} {unit}</div>
+                    <div><strong>Avg:</strong> {statsMap[t].avg.toFixed(1)} {unit}</div>
+                    <div><strong>Min:</strong> {statsMap[t].min} {unit}</div>
+                    <div><strong>Max:</strong> {statsMap[t].max} {unit}</div>
+                  </div>
+                ) : (
+                  <div className="stat-empty">No data</div>
+                )}
+                {hasChartData && (
+                  <div className="mini-chart">
+                    <ResponsiveContainer width="100%" height={90}>
+                      <LineChart data={gapFilled}>
+                        <XAxis dataKey="dateLabel" hide />
+                        <YAxis hide domain={['auto', 'auto']} />
+                        <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
+                        <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={false} strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
-                {!statsMap[t] && <div className="stat-empty">No data</div>}
-                {isExpanded && statsMap[t] && (() => {
-                  const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
-                  const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
-                  return (
-                    <>
-                      <div className="stat-values">
-                        <div><strong>Latest:</strong> {statsMap[t].latest} {unit}</div>
-                        <div><strong>Avg:</strong> {statsMap[t].avg.toFixed(1)} {unit}</div>
-                        <div><strong>Min:</strong> {statsMap[t].min} {unit}</div>
-                        <div><strong>Max:</strong> {statsMap[t].max} {unit}</div>
-                      </div>
-                      {hasChartData && (
-                        <div className="stat-inline-chart">
-                          <ResponsiveContainer width="100%" height={180}>
-                            <LineChart data={gapFilled} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
-                              <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} interval="preserveStartEnd" />
-                              <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} width={38} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
-                              <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} ${unit}`, label]} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} itemStyle={{ color: '#6ee7ff' }} labelStyle={{ color: '#94a3b8' }} />
-                              <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: gapFilled.filter(p => p.value !== null).length < 30 ? 2 : 0, fill: '#6ee7ff' }} strokeWidth={2} connectNulls />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
               </div>
               );
               return items;
@@ -1159,7 +1096,59 @@ function HealthPage({ token }) {
         </div>
       </section>
 
-      {/* Modal removed — charts now expand inline within stat cards */}
+      {/* Expanded metric modal */}
+      {expandedType && (() => {
+        const t = expandedType;
+        const meta = typeMeta[t];
+        const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const unit = meta?.unit || '';
+        const allData = seriesFor(t);
+        const rangeData = fillGaps(allData, startDate, endDate);
+        const s = statsMap[t];
+        return (
+          <div className="modal-overlay" onClick={() => setExpandedType(null)}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setExpandedType(null)}>×</button>
+              <h3 className="modal-title">{label} {unit ? <span className="modal-unit">({unit})</span> : null}</h3>
+              {s && (
+                <div className="modal-stats-row">
+                  <div className="modal-stat"><span>Latest</span><strong>{s.latest} {unit}</strong></div>
+                  <div className="modal-stat"><span>Average</span><strong>{s.avg.toFixed(2)} {unit}</strong></div>
+                  <div className="modal-stat"><span>Min</span><strong>{s.min} {unit}</strong></div>
+                  <div className="modal-stat"><span>Max</span><strong>{s.max} {unit}</strong></div>
+                  <div className="modal-stat"><span>Data points</span><strong>{s.count}</strong></div>
+                </div>
+              )}
+              {rangeData.filter(p => p.value !== null).length > 1 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={rangeData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
+                    <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
+                    <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(2) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
+                    <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p style={{ color: '#9ab', marginTop: 16 }}>Not enough data in selected range.</p>
+              )}
+              <div className="modal-data-table">
+                <table>
+                  <thead><tr><th>Date</th><th>Value</th></tr></thead>
+                  <tbody>
+                    {[...rangeData].reverse().filter(p => p.value !== null).slice(0, 50).map((row, i) => (
+                      <tr key={i}>
+                        <td>{row.dateLabel}</td>
+                        <td>{typeof row.value === 'number' ? row.value.toFixed(2) : row.value} {unit}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Add metrics picker modal */}
       {addPickerOpen && (

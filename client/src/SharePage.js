@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts';
 import './SharePage.css';
 import API_BASE from './apiBase';
@@ -465,7 +464,7 @@ function SharePage() {
   const [unlocking,  setUnlocking]  = useState(false);
   const [activeTab,  setActiveTab]  = useState('vitals');
   const [showJournal, setShowJournal] = useState(false);
-  const [showFoodNotes] = useState(true);
+  const [showFoodNotes, setShowFoodNotes] = useState(true);
   const [shareJwt,    setShareJwt]    = useState(null);
   const [activePeriod, setActivePeriod] = useState('week');
   const [periodLoading, setPeriodLoading] = useState(false);
@@ -631,34 +630,6 @@ function SharePage() {
         hasAuto: autoReadings.length > 0, hasIh: ihReadings.length > 0,
       };
     }).filter(Boolean);
-  }, [healthInfo]);
-
-  /* ── Weight hero chart: every individual reading, NO averaging ── */
-  const weightChart = useMemo(() => {
-    const rawData = healthInfo?.data || [];
-    const weightKeys = new Set(['weight_lb', 'weight_kg']);
-    const points = rawData
-      .filter(r => weightKeys.has(canonical(r.type)))
-      .map(r => {
-        let v = toNum(r.value);
-        if (!Number.isFinite(v)) return null;
-        if (canonical(r.type) === 'weight_kg') v = Math.round(v * 2.20462 * 100) / 100;
-        else v = Math.round(v * 100) / 100;
-        const d = new Date(r.timestamp);
-        if (!Number.isFinite(d.getTime())) return null;
-        return { date: d, dateLabel: fmtLocalDate(d), value: v };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.date - b.date);
-    if (points.length < 2) return null;
-    const vals = points.map(p => p.value);
-    return {
-      points,
-      latest: vals[vals.length - 1],
-      min: Math.min(...vals),
-      max: Math.max(...vals),
-      count: vals.length,
-    };
   }, [healthInfo]);
 
   const vitalsGraphs = useMemo(() => {
@@ -993,51 +964,7 @@ function SharePage() {
         </div>
 
         {activeTab === 'vitals' && <>
-          {/* ── Weight hero chart — exact readings, no averages ── */}
-          {weightChart && (
-            <div className="vp-weight-hero">
-              <div className="vp-weight-hero-header">
-                <div className="vp-weight-hero-title">Weight</div>
-                <div className="vp-weight-hero-latest">
-                  {weightChart.latest.toFixed(1)} <span>lb</span>
-                </div>
-              </div>
-              <div className="vp-weight-hero-stats">
-                <span>Min {weightChart.min.toFixed(1)}</span>
-                <span>Max {weightChart.max.toFixed(1)}</span>
-                <span>{weightChart.count} readings</span>
-              </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={weightChart.points} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-                  <XAxis
-                    dataKey="dateLabel"
-                    tick={{ fill: '#64748b', fontSize: 11 }}
-                    tickLine={{ stroke: 'rgba(148,163,184,0.12)' }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tick={{ fill: '#64748b', fontSize: 11 }}
-                    domain={[Math.floor(weightChart.min - Math.max((weightChart.max - weightChart.min) * 0.15, 0.5)),
-                             Math.ceil(weightChart.max + Math.max((weightChart.max - weightChart.min) * 0.15, 0.5))]}
-                    width={42}
-                    tickLine={{ stroke: 'rgba(148,163,184,0.12)' }}
-                  />
-                  <ReferenceLine y={weightChart.latest} stroke="rgba(167,139,250,0.25)" strokeDasharray="4 4" />
-                  <Tooltip
-                    formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} lb`, 'Weight']}
-                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                    itemStyle={{ color: '#a78bfa' }}
-                    labelStyle={{ color: '#94a3b8' }}
-                  />
-                  <Line type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={2}
-                    dot={{ r: 3, fill: '#a78bfa', stroke: '#1e293b', strokeWidth: 1 }}
-                    activeDot={{ r: 5 }} name="Weight" connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {vitalsMetrics.length === 0 && !weightChart && <p className="share-empty">No vitals data for this period.</p>}
+          {vitalsMetrics.length === 0 && <p className="share-empty">No vitals data for this period.</p>}
           {vitalsMetrics.length > 0 && <>
             {/* Graph tiles */}
             <div className="sv-graphs-grid">
