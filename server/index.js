@@ -55,15 +55,12 @@ const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
-if (process.env.NODE_ENV === 'production' && !ALLOWED_ORIGINS.length) {
-  console.error('[FATAL] CORS_ORIGINS env var is required in production. Exiting.');
-  process.exit(1);
-}
-
+// Same-origin requests (client served from Express) don't need CORS,
+// but keep CORS configured for any external callers (e.g. GitHub Pages, HAE REST)
 app.use(cors(
   ALLOWED_ORIGINS.length
     ? { origin: ALLOWED_ORIGINS, credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'X-Ingest-Key', 'X-Upload-Filename', 'X-File-Name'] }
-    : { origin: true, credentials: true } // dev: reflect origin, still enable credentials for cookies
+    : { origin: true, credentials: true }
 ));
 
 /* ── Global rate limiter ────────────────────────────────── */
@@ -104,10 +101,21 @@ app.get('/api/diag', async (_req, res) => {
   res.json({ db: dbDiag, users: userCount, uptime: process.uptime() });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
+/* ── Serve React client build in production ────────────── */
+const clientBuild = path.join(__dirname, '..', 'client', 'build');
+if (fs.existsSync(clientBuild)) {
+  app.use(express.static(clientBuild));
+  // SPA fallback — serve index.html for any non-API route
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
+    res.sendFile(path.join(clientBuild, 'index.html'));
+  });
+} else {
+  // No client build — 404 for non-API routes
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+}
 
 // Global error handler – keeps the server alive on route errors
 app.use((err, _req, res, _next) => {
