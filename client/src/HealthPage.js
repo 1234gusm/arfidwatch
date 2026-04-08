@@ -811,11 +811,12 @@ function HealthPage({ token }) {
         .filter(r => canonical(r.type) === ct)
         .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp) }))
         .filter(x => x.day >= overviewCutoffKey && x.day <= yesterdayKey && Number.isFinite(x.v));
-    const avgZeroFill = (vals) => {
+    const avgByActualDays = (vals) => {
       if (!vals.length) return null;
       const byDay = {};
       vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
-      return Object.values(byDay).reduce((a, b) => a + b, 0) / (overviewPeriod || Object.keys(byDay).length || 1);
+      const dayVals = Object.values(byDay);
+      return dayVals.reduce((a, b) => a + b, 0) / (dayVals.length || 1);
     };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
@@ -830,10 +831,10 @@ function HealthPage({ token }) {
     return {
       weight:     weightVals.length ? weightVals[0].v    : null,
       weightUnit: weightVals.length ? weightVals[0].unit : 'lb',
-      kcal:       avgZeroFill(getRange('dietary_energy_kcal')),
-      protein:    avgZeroFill(getRange('protein_g')),
-      carbs:      avgZeroFill(getRange('carbohydrates_g')),
-      fat:        avgZeroFill(getRange('total_fat_g')),
+      kcal:       avgByActualDays(getRange('dietary_energy_kcal')),
+      protein:    avgByActualDays(getRange('protein_g')),
+      carbs:      avgByActualDays(getRange('carbohydrates_g')),
+      fat:        avgByActualDays(getRange('total_fat_g')),
       restingHR:  hrVals.length ? hrVals[0].v : null,
       bpSys:      avgSimple(getRange('blood_pressure_systolic_mmhg')),
       bpDia:      avgSimple(getRange('blood_pressure_diastolic_mmhg')),
@@ -940,7 +941,7 @@ function HealthPage({ token }) {
               >{l}</button>
             ))}
           </div>
-          <div className="hp-overview-period-label">{overviewCutoffKey} – {todayKey}</div>
+          <div className="hp-overview-period-label">{overviewCutoffKey} – {yesterdayKey}</div>
           <div className="hp-overview-macros">
             {overviewData.kcal !== null && (
               <div className="hp-macro-chip">
