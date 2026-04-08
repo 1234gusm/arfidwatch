@@ -860,7 +860,7 @@ function SharePage() {
     const rows = section.metrics
       .map(m => {
         const map  = pick(maps, ...m.keys);
-        const v    = map ? (m.mode === 'latest' ? latestOf(map) : avgOf(map)) : null;
+        const v    = map ? (m.mode === 'latest' ? latestOf(map) : avgOfPeriod(map, periodDays)) : null;
         const days = map ? countOf(map) : 0;
         const lo   = map ? minOf(map) : null;
         const hi   = map ? maxOf(map) : null;
@@ -960,10 +960,10 @@ function SharePage() {
             );
           })()}
           {(() => {
-            const rhr    = avgOf(maps['resting_heart_rate_countmin']);
-            const bpSys  = avgOf(maps['blood_pressure_systolic_mmhg']);
-            const bpDia  = avgOf(maps['blood_pressure_diastolic_mmhg']);
-            const hrv    = avgOf(maps['heart_rate_variability_ms']);
+            const rhr    = avgOfPeriod(maps['resting_heart_rate_countmin'], periodDays);
+            const bpSys  = avgOfPeriod(maps['blood_pressure_systolic_mmhg'], periodDays);
+            const bpDia  = avgOfPeriod(maps['blood_pressure_diastolic_mmhg'], periodDays);
+            const hrv    = avgOfPeriod(maps['heart_rate_variability_ms'], periodDays);
             if (rhr == null && bpSys == null && hrv == null) return null;
             return (
               <div className="share-patient-macros share-patient-vitals">
@@ -976,6 +976,7 @@ function SharePage() {
         </div>
 
         {/* Tabs */}
+        <div className="share-tabs-wrap">
         <div className="share-tabs-scroll">
         <div className="share-tabs">
           <button
@@ -1004,6 +1005,7 @@ function SharePage() {
             className={`share-tab${activeTab === 'overview' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >Extra Stats</button>
+        </div>
         </div>
         </div>
 

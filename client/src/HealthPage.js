@@ -816,7 +816,10 @@ function HealthPage({ token }) {
       const byDay = {};
       vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
       const dayVals = Object.values(byDay);
-      return dayVals.reduce((a, b) => a + b, 0) / (dayVals.length || 1);
+      const sum = dayVals.reduce((a, b) => a + b, 0);
+      // For fixed periods, divide by total calendar days (zero-fill); for All, use actual days
+      const denom = overviewPeriod > 0 ? overviewPeriod : (dayVals.length || 1);
+      return sum / denom;
     };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
@@ -826,7 +829,10 @@ function HealthPage({ token }) {
     const hrVals = getRange('resting_heart_rate_countmin').sort((a, b) => b.day.localeCompare(a.day));
     const avgSimple = (vals) => {
       if (!vals.length) return null;
-      return vals.reduce((a, b) => a + b.v, 0) / vals.length;
+      const sum = vals.reduce((a, b) => a + b.v, 0);
+      // For fixed periods, divide by total calendar days (zero-fill); for All, use actual count
+      const denom = overviewPeriod > 0 ? overviewPeriod : vals.length;
+      return sum / denom;
     };
     return {
       weight:     weightVals.length ? weightVals[0].v    : null,

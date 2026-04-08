@@ -86,7 +86,7 @@ router.post('/register', authLimiter, async (req, res) => {
   const rounds = parseInt(process.env.SALT_ROUNDS) || 10;
   const hash = await bcrypt.hash(password, rounds);
   const [id] = await db('users').insert({ username, password: hash, email: normalizedEmail });
-  const token = jwt.sign({ id, username }, SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id, username }, SECRET, { expiresIn: '90d' });
   res.cookie(COOKIE_NAME, token, cookieOptions());
   res.json({ ok: true, has_email: !!normalizedEmail, token });
 });
@@ -108,7 +108,7 @@ router.post('/login', authLimiter, async (req, res) => {
   if (!match) {
     return res.status(400).json({ error: 'invalid credentials' });
   }
-  const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '90d' });
   res.cookie(COOKIE_NAME, token, cookieOptions());
   res.json({ ok: true, token });
 });
@@ -217,7 +217,10 @@ router.post('/change-password', authenticate, async (req, res) => {
 
 // V-2: Session check — validates httpOnly cookie, returns user info
 router.get('/me', authenticate, async (req, res) => {
-  res.json({ authenticated: true, id: req.user.id, username: req.user.username });
+  // Rolling refresh: re-issue token + cookie on every session check
+  const freshToken = jwt.sign({ id: req.user.id, username: req.user.username }, SECRET, { expiresIn: '90d' });
+  res.cookie(COOKIE_NAME, freshToken, cookieOptions());
+  res.json({ authenticated: true, id: req.user.id, username: req.user.username, token: freshToken });
 });
 
 // V-2: Logout — clears the httpOnly cookie

@@ -1,11 +1,21 @@
 import API_BASE from './apiBase';
 
-/* ── In-memory JWT token (fallback when cross-site cookies are blocked) ── */
+/* ── Persistent JWT token (localStorage + in-memory) ── */
+const TOKEN_KEY = 'aw_auth_token';
 let _token = null;
 
-export function setAuthToken(t) { _token = t; }
+// Restore token from localStorage on load
+try { _token = localStorage.getItem(TOKEN_KEY); } catch (_) {}
+
+export function setAuthToken(t) {
+  _token = t;
+  try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch (_) {}
+}
 export function getAuthToken() { return _token; }
-export function clearAuthToken() { _token = null; }
+export function clearAuthToken() {
+  _token = null;
+  try { localStorage.removeItem(TOKEN_KEY); } catch (_) {}
+}
 
 /**
  * Wrapper around fetch that automatically attaches credentials (cookie)
@@ -29,7 +39,11 @@ export async function checkSession() {
     const res = await authFetch(`${API_BASE}/api/auth/me`);
     if (res.ok) {
       const data = await res.json();
-      if (data?.authenticated) return data;
+      if (data?.authenticated) {
+        // Persist refreshed token from server
+        if (data.token) setAuthToken(data.token);
+        return data;
+      }
     }
   } catch (_) {}
   return null;

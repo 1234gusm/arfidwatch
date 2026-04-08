@@ -23,7 +23,7 @@ import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import TasksPage from './TasksPage';
 import API_BASE from './apiBase';
-import { authFetch, checkSession, clearAuthToken } from './auth';
+import { authFetch, checkSession, clearAuthToken, getAuthToken } from './auth';
 
 const TAB_DEFS = [
   { id: 'health', label: 'Health', to: '/' },
@@ -54,7 +54,7 @@ const sanitizeTabPrefs = (raw) => {
 };
 
 function App() {
-  const [token, setToken] = useState(null); // V-2: no longer read from localStorage
+  const [token, setToken] = useState(() => getAuthToken() ? 'authenticated' : null);
   const [healthApiUrl, setHealthApiUrl] = useState('');
   const [tabPrefs, setTabPrefs] = useState({ order: TAB_IDS, hidden: [] });
   const [draggedTabId, setDraggedTabId] = useState(null);
@@ -86,14 +86,14 @@ function App() {
     }
   };
 
-  /* V-2: Restore session from httpOnly cookie or in-memory token on mount */
+  /* Restore session from httpOnly cookie or stored token on mount */
   useEffect(() => {
     let active = true;
     checkSession().then(data => {
-      if (active && data) setToken('authenticated');
+      if (!active) return;
+      if (data) setToken('authenticated');
+      else { clearAuthToken(); setToken(null); }
     });
-    /* Migrate: clear any leftover localStorage token from old versions */
-    localStorage.removeItem('token');
     return () => { active = false; };
   }, []);
 

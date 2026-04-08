@@ -32,23 +32,29 @@ function authenticateShare(req, res, next) {
 const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 function dateRangeForPeriod(period, clientToday) {
-  // Use client's local date if provided, otherwise fall back to server time
-  const end = clientToday ? new Date(clientToday + 'T23:59:59') : new Date();
+  // Use client's local date if provided, otherwise fall back to server time.
+  // Always stay one day behind — end at yesterday so a brand-new day with no
+  // data logged yet doesn't drag rolling averages down with a zero.
+  const today = clientToday ? new Date(clientToday + 'T00:00:00') : new Date();
+  const end = new Date(today);
+  end.setDate(end.getDate() - 1);
+  end.setHours(23, 59, 59, 999);
   const start = new Date(end);
   if (period === 'today') {
+    // "Today" still means yesterday (the last complete day)
     start.setHours(0, 0, 0, 0);
   } else if (period === 'month') {
-    start.setDate(start.getDate() - 30);
+    start.setDate(start.getDate() - 29);
     start.setHours(0, 0, 0, 0);
   } else if (period === 'ninety') {
-    start.setDate(start.getDate() - 90);
+    start.setDate(start.getDate() - 89);
     start.setHours(0, 0, 0, 0);
   } else if (period === 'two_weeks') {
-    start.setDate(start.getDate() - 14);
+    start.setDate(start.getDate() - 13);
     start.setHours(0, 0, 0, 0);
   } else {
-    // 'week' or anything else — 7 days back, from start of that day
-    start.setDate(start.getDate() - 7);
+    // 'week' or anything else — 7 days ending at yesterday
+    start.setDate(start.getDate() - 6);
     start.setHours(0, 0, 0, 0);
   }
   return { start, end };

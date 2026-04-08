@@ -159,7 +159,7 @@
   min-height: 36px;
   display: inline-flex;
   align-items: center;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 .med-quick-drag-handle:active {

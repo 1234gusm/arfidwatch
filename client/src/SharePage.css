@@ -157,6 +157,20 @@
 .share-patient-vitals { margin-top: 4px; }
 
 /* ── Tabs ── */
+.share-tabs-wrap {
+  position: relative;
+}
+.share-tabs-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, rgba(15,23,42,0.85));
+  pointer-events: none;
+  border-radius: 0 12px 12px 0;
+}
 .share-tabs-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
