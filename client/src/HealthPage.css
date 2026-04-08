@@ -273,7 +273,13 @@
 }
 .stat-card:hover .stat-remove-btn { opacity: 1; }
 
-.stat-title { font-weight: 700; color: #c4b5fd; margin-bottom: 6px; font-size: 0.82rem; letter-spacing: 0.03em; padding-right: 18px; }
+.stat-title { font-weight: 700; color: #c4b5fd; margin-bottom: 2px; font-size: 0.72rem; letter-spacing: 0.03em; padding-right: 18px; text-transform: uppercase; }
+.stat-number { font-size: 1.4rem; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+.stat-unit { font-size: 0.7rem; font-weight: 500; color: rgba(196,181,253,0.6); }
+.stat-detail-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.stat-detail-row span { font-size: 0.7rem; color: #94a3b8; }
+.stat-inline-chart { margin-top: 8px; }
+.stat-card--expanded { grid-column: span 2; }
 .stat-values div { color: #cbd5e1; margin: 4px 0; font-size: 0.88rem; }
 .stat-values strong { color: #f1f5f9; }
 .stat-empty { color: #64748b; font-style: italic; }
@@ -549,7 +555,9 @@
   .stat-card {
     padding: 10px 10px 8px;
   }
-  .stat-title { font-size: 0.78rem; }
+  .stat-title { font-size: 0.68rem; }
+  .stat-number { font-size: 1.2rem; }
+  .stat-card--expanded { grid-column: 1 / -1; }
   .stat-values div { font-size: 0.84rem; }
   .mini-chart { height: 72px; }
 

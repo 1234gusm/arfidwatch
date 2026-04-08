@@ -18,6 +18,7 @@ function HealthPage({ token }) {
   const [todayFood, setTodayFood] = useState(null);
   const [hiddenTypes, setHiddenTypes] = useState(new Set());
   const [expandedType, setExpandedType] = useState(null);
+  const [expandedCards, setExpandedCards] = useState(new Set());
   const [addPickerOpen, setAddPickerOpen] = useState(false);
   const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
@@ -1048,17 +1049,26 @@ function HealthPage({ token }) {
                   <div key={`group-header-${group}`} className="metric-group-header">{group}</div>
                 );
               }
+              const isExpanded = expandedCards.has(t);
+              const toggleExpand = (e) => {
+                if (e.target.closest('.stat-remove-btn')) return;
+                setExpandedCards(prev => {
+                  const next = new Set(prev);
+                  if (next.has(t)) next.delete(t); else next.add(t);
+                  return next;
+                });
+              };
               items.push(
               <div
                 key={t}
-                className={`stat-card${isDragOver ? ' drag-over' : ''}`}
+                className={`stat-card${isDragOver ? ' drag-over' : ''}${isExpanded ? ' stat-card--expanded' : ''}`}
                 draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; dragSrc.current = t; }}
                 onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOver !== t) setDragOver(t); }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
                 onDrop={e => { e.preventDefault(); handleDrop(t); }}
                 onDragEnd={() => { dragSrc.current = null; setDragOver(null); }}
-                onClick={e => { if (!e.target.closest('.stat-remove-btn')) setExpandedType(t); }}
+                onClick={toggleExpand}
               >
                 <button
                   className="stat-remove-btn"
@@ -1067,23 +1077,27 @@ function HealthPage({ token }) {
                 >×</button>
                 <div className="stat-title">{label}</div>
                 {statsMap[t] ? (
-                  <div className="stat-values">
-                    <div><strong>Latest:</strong> {statsMap[t].latest} {unit}</div>
-                    <div><strong>Avg:</strong> {statsMap[t].avg.toFixed(1)} {unit}</div>
-                    <div><strong>Min:</strong> {statsMap[t].min} {unit}</div>
-                    <div><strong>Max:</strong> {statsMap[t].max} {unit}</div>
+                  <div className="stat-number">
+                    {statsMap[t].latest}<span className="stat-unit"> {unit}</span>
                   </div>
                 ) : (
                   <div className="stat-empty">No data</div>
                 )}
-                {hasChartData && (
-                  <div className="mini-chart">
-                    <ResponsiveContainer width="100%" height={90}>
+                {isExpanded && statsMap[t] && (
+                  <div className="stat-detail-row">
+                    <span>Avg {statsMap[t].avg.toFixed(1)}</span>
+                    <span>Min {statsMap[t].min}</span>
+                    <span>Max {statsMap[t].max}</span>
+                  </div>
+                )}
+                {isExpanded && hasChartData && (
+                  <div className="stat-inline-chart">
+                    <ResponsiveContainer width="100%" height={120}>
                       <LineChart data={gapFilled}>
                         <XAxis dataKey="dateLabel" hide />
                         <YAxis hide domain={['auto', 'auto']} />
                         <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
-                        <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={false} strokeWidth={2} />
+                        <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={false} strokeWidth={2} connectNulls={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
