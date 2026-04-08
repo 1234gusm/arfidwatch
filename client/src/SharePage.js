@@ -86,16 +86,60 @@ const TYPE_ALIASES = {
 };
 
 function buildMaps(rows) {
+  // iHealth-priority keys: when iHealth data exists for a day, ignore auto health for that day
+  const IH_PRIORITY = new Set([
+    'heart_rate_avg_countmin', 'resting_heart_rate_countmin',
+    'blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg',
+    'heart_rate', 'heartrate', 'pulse', 'heart_ratebeatsmin',
+    'systolic', 'systolicmmhg', 'systolic_mmhg', 'sys', 'sysmmhg',
+    'diastolic', 'diastolicmmhg', 'diastolic_mmhg', 'dia', 'diammhg',
+  ]);
   const maps = {};
-  rows.forEach(({ type, value, timestamp }) => {
-    const raw = canonical(type);
+  // Track which (type, day) pairs have iHealth data to suppress auto health
+  const ihDays = {};  // { ct: Set(day) }
+  // First pass: collect iHealth rows
+  rows.forEach(r => {
+    if (getSource(r) !== 'ihealth_csv') return;
+    const raw = canonical(r.type);
     const ct  = TYPE_ALIASES[raw] || raw;
-    const v   = parseFloat(value);
+    if (!IH_PRIORITY.has(ct)) return;
+    const v   = parseFloat(r.value);
     if (!Number.isFinite(v)) return;
-    const day = String(timestamp || '').slice(0, 10);
+    const day = String(r.timestamp || '').slice(0, 10);
     if (!day) return;
+    if (!ihDays[ct]) ihDays[ct] = new Set();
+    ihDays[ct].add(day);
     if (!maps[ct]) maps[ct] = {};
-    maps[ct][day] = maps[ct][day] !== undefined ? Math.max(maps[ct][day], v) : v;
+    // For iHealth, average multiple readings per day
+    if (!maps[ct][day]) maps[ct][day] = { sum: v, count: 1 };
+    else if (typeof maps[ct][day] === 'object') { maps[ct][day].sum += v; maps[ct][day].count += 1; }
+    else { maps[ct][day] = { sum: maps[ct][day] + v, count: 2 }; }
+  });
+  // Flatten iHealth averages
+  for (const ct of Object.keys(maps)) {
+    for (const day of Object.keys(maps[ct])) {
+      const entry = maps[ct][day];
+      if (entry && typeof entry === 'object' && 'sum' in entry) {
+        maps[ct][day] = Math.round((entry.sum / entry.count) * 100) / 100;
+      }
+    }
+  }
+  // Second pass: all rows (auto health fills gaps where iHealth is absent)
+  rows.forEach(r => {
+    const raw = canonical(r.type);
+    const ct  = TYPE_ALIASES[raw] || raw;
+    const v   = parseFloat(r.value);
+    if (!Number.isFinite(v)) return;
+    const day = String(r.timestamp || '').slice(0, 10);
+    if (!day) return;
+    // Skip auto health for iHealth-priority types where iHealth has data that day
+    if (IH_PRIORITY.has(ct) && ihDays[ct] && ihDays[ct].has(day) && getSource(r) !== 'ihealth_csv') return;
+    if (!maps[ct]) maps[ct] = {};
+    if (maps[ct][day] === undefined) {
+      maps[ct][day] = v;
+    } else if (!IH_PRIORITY.has(ct) || !ihDays[ct] || !ihDays[ct].has(day)) {
+      maps[ct][day] = Math.max(maps[ct][day], v);
+    }
   });
   return maps;
 }

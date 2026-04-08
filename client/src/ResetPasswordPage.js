@@ -21,7 +21,7 @@ function ResetPasswordPage() {
     e.preventDefault();
     setError('');
     if (!password) { setError('Please enter a new password.'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) { setError('Password must be 8+ characters with upper, lower & a digit.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (!username || !email || !code) {
       setError('Username, email, and reset code are required.');

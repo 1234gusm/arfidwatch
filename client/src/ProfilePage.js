@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './ProfilePage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
@@ -59,6 +59,7 @@ function ProfilePage({ token }) {
   const [heightUnit,        setHeightUnit]        = useState('cm');
   const [heightEditing,     setHeightEditing]     = useState(false);
   const [heightInput,       setHeightInput]       = useState('');
+  const [healthRows,        setHealthRows]        = useState([]);
 
   const appBasePath = window.location.pathname.replace(/\/$/, '');
   const shareUrl = shareToken
@@ -108,6 +109,14 @@ function ProfilePage({ token }) {
     })
       .then(r => r.json())
       .then(d => setMedStatus({ count: d.count || 0, earliest: d.earliest, latest: d.latest }))
+      .catch(() => {});
+
+    // Fetch last 30 days of health data for HR summary
+    const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+    const startDate = `${d30.getFullYear()}-${String(d30.getMonth()+1).padStart(2,'0')}-${String(d30.getDate()).padStart(2,'0')}`;
+    authFetch(`${API_BASE}/api/health?start=${startDate}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setHealthRows(Array.isArray(d.data) ? d.data : []))
       .catch(() => {});
 
   }, [token]);
@@ -459,6 +468,70 @@ function ProfilePage({ token }) {
       ? { label: 'Connected', hint: `Last data received ${new Date(ingestLastUsed).toLocaleString()}.` }
       : { label: 'Waiting', hint: 'Key is ready. Send your first export to complete connection.' });
 
+  // ── Heart Rate summary (iHealth prioritised) ──
+  const hrSummary = useMemo(() => {
+    if (!healthRows.length) return null;
+    const canonical = t => {
+      const s = String(t).toLowerCase();
+      if (s.startsWith('macrofactor_')) return s.slice('macrofactor_'.length);
+      if (s.startsWith('apple_')) return s.slice('apple_'.length);
+      return s;
+    };
+    const getSource = r => { try { return JSON.parse(String(r.raw || '{}')).source || ''; } catch (_) { return ''; } };
+    const HR_KEYS = new Set(['heart_rate_avg_countmin', 'heart_rate', 'heartrate', 'pulse', 'heart_ratebeatsmin']);
+    const RHR_KEYS = new Set(['resting_heart_rate_countmin', 'resting_heart_rate']);
+    const BP_SYS_KEYS = new Set(['blood_pressure_systolic_mmhg', 'systolic', 'systolicmmhg', 'systolic_mmhg', 'sys', 'sysmmhg']);
+    const BP_DIA_KEYS = new Set(['blood_pressure_diastolic_mmhg', 'diastolic', 'diastolicmmhg', 'diastolic_mmhg', 'dia', 'diammhg']);
+
+    const collect = (keys) => {
+      // Two buckets: iHealth readings, auto health daily averages
+      const ihVals = [];
+      const autoByDay = {}; // { day: { sum, count } }
+      healthRows.forEach(r => {
+        const ct = canonical(r.type);
+        if (!keys.has(ct)) return;
+        const v = parseFloat(r.value);
+        if (!Number.isFinite(v)) return;
+        const day = String(r.timestamp || '').slice(0, 10);
+        if (getSource(r) === 'ihealth_csv') {
+          ihVals.push({ day, v });
+        } else {
+          if (!autoByDay[day]) autoByDay[day] = { sum: 0, count: 0 };
+          autoByDay[day].sum += v;
+          autoByDay[day].count += 1;
+        }
+      });
+      // Build final per-day values (iHealth wins on overlap)
+      const ihDays = new Set(ihVals.map(x => x.day));
+      const dayMap = {};
+      // iHealth: average per day
+      ihVals.forEach(({ day, v }) => {
+        if (!dayMap[day]) dayMap[day] = { sum: 0, count: 0, src: 'ihealth' };
+        dayMap[day].sum += v;
+        dayMap[day].count += 1;
+      });
+      // Auto: fill gaps
+      for (const [day, { sum, count }] of Object.entries(autoByDay)) {
+        if (ihDays.has(day)) continue;
+        dayMap[day] = { sum, count, src: 'auto' };
+      }
+      const vals = Object.values(dayMap).map(d => d.sum / d.count);
+      if (!vals.length) return null;
+      const ihCount = [...Object.values(dayMap)].filter(d => d.src === 'ihealth').length;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const latest = Object.entries(dayMap).sort((a, b) => b[0].localeCompare(a[0]))[0];
+      return { avg: Math.round(avg), min: Math.round(min), max: Math.round(max), latest: Math.round(latest[1].sum / latest[1].count), latestDay: latest[0], count: vals.length, ihCount, src: latest[1].src };
+    };
+    return {
+      hr: collect(HR_KEYS),
+      rhr: collect(RHR_KEYS),
+      bpSys: collect(BP_SYS_KEYS),
+      bpDia: collect(BP_DIA_KEYS),
+    };
+  }, [healthRows]);
+
   if (loading) return <div className="profile-page"><p>Loading…</p></div>;
 
   return (
@@ -553,6 +626,39 @@ function ProfilePage({ token }) {
           </div>
         )}
       </div>
+
+      {/* ── Vitals Snapshot (30-day, iHealth prioritised) ── */}
+      {hrSummary && (hrSummary.hr || hrSummary.rhr || hrSummary.bpSys) && (
+        <div className="profile-card profile-vitals-card">
+          <div className="profile-section-title" style={{ borderTop: 'none', paddingTop: 0 }}>Vitals Snapshot <small style={{ fontWeight: 400, color: 'rgba(148,163,184,0.5)', fontSize: '0.7rem' }}>last 30 days</small></div>
+          <div className="profile-vitals-grid">
+            {hrSummary.hr && (
+              <div className="profile-vital-item">
+                <span className="profile-vital-value" style={{ color: '#ef4444' }}>{hrSummary.hr.latest}</span>
+                <span className="profile-vital-label">Avg HR <small>bpm</small></span>
+                <span className="profile-vital-range">{hrSummary.hr.min}–{hrSummary.hr.max} · avg {hrSummary.hr.avg}</span>
+                {hrSummary.hr.ihCount > 0 && <span className="profile-vital-src">iHealth · {hrSummary.hr.ihCount}d</span>}
+              </div>
+            )}
+            {hrSummary.rhr && (
+              <div className="profile-vital-item">
+                <span className="profile-vital-value" style={{ color: '#e74c3c' }}>{hrSummary.rhr.latest}</span>
+                <span className="profile-vital-label">Resting HR <small>bpm</small></span>
+                <span className="profile-vital-range">{hrSummary.rhr.min}–{hrSummary.rhr.max} · avg {hrSummary.rhr.avg}</span>
+                {hrSummary.rhr.ihCount > 0 && <span className="profile-vital-src">iHealth · {hrSummary.rhr.ihCount}d</span>}
+              </div>
+            )}
+            {hrSummary.bpSys && hrSummary.bpDia && (
+              <div className="profile-vital-item">
+                <span className="profile-vital-value" style={{ color: '#f97316' }}>{hrSummary.bpSys.latest}/{hrSummary.bpDia.latest}</span>
+                <span className="profile-vital-label">Blood Pressure <small>mmHg</small></span>
+                <span className="profile-vital-range">sys {hrSummary.bpSys.min}–{hrSummary.bpSys.max} · dia {hrSummary.bpDia.min}–{hrSummary.bpDia.max}</span>
+                {hrSummary.bpSys.ihCount > 0 && <span className="profile-vital-src">iHealth · {hrSummary.bpSys.ihCount}d</span>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── 2. Security ── */}
       <div className="profile-card">

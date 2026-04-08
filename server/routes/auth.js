@@ -222,7 +222,7 @@ router.get('/me', authenticate, async (req, res) => {
 
 // V-2: Logout — clears the httpOnly cookie
 router.post('/logout', (_req, res) => {
-  res.clearCookie(COOKIE_NAME, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', path: '/' });
+  res.clearCookie(COOKIE_NAME, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
   res.json({ ok: true });
 });
 
