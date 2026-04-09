@@ -27,7 +27,6 @@ function HealthPage({ token }) {
   const [addPickerOpen, setAddPickerOpen] = useState(false);
   const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
-  const [macroLogOpen, setMacroLogOpen] = useState(true);
   const dragSrc = useRef(null);
   const uploadInputRef = useRef(null);
 
@@ -797,49 +796,6 @@ function HealthPage({ token }) {
       .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel));
   };
 
-  // ── Daily Macros log (same as SharePage / doctor view) ──────────────
-  const localDateStr = (isoStr) => {
-    const s = String(isoStr).slice(0, 10);
-    const [y, m, d] = s.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const macroDays = (() => {
-    // Build every date from earliest macro entry to today (same as doctor page)
-    const dateSet = new Set();
-    ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'].forEach(k => {
-      if (chartMaps[k]) Object.keys(chartMaps[k]).forEach(d => dateSet.add(d));
-    });
-    if (dateSet.size === 0) return [];
-    const sorted = [...dateSet].sort();
-    const earliest = sorted[0];
-    const today = formatDate(new Date());
-    const allDates = [];
-    const cur = new Date(earliest + 'T00:00:00');
-    const end = new Date(today + 'T00:00:00');
-    while (cur <= end) {
-      allDates.push(formatDate(cur));
-      cur.setDate(cur.getDate() + 1);
-    }
-    return allDates.reverse().map(date => ({
-      date,
-      empty: !chartMaps['dietary_energy_kcal']?.[date] && !chartMaps['protein_g']?.[date] && !chartMaps['carbohydrates_g']?.[date] && !chartMaps['total_fat_g']?.[date],
-      kcal:    chartMaps['dietary_energy_kcal']?.[date] ?? 0,
-      protein: chartMaps['protein_g']?.[date]           ?? 0,
-      carbs:   chartMaps['carbohydrates_g']?.[date]     ?? 0,
-      fat:     chartMaps['total_fat_g']?.[date]         ?? 0,
-    }));
-  })();
-
-  const dayBar = (d) => {
-    const p = (d.protein || 0) * 4;
-    const c = (d.carbs || 0) * 4;
-    const f = (d.fat || 0) * 9;
-    const tot = p + c + f;
-    if (!tot) return null;
-    return { p: Math.round(p / tot * 100), c: Math.round(c / tot * 100), f: Math.round(f / tot * 100) };
-  };
-
   // build stats map for types
   const statsMap = {};
   typesOfInterest.forEach(t => {
@@ -1091,58 +1047,6 @@ function HealthPage({ token }) {
           <div className="eating-banner-cta">No food logged today — remember to eat! 🥗</div>
         )}
       </div>
-
-      {/* ── Daily Macros log (same as doctor/share page) ── */}
-      {macroDays.length > 0 && (
-        <div className="hp-macro-log">
-          <button className="hp-macro-log-toggle" onClick={() => setMacroLogOpen(o => !o)}>
-            <span>Daily Macros ({macroDays.length})</span>
-            <span>{macroLogOpen ? '▾' : '▸'}</span>
-          </button>
-          {macroLogOpen && (
-            <div className="hp-macro-log-list">
-              {macroDays.map(d => {
-                const bar = dayBar(d);
-                return (
-                  <div key={d.date} className="hp-macro-day">
-                    <div className="hp-macro-day-header">
-                      <span className="hp-macro-day-date">{localDateStr(d.date)}</span>
-                      <span className={`hp-macro-day-cals${d.empty ? ' hp-macro-day-cals--zero' : ''}`}>{Math.round(d.kcal).toLocaleString()} kcal</span>
-                    </div>
-                    <div className="hp-macro-day-chips">
-                      {[
-                        { val: d.kcal,    label: 'Calories', unit: 'kcal', dp: 0 },
-                        { val: d.protein,  label: 'Protein',  unit: 'g',    dp: 1 },
-                        { val: d.carbs,    label: 'Carbs',    unit: 'g',    dp: 1 },
-                        { val: d.fat,      label: 'Fat',      unit: 'g',    dp: 1 },
-                      ].map(m => (
-                        <div key={m.label} className={`hp-macro-day-chip${d.empty ? ' hp-macro-day-chip--zero' : ''}`}>
-                          <strong>{m.dp === 0 ? Math.round(m.val).toLocaleString() : m.val.toFixed(m.dp)} {m.unit}</strong>
-                          <span>{m.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {bar && (
-                      <div className="hp-macro-bar-wrap">
-                        <div className="hp-macro-bar">
-                          <div className="hp-macro-bar-p" style={{ width: bar.p + '%' }} />
-                          <div className="hp-macro-bar-c" style={{ width: bar.c + '%' }} />
-                          <div className="hp-macro-bar-f" style={{ width: bar.f + '%' }} />
-                        </div>
-                        <span className="hp-macro-bar-legend">
-                          <em style={{ color: '#16a085' }}>P {bar.p}%</em>
-                          <em style={{ color: '#2980b9' }}>C {bar.c}%</em>
-                          <em style={{ color: '#d35400' }}>F {bar.f}%</em>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       <section className="dashboard-analytics">
         <div className="date-controls">
