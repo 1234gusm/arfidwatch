@@ -12,6 +12,8 @@ import './HealthPage.css';
 import ZoomableChart from './ZoomableChart';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
+import { avgOf, avgOfPeriod } from './utils/metricUtils';
+import { buildMaps, mergeFoodLog } from './utils/buildMaps';
 
 function HealthPage({ token }) {
   const [data, setData] = useState([]);
@@ -860,83 +862,38 @@ function HealthPage({ token }) {
     return formatDate(d);
   })();
   const overviewData = (() => {
-    const getRange = (ct) =>
-      data
-        .filter(r => canonical(r.type) === ct)
-        .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp) }))
-        .filter(x => x.day >= overviewCutoffKey && x.day <= yesterdayKey && Number.isFinite(x.v));
+    // Filter health_data to the overview period, then use shared buildMaps
+    const periodRows = data.filter(r => {
+      const day = String(r.timestamp || '').slice(0, 10);
+      return day >= overviewCutoffKey && day <= yesterdayKey;
+    });
+    const maps = buildMaps(periodRows);
 
-    // Build food-log-based daily values for macros (from food_log_entries table)
-    const foodLogMacroMap = {}; // { 'dietary_energy_kcal': { '2026-04-08': 1800, ... }, ... }
-    const FL_COLS = { dietary_energy_kcal: 'dietary_energy_kcal', protein_g: 'protein_g', carbohydrates_g: 'carbohydrates_g', total_fat_g: 'total_fat_g' };
-    foodLogDaily
-      .filter(r => r.date >= overviewCutoffKey && r.date <= yesterdayKey)
-      .forEach(r => {
-        for (const [ct, col] of Object.entries(FL_COLS)) {
-          const v = parseFloat(r[col]);
-          if (!Number.isFinite(v) || v <= 0) continue;
-          if (!foodLogMacroMap[ct]) foodLogMacroMap[ct] = {};
-          foodLogMacroMap[ct][r.date] = (foodLogMacroMap[ct][r.date] || 0) + v;
-        }
-      });
+    // Merge food log daily aggregates
+    const periodFoodLog = foodLogDaily.filter(r => r.date >= overviewCutoffKey && r.date <= yesterdayKey);
+    mergeFoodLog(maps, periodFoodLog, 'daily');
 
-    // Merge health data + food log: take the higher value per day for each macro
-    const getMergedRange = (ct) => {
-      const healthVals = getRange(ct);
-      const healthByDay = {};
-      healthVals.forEach(x => { if (healthByDay[x.day] === undefined || x.v > healthByDay[x.day]) healthByDay[x.day] = x.v; });
-      const flMap = foodLogMacroMap[ct] || {};
-      const allDays = new Set([...Object.keys(healthByDay), ...Object.keys(flMap)]);
-      const byDay = {};
-      allDays.forEach(day => {
-        const hv = healthByDay[day] ?? 0;
-        const fv = flMap[day] ?? 0;
-        byDay[day] = Math.max(hv, fv);
-      });
-      return byDay;
-    };
+    const periodDays = overviewPeriod > 0 ? overviewPeriod : null;
+    const avg = (m) => periodDays ? avgOfPeriod(m, periodDays) : avgOf(m);
 
-    const avgByPeriod = (byDayMap) => {
-      const dayVals = Object.values(byDayMap);
-      if (!dayVals.length) return null;
-      const sum = dayVals.reduce((a, b) => a + b, 0);
-      const denom = overviewPeriod > 0 ? overviewPeriod : (dayVals.length || 1);
-      return sum / denom;
-    };
-
-    const avgByActualDays = (vals) => {
-      if (!vals.length) return null;
-      const byDay = {};
-      vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
-      const dayVals = Object.values(byDay);
-      const sum = dayVals.reduce((a, b) => a + b, 0);
-      const denom = overviewPeriod > 0 ? overviewPeriod : (dayVals.length || 1);
-      return sum / denom;
-    };
     const weightVals = data
       .filter(r => ['weight_lb', 'weight_kg'].includes(canonical(r.type)))
       .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp), unit: canonical(r.type) === 'weight_kg' ? 'kg' : 'lb' }))
       .filter(x => Number.isFinite(x.v))
       .sort((a, b) => b.day.localeCompare(a.day));
-    const hrVals = getRange('resting_heart_rate_countmin').sort((a, b) => b.day.localeCompare(a.day));
-    const avgSimple = (vals) => {
-      if (!vals.length) return null;
-      const sum = vals.reduce((a, b) => a + b.v, 0);
-      // For fixed periods, divide by total calendar days (zero-fill); for All, use actual count
-      const denom = overviewPeriod > 0 ? overviewPeriod : vals.length;
-      return sum / denom;
-    };
+    const hrMap = maps['resting_heart_rate_countmin'];
+    const hrDays = hrMap ? Object.keys(hrMap).sort() : [];
     return {
       weight:     weightVals.length ? weightVals[0].v    : null,
       weightUnit: weightVals.length ? weightVals[0].unit : 'lb',
-      kcal:       avgByPeriod(getMergedRange('dietary_energy_kcal')),
-      protein:    avgByPeriod(getMergedRange('protein_g')),
-      carbs:      avgByPeriod(getMergedRange('carbohydrates_g')),
-      fat:        avgByPeriod(getMergedRange('total_fat_g')),
-      restingHR:  hrVals.length ? hrVals[0].v : null,
-      bpSys:      avgSimple(getRange('blood_pressure_systolic_mmhg')),
-      bpDia:      avgSimple(getRange('blood_pressure_diastolic_mmhg')),
-      hrv:        avgSimple(getRange('heart_rate_variability_ms')),
+      kcal:       avg(maps['dietary_energy_kcal']),
+      protein:    avg(maps['protein_g']),
+      carbs:      avg(maps['carbohydrates_g']),
+      fat:        avg(maps['total_fat_g']),
+      restingHR:  hrDays.length ? hrMap[hrDays[hrDays.length - 1]] : null,
+      bpSys:      avg(maps['blood_pressure_systolic_mmhg']),
+      bpDia:      avg(maps['blood_pressure_diastolic_mmhg']),
+      hrv:        avg(maps['heart_rate_variability_ms']),
       height:     (() => {
         const hVals = data
           .filter(r => ['height_cm', 'height_in'].includes(canonical(r.type)))

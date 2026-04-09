@@ -8,6 +8,7 @@ import ZoomableChart from './ZoomableChart';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
+import { buildMaps, mapCanonical, MAP_TYPE_ALIASES, mergeFoodLog } from './utils/buildMaps';
 
 // ── Vitals chart config for share page (15 most important) ────────────────────
 const SHARE_VITALS = [
@@ -42,108 +43,12 @@ const lightenHex = hex => {
 };
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
-const canonical = t => {
-  const s = String(t).toLowerCase();
-  if (s.startsWith('macrofactor_')) return s.slice('macrofactor_'.length);
-  if (s.startsWith('apple_')) return s.slice('apple_'.length);
-  return s;
-};
-
 const getSource = r => { try { return JSON.parse(String(r.raw || '{}')).source || ''; } catch (_) { return ''; } };
 const fmtLocalDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const fmtLocalDateTime = d => `${fmtLocalDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 const toLocalDate = ts => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : fmtLocalDate(d); };
 const toLocalDateTime = ts => { const d = new Date(ts); return Number.isNaN(d.getTime()) ? '' : fmtLocalDateTime(d); };
 const toNum = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : NaN; };
-
-// Maps post-canonical type names → the canonical key used in SECTIONS metrics.
-// Covers MacroFactor column name variants that differ from Apple Health names.
-const TYPE_ALIASES = {
-  // calories
-  'calories_kcal':          'dietary_energy_kcal',
-  'dietary_energy_kcal':    'dietary_energy_kcal',
-  'energy':                 'dietary_energy_kcal',
-  'calories':               'dietary_energy_kcal',
-  // macros
-  'fat_g':                  'total_fat_g',
-  'fat':                    'total_fat_g',
-  'carbs_g':                'carbohydrates_g',
-  'carbs':                  'carbohydrates_g',
-  'carbohydrates':          'carbohydrates_g',
-  'sugars_g':               'sugar_g',
-  'sugar':                  'sugar_g',
-  // body
-  'weight_lbs':             'weight_lb',
-  'weight':                 'weight_lb',
-  'trend_weight_lbs':       'weight_lb',
-  'body_fat':               'body_fat_percentage__',
-  'lean_mass':              'lean_body_mass_lb',
-  // activity
-  'steps':                  'step_count_count',
-  'vo2_max_mlkg_min':       'vo2_max_mlkgmin',           // CSV middle-dot variant
-  'physical_effort_kcalhr_kg': 'physical_effort_kcalhrkg', // CSV middle-dot variant
-  // heart
-  'resting_heart_rate':     'resting_heart_rate_countmin',
-};
-
-function buildMaps(rows) {
-  // iHealth-priority keys: when iHealth data exists for a day, ignore auto health for that day
-  const IH_PRIORITY = new Set([
-    'heart_rate_avg_countmin', 'resting_heart_rate_countmin',
-    'blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg',
-    'heart_rate', 'heartrate', 'pulse', 'heart_ratebeatsmin',
-    'systolic', 'systolicmmhg', 'systolic_mmhg', 'sys', 'sysmmhg',
-    'diastolic', 'diastolicmmhg', 'diastolic_mmhg', 'dia', 'diammhg',
-  ]);
-  const maps = {};
-  // Track which (type, day) pairs have iHealth data to suppress auto health
-  const ihDays = {};  // { ct: Set(day) }
-  // First pass: collect iHealth rows
-  rows.forEach(r => {
-    if (getSource(r) !== 'ihealth_csv') return;
-    const raw = canonical(r.type);
-    const ct  = TYPE_ALIASES[raw] || raw;
-    if (!IH_PRIORITY.has(ct)) return;
-    const v   = parseFloat(r.value);
-    if (!Number.isFinite(v)) return;
-    const day = String(r.timestamp || '').slice(0, 10);
-    if (!day) return;
-    if (!ihDays[ct]) ihDays[ct] = new Set();
-    ihDays[ct].add(day);
-    if (!maps[ct]) maps[ct] = {};
-    // For iHealth, average multiple readings per day
-    if (!maps[ct][day]) maps[ct][day] = { sum: v, count: 1 };
-    else if (typeof maps[ct][day] === 'object') { maps[ct][day].sum += v; maps[ct][day].count += 1; }
-    else { maps[ct][day] = { sum: maps[ct][day] + v, count: 2 }; }
-  });
-  // Flatten iHealth averages
-  for (const ct of Object.keys(maps)) {
-    for (const day of Object.keys(maps[ct])) {
-      const entry = maps[ct][day];
-      if (entry && typeof entry === 'object' && 'sum' in entry) {
-        maps[ct][day] = Math.round((entry.sum / entry.count) * 100) / 100;
-      }
-    }
-  }
-  // Second pass: all rows (auto health fills gaps where iHealth is absent)
-  rows.forEach(r => {
-    const raw = canonical(r.type);
-    const ct  = TYPE_ALIASES[raw] || raw;
-    const v   = parseFloat(r.value);
-    if (!Number.isFinite(v)) return;
-    const day = String(r.timestamp || '').slice(0, 10);
-    if (!day) return;
-    // Skip auto health for iHealth-priority types where iHealth has data that day
-    if (IH_PRIORITY.has(ct) && ihDays[ct] && ihDays[ct].has(day) && getSource(r) !== 'ihealth_csv') return;
-    if (!maps[ct]) maps[ct] = {};
-    if (maps[ct][day] === undefined) {
-      maps[ct][day] = v;
-    } else if (!IH_PRIORITY.has(ct) || !ihDays[ct] || !ihDays[ct].has(day)) {
-      maps[ct][day] = Math.max(maps[ct][day], v);
-    }
-  });
-  return maps;
-}
 
 const stdDev = (nums) => {
   if (!nums.length) return null;
@@ -597,29 +502,7 @@ function SharePage() {
   // ── Vitals chart computation (must be before early returns for Rules of Hooks) ──
   const mapsEarly = useMemo(() => {
     const m = buildMaps(healthInfo?.data || []);
-    // Merge food_log entries into macro maps so averages match HealthPage
-    const FL_MAP = { calories: 'dietary_energy_kcal', protein_g: 'protein_g', carbs_g: 'carbohydrates_g', fat_g: 'total_fat_g' };
-    const flDaily = {};
-    (healthInfo?.food_log || []).forEach(entry => {
-      const day = entry.date;
-      if (!day) return;
-      if (!flDaily[day]) flDaily[day] = {};
-      for (const [col, mapKey] of Object.entries(FL_MAP)) {
-        const v = parseFloat(entry[col]);
-        if (Number.isFinite(v) && v > 0) {
-          flDaily[day][mapKey] = (flDaily[day][mapKey] || 0) + v;
-        }
-      }
-    });
-    for (const mapKey of new Set(Object.values(FL_MAP))) {
-      if (!m[mapKey]) m[mapKey] = {};
-      for (const [day, dayData] of Object.entries(flDaily)) {
-        const flVal = dayData[mapKey];
-        if (flVal !== undefined) {
-          m[mapKey][day] = Math.max(m[mapKey][day] ?? 0, flVal);
-        }
-      }
-    }
+    mergeFoodLog(m, healthInfo?.food_log || [], 'raw');
     return m;
   }, [healthInfo]);
 
@@ -633,7 +516,7 @@ function SharePage() {
     const autoByType = {};   // { [ct]: { [day]: { sum, count } } }
     const ihByType = {};     // { [ct]: [{ ts, dt, day, v }] }
     rawData.forEach(r => {
-      const ct = canonical(r.type);
+      const ct = mapCanonical(r.type);
       if (!allKeys.has(ct)) return;
       const v = toNum(r.value);
       if (!Number.isFinite(v)) return;
