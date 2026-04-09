@@ -609,7 +609,25 @@ function HealthPage({ token }) {
 
   // Maps MacroFactor type keys → their canonical Apple Health equivalent key.
   // When both sources have data for the same metric they are merged into one card.
+  // Also includes bare (non-prefixed) aliases so that CSV and generic imports resolve correctly.
   const typeAliases = {
+    // bare aliases (match MAP_TYPE_ALIASES from shared buildMaps)
+    calories_kcal:                  'dietary_energy_kcal',
+    energy:                         'dietary_energy_kcal',
+    calories:                       'dietary_energy_kcal',
+    fat_g:                          'total_fat_g',
+    fat:                            'total_fat_g',
+    carbs_g:                        'carbohydrates_g',
+    carbs:                          'carbohydrates_g',
+    carbohydrates:                  'carbohydrates_g',
+    sugars_g:                       'sugar_g',
+    sugar:                          'sugar_g',
+    weight:                         'weight_lb',
+    steps:                          'step_count_count',
+    body_fat:                       'body_fat_percentage__',
+    lean_mass:                      'lean_body_mass_lb',
+    resting_heart_rate:             'resting_heart_rate_countmin',
+    // macrofactor-prefixed aliases
     macrofactor_energy:             'dietary_energy_kcal',
     macrofactor_calories:           'dietary_energy_kcal',
     macrofactor_calories_kcal:      'dietary_energy_kcal',
@@ -710,6 +728,12 @@ function HealthPage({ token }) {
 
   // Auto-discover all unique canonical types from the actual imported data
   const allTypes = [...new Set(data.map(d => canonical(d.type)))].filter(Boolean);
+  // Also include food_log macro types when food_log data exists — so chart
+  // cards appear even if health_data has no entries for those macros.
+  const FOOD_LOG_TYPES = ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'];
+  if (foodLogDaily.length > 0) {
+    FOOD_LOG_TYPES.forEach(t => { if (!allTypes.includes(t)) allTypes.push(t); });
+  }
 
   // Types permanently removed from the dashboard for all users — niche, redundant, or sleep-only metrics
   const PERMANENTLY_HIDDEN = new Set([
@@ -734,9 +758,12 @@ function HealthPage({ token }) {
 
   // Types to show: those that have at least one numeric value across all aliased sources.
   // Sleep metrics and permanently-hidden types are excluded.
+  // Food-log macro types are also shown when food_log_daily data exists.
   const typesOfInterest = allTypes.filter(t => {
     if (PERMANENTLY_HIDDEN.has(t)) return false;
     if (typeMeta[t]?.group === 'Sleep') return false;
+    // Allow food_log macro types if foodLogDaily has data
+    if (FOOD_LOG_TYPES.includes(t) && foodLogDaily.length > 0) return true;
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
 
