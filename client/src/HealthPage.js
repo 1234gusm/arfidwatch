@@ -40,7 +40,16 @@ function HealthPage({ token }) {
       credentials: 'include',
     });
     const json = await res.json();
-    setData(json.data || []);
+    const rows = json.data || [];
+    setData(rows);
+    // Auto-expand chart date range to cover all data
+    if (rows.length) {
+      const dates = rows.map(r => toLocalDate(r.timestamp)).filter(Boolean).sort();
+      if (dates.length) {
+        const earliest = dates[0];
+        setStartDate(prev => earliest < prev ? earliest : prev);
+      }
+    }
   };
 
   const fetchImports = async () => {
@@ -70,7 +79,16 @@ function HealthPage({ token }) {
         credentials: 'include',
       });
       const json = await res.json();
-      setFoodLogDaily(json.data || []);
+      const rows = json.data || [];
+      setFoodLogDaily(rows);
+      // Auto-expand chart date range to cover food log data
+      if (rows.length) {
+        const dates = rows.map(r => r.date).filter(Boolean).sort();
+        if (dates.length) {
+          const earliest = dates[0];
+          setStartDate(prev => earliest < prev ? earliest : prev);
+        }
+      }
     } catch (_) { /* best-effort */ }
   };
 
@@ -735,6 +753,13 @@ function HealthPage({ token }) {
 
   // Build series for a canonical type, merging data from all aliased raw types.
   // When multiple sources have a value for the same date, keep the larger one.
+  // For macro types, also merge daily totals from food_log_entries.
+  const FOOD_LOG_MACRO_COLS = {
+    dietary_energy_kcal: 'dietary_energy_kcal',
+    protein_g: 'protein_g',
+    carbohydrates_g: 'carbohydrates_g',
+    total_fat_g: 'total_fat_g',
+  };
   const seriesFor = (canonicalType) => {
     const byDate = {};
     data
@@ -752,6 +777,23 @@ function HealthPage({ token }) {
           };
         }
       });
+    // Merge food log daily data for macro types (take higher of health vs food log per day)
+    const flCol = FOOD_LOG_MACRO_COLS[canonicalType];
+    if (flCol) {
+      foodLogDaily.forEach(row => {
+        const v = parseFloat(row[flCol]);
+        if (!Number.isFinite(v) || v <= 0) return;
+        const dateKey = row.date;
+        if (!dateKey) return;
+        if (byDate[dateKey] === undefined || v > byDate[dateKey].value) {
+          byDate[dateKey] = {
+            date: new Date(dateKey + 'T12:00:00'),
+            dateLabel: dateKey,
+            value: rd(v),
+          };
+        }
+      });
+    }
     return Object.values(byDate).sort((a, b) => a.date - b.date);
   };
 
