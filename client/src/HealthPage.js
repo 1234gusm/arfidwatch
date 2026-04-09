@@ -16,6 +16,7 @@ function HealthPage({ token }) {
   const [data, setData] = useState([]);
   const [imports, setImports] = useState([]);
   const [todayFood, setTodayFood] = useState(null);
+  const [foodLogDaily, setFoodLogDaily] = useState([]);
   const [hiddenTypes, setHiddenTypes] = useState(new Set());
   const [expandedType, setExpandedType] = useState(null);
   const [expandedCards, setExpandedCards] = useState(new Set());
@@ -60,6 +61,16 @@ function HealthPage({ token }) {
       const json = await res.json();
       const row = (json.data || []).find(r => r.date === today);
       setTodayFood(row || null);
+    } catch (_) { /* best-effort */ }
+  };
+
+  const fetchFoodLogDaily = async () => {
+    try {
+      const res = await authFetch(`${API_BASE}/api/food-log/daily`, {
+        credentials: 'include',
+      });
+      const json = await res.json();
+      setFoodLogDaily(json.data || []);
     } catch (_) { /* best-effort */ }
   };
 
@@ -173,7 +184,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor file');
@@ -199,7 +210,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import file: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'records' }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily();
       } catch (err) {
         console.error('Binary file import error:', err);
         alert('Error importing file');
@@ -231,7 +242,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = isIHealthCsv ? 'blood pressure records' : 'health records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily();
       } catch (err) {
         console.error('CSV import error:', err);
         alert('Error importing CSV');
@@ -251,7 +262,7 @@ function HealthPage({ token }) {
         if (!res.ok) { alert('Failed to import AutoSleep CSV: ' + await res.text()); return; }
         const r = await res.json();
         alert(buildImportAlertMessage({ ...r, label: 'sleep records' }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily();
       } catch (err) {
         console.error('AutoSleep CSV import error:', err);
         alert('Error importing AutoSleep CSV');
@@ -275,7 +286,7 @@ function HealthPage({ token }) {
         const r = await res.json();
         const label = r.isFoodLogFile ? 'food log entries' : 'MacroFactor records';
         alert(buildImportAlertMessage({ ...r, label }));
-        fetchData(); fetchImports(); fetchTodayFood();
+        fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily();
       } catch (err) {
         console.error('MacroFactor import error:', err);
         alert('Error importing MacroFactor CSV');
@@ -294,7 +305,7 @@ function HealthPage({ token }) {
       if (!res.ok) { alert('Failed to import CSV: ' + await res.text()); return; }
       const r = await res.json();
       alert(buildImportAlertMessage({ ...r, label: 'health records' }));
-      fetchData(); fetchImports(); fetchTodayFood();
+      fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily();
     } catch (err) {
       console.error('CSV import error:', err);
       alert('Error importing CSV');
@@ -768,7 +779,7 @@ function HealthPage({ token }) {
 
   // All hooks must be called at top level before any conditional returns
   useEffect(() => {
-    if (token) { fetchData(); fetchImports(); fetchTodayFood(); }
+    if (token) { fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -811,13 +822,51 @@ function HealthPage({ token }) {
         .filter(r => canonical(r.type) === ct)
         .map(r => ({ v: toNum(r.value), day: toLocalDate(r.timestamp) }))
         .filter(x => x.day >= overviewCutoffKey && x.day <= yesterdayKey && Number.isFinite(x.v));
+
+    // Build food-log-based daily values for macros (from food_log_entries table)
+    const foodLogMacroMap = {}; // { 'dietary_energy_kcal': { '2026-04-08': 1800, ... }, ... }
+    const FL_COLS = { dietary_energy_kcal: 'dietary_energy_kcal', protein_g: 'protein_g', carbohydrates_g: 'carbohydrates_g', total_fat_g: 'total_fat_g' };
+    foodLogDaily
+      .filter(r => r.date >= overviewCutoffKey && r.date <= yesterdayKey)
+      .forEach(r => {
+        for (const [ct, col] of Object.entries(FL_COLS)) {
+          const v = parseFloat(r[col]);
+          if (!Number.isFinite(v) || v <= 0) continue;
+          if (!foodLogMacroMap[ct]) foodLogMacroMap[ct] = {};
+          foodLogMacroMap[ct][r.date] = (foodLogMacroMap[ct][r.date] || 0) + v;
+        }
+      });
+
+    // Merge health data + food log: take the higher value per day for each macro
+    const getMergedRange = (ct) => {
+      const healthVals = getRange(ct);
+      const healthByDay = {};
+      healthVals.forEach(x => { if (healthByDay[x.day] === undefined || x.v > healthByDay[x.day]) healthByDay[x.day] = x.v; });
+      const flMap = foodLogMacroMap[ct] || {};
+      const allDays = new Set([...Object.keys(healthByDay), ...Object.keys(flMap)]);
+      const byDay = {};
+      allDays.forEach(day => {
+        const hv = healthByDay[day] ?? 0;
+        const fv = flMap[day] ?? 0;
+        byDay[day] = Math.max(hv, fv);
+      });
+      return byDay;
+    };
+
+    const avgByPeriod = (byDayMap) => {
+      const dayVals = Object.values(byDayMap);
+      if (!dayVals.length) return null;
+      const sum = dayVals.reduce((a, b) => a + b, 0);
+      const denom = overviewPeriod > 0 ? overviewPeriod : (dayVals.length || 1);
+      return sum / denom;
+    };
+
     const avgByActualDays = (vals) => {
       if (!vals.length) return null;
       const byDay = {};
       vals.forEach(x => { if (byDay[x.day] === undefined || x.v > byDay[x.day]) byDay[x.day] = x.v; });
       const dayVals = Object.values(byDay);
       const sum = dayVals.reduce((a, b) => a + b, 0);
-      // For fixed periods, divide by total calendar days (zero-fill); for All, use actual days
       const denom = overviewPeriod > 0 ? overviewPeriod : (dayVals.length || 1);
       return sum / denom;
     };
@@ -837,10 +886,10 @@ function HealthPage({ token }) {
     return {
       weight:     weightVals.length ? weightVals[0].v    : null,
       weightUnit: weightVals.length ? weightVals[0].unit : 'lb',
-      kcal:       avgByActualDays(getRange('dietary_energy_kcal')),
-      protein:    avgByActualDays(getRange('protein_g')),
-      carbs:      avgByActualDays(getRange('carbohydrates_g')),
-      fat:        avgByActualDays(getRange('total_fat_g')),
+      kcal:       avgByPeriod(getMergedRange('dietary_energy_kcal')),
+      protein:    avgByPeriod(getMergedRange('protein_g')),
+      carbs:      avgByPeriod(getMergedRange('carbohydrates_g')),
+      fat:        avgByPeriod(getMergedRange('total_fat_g')),
       restingHR:  hrVals.length ? hrVals[0].v : null,
       bpSys:      avgSimple(getRange('blood_pressure_systolic_mmhg')),
       bpDia:      avgSimple(getRange('blood_pressure_diastolic_mmhg')),
