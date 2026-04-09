@@ -842,6 +842,16 @@ function HealthPage({ token }) {
     return result;
   };
 
+  // Fill gaps spanning only the actual data range (first→last data point).
+  // Prevents huge trailing/leading grey areas when startDate/endDate extend
+  // far beyond where data exists.
+  const fillGapsAuto = (series) => {
+    if (!series.length) return [];
+    const first = series[0].dateLabel;
+    const last = series[series.length - 1].dateLabel;
+    return fillGaps(series, first, last);
+  };
+
   // build stats map for types
   const statsMap = {};
   typesOfInterest.forEach(t => {
@@ -1122,7 +1132,7 @@ function HealthPage({ token }) {
               const group = meta?.group || 'Extra Nutritional Info';
               const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               const unit = meta?.unit || '';
-              const gapFilled = fillGaps(seriesFor(t), startDate, endDate);
+              const gapFilled = fillGapsAuto(seriesFor(t));
               const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
               const isDragOver = dragOver === t;
               const items = [];
@@ -1202,7 +1212,7 @@ function HealthPage({ token }) {
         const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const unit = meta?.unit || '';
         const allData = seriesFor(t);
-        const rangeData = fillGaps(allData, startDate, endDate);
+        const rangeData = fillGapsAuto(allData);
         const s = statsMap[t];
         return (
           <div className="modal-overlay" onClick={() => setExpandedType(null)}>
