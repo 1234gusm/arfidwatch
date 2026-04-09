@@ -1178,7 +1178,7 @@ function HealthPage({ token }) {
                     <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} />
                     <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
                     <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(2) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
-                    <Brush dataKey="dateLabel" height={28} stroke="#6ee7ff" fill="#1a1f2e" travellerWidth={10} />
+                    {['dietary_energy_kcal','protein_g','carbohydrates_g','total_fat_g'].includes(expandedType) && <Brush dataKey="dateLabel" height={28} stroke="#6ee7ff" fill="#1a1f2e" travellerWidth={10} />}
                     <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
