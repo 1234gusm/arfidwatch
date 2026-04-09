@@ -7,6 +7,7 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
+  Brush,
 } from 'recharts';
 import './HealthPage.css';
 import ZoomableChart from './ZoomableChart';
@@ -726,14 +727,19 @@ function HealthPage({ token }) {
     return t;
   };
 
+  // Build unified maps from health_data + food_log (same approach as SharePage/doctor view).
+  // This ensures charts show ALL available data from both sources.
+  const chartMaps = (() => {
+    const m = buildMaps(data);
+    mergeFoodLog(m, foodLogDaily, 'daily');
+    return m;
+  })();
+
   // Auto-discover all unique canonical types from the actual imported data
   const allTypes = [...new Set(data.map(d => canonical(d.type)))].filter(Boolean);
-  // Also include food_log macro types when food_log data exists — so chart
-  // cards appear even if health_data has no entries for those macros.
-  const FOOD_LOG_TYPES = ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'];
-  if (foodLogDaily.length > 0) {
-    FOOD_LOG_TYPES.forEach(t => { if (!allTypes.includes(t)) allTypes.push(t); });
-  }
+  // Also include types that appear in chartMaps (from buildMaps + mergeFoodLog)
+  // so that types resolved via MAP_TYPE_ALIASES also get chart cards.
+  Object.keys(chartMaps).forEach(t => { if (!allTypes.includes(t)) allTypes.push(t); });
 
   // Types permanently removed from the dashboard for all users — niche, redundant, or sleep-only metrics
   const PERMANENTLY_HIDDEN = new Set([
@@ -762,8 +768,8 @@ function HealthPage({ token }) {
   const typesOfInterest = allTypes.filter(t => {
     if (PERMANENTLY_HIDDEN.has(t)) return false;
     if (typeMeta[t]?.group === 'Sleep') return false;
-    // Allow food_log macro types if foodLogDaily has data
-    if (FOOD_LOG_TYPES.includes(t) && foodLogDaily.length > 0) return true;
+    // Show if chartMaps has actual data for this type (covers both health_data and food_log)
+    if (chartMaps[t] && Object.keys(chartMaps[t]).length > 0) return true;
     return data.some(d => canonical(d.type) === t && Number.isFinite(parseFloat(d.value)));
   });
 
@@ -781,75 +787,13 @@ function HealthPage({ token }) {
     sleep_analysis_total_sleep_hr: 0,
   };
 
-  // Build series for a canonical type, merging data from all aliased raw types.
-  // When multiple sources have a value for the same date, keep the larger one.
-  // For macro types, also merge daily totals from food_log_entries.
-  const FOOD_LOG_MACRO_COLS = {
-    dietary_energy_kcal: 'dietary_energy_kcal',
-    protein_g: 'protein_g',
-    carbohydrates_g: 'carbohydrates_g',
-    total_fat_g: 'total_fat_g',
-  };
+  // Derive a sorted chart series from the unified maps for a given canonical type.
   const seriesFor = (canonicalType) => {
-    const byDate = {};
-    data
-      .filter(d => canonical(d.type) === canonicalType)
-      .forEach(d => {
-        const v = toNum(d.value);
-        if (!Number.isFinite(v)) return;
-        const dateKey = toLocalDate(d.timestamp);
-        if (!dateKey) return;
-        if (byDate[dateKey] === undefined || v > byDate[dateKey].value) {
-          byDate[dateKey] = {
-            date: new Date(d.timestamp),
-            dateLabel: dateKey,
-            value: rd(v),
-          };
-        }
-      });
-    // Merge food log daily data for macro types (take higher of health vs food log per day)
-    const flCol = FOOD_LOG_MACRO_COLS[canonicalType];
-    if (flCol) {
-      foodLogDaily.forEach(row => {
-        const v = parseFloat(row[flCol]);
-        if (!Number.isFinite(v) || v <= 0) return;
-        const dateKey = row.date;
-        if (!dateKey) return;
-        if (byDate[dateKey] === undefined || v > byDate[dateKey].value) {
-          byDate[dateKey] = {
-            date: new Date(dateKey + 'T12:00:00'),
-            dateLabel: dateKey,
-            value: rd(v),
-          };
-        }
-      });
-    }
-    return Object.values(byDate).sort((a, b) => a.date - b.date);
-  };
-
-  // Fill every calendar day in [start, end] — null for days with no data so charts show gaps
-  const fillGaps = (series, start, end) => {
-    const byDate = {};
-    series.forEach(p => { byDate[p.dateLabel] = p.value; });
-    const result = [];
-    const cur = new Date(start + 'T12:00:00');
-    const endD = new Date(end + 'T12:00:00');
-    while (cur <= endD) {
-      const key = formatDate(cur);
-      result.push({ dateLabel: key, value: byDate[key] ?? null });
-      cur.setDate(cur.getDate() + 1);
-    }
-    return result;
-  };
-
-  // Fill gaps spanning only the actual data range (first→last data point).
-  // Prevents huge trailing/leading grey areas when startDate/endDate extend
-  // far beyond where data exists.
-  const fillGapsAuto = (series) => {
-    if (!series.length) return [];
-    const first = series[0].dateLabel;
-    const last = series[series.length - 1].dateLabel;
-    return fillGaps(series, first, last);
+    const dayMap = chartMaps[canonicalType];
+    if (!dayMap) return [];
+    return Object.entries(dayMap)
+      .map(([date, value]) => ({ dateLabel: date, value: rd(value) }))
+      .sort((a, b) => a.dateLabel.localeCompare(b.dateLabel));
   };
 
   // build stats map for types
@@ -871,7 +815,6 @@ function HealthPage({ token }) {
   }
 
   // ── Today's nutrition summary (from food_log_entries) ─────────────────
-  const todayKey = formatDate(new Date());
   const todayNutrition = (() => {
     if (!todayFood) return { calories: null, protein: null, carbs: null, fat: null };
     const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
@@ -1132,8 +1075,8 @@ function HealthPage({ token }) {
               const group = meta?.group || 'Extra Nutritional Info';
               const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               const unit = meta?.unit || '';
-              const gapFilled = fillGapsAuto(seriesFor(t));
-              const hasChartData = gapFilled.filter(p => p.value !== null).length > 1;
+              const chartSeries = seriesFor(t);
+              const hasChartData = chartSeries.length > 1;
               const isDragOver = dragOver === t;
               const items = [];
               if (group !== lastGroup) {
@@ -1187,11 +1130,11 @@ function HealthPage({ token }) {
                   <div className="stat-inline-chart">
                     <ZoomableChart>
                     <ResponsiveContainer width="100%" height={120}>
-                      <LineChart data={gapFilled}>
+                      <LineChart data={chartSeries}>
                         <XAxis dataKey="dateLabel" hide />
                         <YAxis hide domain={['auto', 'auto']} />
                         <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(1) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
-                        <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={false} strokeWidth={2} connectNulls={false} />
+                        <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={chartSeries.length < 30 ? { r: 3, fill: '#6ee7ff' } : false} strokeWidth={2} connectNulls />
                       </LineChart>
                     </ResponsiveContainer>
                     </ZoomableChart>
@@ -1211,8 +1154,7 @@ function HealthPage({ token }) {
         const meta = typeMeta[t];
         const label = meta?.label || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const unit = meta?.unit || '';
-        const allData = seriesFor(t);
-        const rangeData = fillGapsAuto(allData);
+        const rangeData = seriesFor(t);
         const s = statsMap[t];
         return (
           <div className="modal-overlay" onClick={() => setExpandedType(null)}>
@@ -1228,15 +1170,16 @@ function HealthPage({ token }) {
                   <div className="modal-stat"><span>Data points</span><strong>{s.count}</strong></div>
                 </div>
               )}
-              {rangeData.filter(p => p.value !== null).length > 1 ? (
+              {rangeData.length > 1 ? (
                 <ZoomableChart>
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={rangeData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
                     <XAxis dataKey="dateLabel" tick={{ fill: '#9ab', fontSize: 11 }} />
                     <YAxis tick={{ fill: '#9ab', fontSize: 11 }} domain={['auto', 'auto']} tickFormatter={v => typeof v === 'number' ? rd(v) : v} />
                     <Tooltip formatter={v => [`${typeof v === 'number' ? v.toFixed(2) : v} ${unit}`, label]} contentStyle={{ background: '#fff', border: '1px solid #ccd', borderRadius: 6 }} itemStyle={{ color: '#000' }} labelStyle={{ color: '#000' }} />
-                    <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} />
+                    <Brush dataKey="dateLabel" height={28} stroke="#6ee7ff" fill="#1a1f2e" travellerWidth={10} />
+                    <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
                 </ZoomableChart>
@@ -1247,7 +1190,7 @@ function HealthPage({ token }) {
                 <table>
                   <thead><tr><th>Date</th><th>Value</th></tr></thead>
                   <tbody>
-                    {[...rangeData].reverse().filter(p => p.value !== null).slice(0, 50).map((row, i) => (
+                    {[...rangeData].reverse().slice(0, 50).map((row, i) => (
                       <tr key={i}>
                         <td>{row.dateLabel}</td>
                         <td>{typeof row.value === 'number' ? row.value.toFixed(2) : row.value} {unit}</td>

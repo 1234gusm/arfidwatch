@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Brush,
 } from 'recharts';
 import './SharePage.css';
 import ZoomableChart from './ZoomableChart';
@@ -969,12 +969,13 @@ function SharePage() {
                     {isOpen && (
                       <div className="sv-graph-body">
                         <ZoomableChart>
-                        <ResponsiveContainer width="100%" height={200}>
+                        <ResponsiveContainer width="100%" height={240}>
                           <LineChart data={g.chartData} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
                             <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" />
                             <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
                             <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#94a3b8' }} />
+                            <Brush dataKey="day" height={24} stroke="#6ee7ff" fill="#1a1f2e" travellerWidth={10} />
                             {g.resolvedMetrics.map((m, i) => {
                               const ki = g.keys.indexOf(m.key);
                               return (
@@ -1020,12 +1021,13 @@ function SharePage() {
                     {isCardOpen && (
                       <div className="sv-stat-chart">
                         <ZoomableChart>
-                        <ResponsiveContainer width="100%" height={180}>
+                        <ResponsiveContainer width="100%" height={220}>
                           <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
                             <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} interval="preserveStartEnd" tickFormatter={d => d.length > 10 ? d.slice(6) : d.slice(5)} />
                             <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} width={38} />
                             <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#94a3b8' }} />
+                            <Brush dataKey="day" height={24} stroke="#6ee7ff" fill="#1a1f2e" travellerWidth={10} tickFormatter={d => d.length > 10 ? d.slice(6) : d.slice(5)} />
                             <Line type="monotone" dataKey="v" stroke={m.color} strokeWidth={2}
                               dot={{ r: m.chart.filter(p => p.v != null).length < 30 ? 3 : 0, fill: m.color }}
                               name={m.hasIh ? `${m.label} (Daily Avg)` : m.label} connectNulls />
