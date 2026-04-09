@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './FoodLog.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 import { formatDay, isToday } from './utils/dateUtils';
+import { buildMaps, mergeFoodLog } from './utils/buildMaps';
 
 const NUTRITION_META = {
   dietary_energy_kcal: { label: 'Calories',  unit: 'kcal',  dp: 0, primary: true  },
@@ -15,10 +16,14 @@ const NUTRITION_META = {
   water_fl_oz_us:      { label: 'Water',     unit: 'fl oz', dp: 1, primary: false },
 };
 
+const MACRO_KEYS = ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'];
+
 const fmtVal = (v, meta) => {
   const s = meta.dp === 0 ? Math.round(v).toLocaleString() : v.toFixed(meta.dp);
   return `${s} ${meta.unit}`;
 };
+
+const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 const RANGE_OPTIONS = [
   { id: '7',    label: '1 Week'   },
@@ -39,80 +44,77 @@ function macroBar(day) {
 }
 
 function FoodLog({ token }) {
-  const [rows, setRows]       = useState([]);
-  const [range, setRange]     = useState('30');
+  const [healthData, setHealthData] = useState([]);
+  const [foodLogDaily, setFoodLogDaily] = useState([]);
+  const [range, setRange]     = useState('all');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [collapsedDays, setCollapsedDays] = useState(new Set());
 
-  const buildDates = useCallback(() => {
-    if (range === 'all') return {};
-    const end   = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - parseInt(range, 10));
-    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    return { start: fmt(start) + 'T00:00:00', end: fmt(end) + 'T23:59:59' };
-  }, [range]);
-
-  const loadData = useCallback(async () => {
+  useEffect(() => {
     if (!token) return;
     setLoading(true); setError(null);
-    try {
-      const { start, end } = buildDates();
-      const params = new URLSearchParams();
-      if (start) { params.set('start', start); params.set('end', end); }
-      const res  = await authFetch(`${API_BASE}/api/food-log/daily?${params}`, {
-        credentials: 'include',
-      });
-      const json = await res.json();
-      setRows(json.data || []);
-    } catch (e) {
-      setError('Failed to load: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, buildDates]);
+    Promise.all([
+      authFetch(`${API_BASE}/api/health`, { credentials: 'include' }).then(r => r.json()),
+      authFetch(`${API_BASE}/api/food-log/daily`, { credentials: 'include' }).then(r => r.json()),
+    ]).then(([hJson, fJson]) => {
+      setHealthData(hJson.data || []);
+      setFoodLogDaily(fJson.data || []);
+    }).catch(e => setError('Failed to load: ' + e.message))
+      .finally(() => setLoading(false));
+  }, [token]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Merge health_data + food_log into unified maps (same as HealthPage / doctor page)
+  const chartMaps = useMemo(() => {
+    const maps = buildMaps(healthData);
+    mergeFoodLog(maps, foodLogDaily, 'daily');
+    return maps;
+  }, [healthData, foodLogDaily]);
 
   const { byDay, days } = useMemo(() => {
-    const nextByDay = {};
-    const datesWithEntries = new Set();
-
-    rows.forEach(r => {
-      const day = r.date;
-      if (!day) return;
-      datesWithEntries.add(day); // day has real food_log_entries regardless of macro values
-      const entry = {};
-      if (r.dietary_energy_kcal != null) entry.dietary_energy_kcal = parseFloat(r.dietary_energy_kcal);
-      if (r.protein_g != null)           entry.protein_g           = parseFloat(r.protein_g);
-      if (r.carbohydrates_g != null)     entry.carbohydrates_g     = parseFloat(r.carbohydrates_g);
-      if (r.total_fat_g != null)         entry.total_fat_g         = parseFloat(r.total_fat_g);
-      // Always add the day — even if all macros are null, it has real entries
-      nextByDay[day] = Object.keys(entry).length > 0
-        ? entry
-        : { dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
+    // Collect all dates that have any macro data
+    const dateSet = new Set();
+    MACRO_KEYS.forEach(k => {
+      if (chartMaps[k]) Object.keys(chartMaps[k]).forEach(d => dateSet.add(d));
     });
 
-    // Zero-fill only days that have NO entries at all in the selected range
+    // Determine range boundaries
+    const today = fmtDate(new Date());
+    let startKey = null;
     if (range !== 'all') {
-      const dayCount = parseInt(range, 10);
-      const today = new Date();
-      for (let i = 0; i <= dayCount; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        if (!datesWithEntries.has(key) && !nextByDay[key]) {
-          nextByDay[key] = { _empty: true, dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
-        }
+      const s = new Date();
+      s.setDate(s.getDate() - parseInt(range, 10));
+      startKey = fmtDate(s);
+    }
+
+    // Find earliest date with data (for 'all' range and for zero-filling)
+    const allDataDates = [...dateSet].sort();
+    const earliest = startKey || (allDataDates.length ? allDataDates[0] : today);
+
+    // Build every date from earliest to today
+    const nextByDay = {};
+    const cur = new Date(earliest + 'T00:00:00');
+    const end = new Date(today + 'T00:00:00');
+    while (cur <= end) {
+      const key = fmtDate(cur);
+      const entry = {};
+      MACRO_KEYS.forEach(k => {
+        const v = chartMaps[k]?.[key];
+        if (v !== undefined) entry[k] = v;
+      });
+      if (Object.keys(entry).length > 0) {
+        nextByDay[key] = entry;
+      } else {
+        nextByDay[key] = { _empty: true, dietary_energy_kcal: 0, protein_g: 0, carbohydrates_g: 0, total_fat_g: 0 };
       }
+      cur.setDate(cur.getDate() + 1);
     }
 
     return {
       byDay: nextByDay,
       days: Object.keys(nextByDay).sort((a, b) => (a < b ? 1 : -1)),
     };
-  }, [rows, range]);
+  }, [chartMaps, range]);
 
   useEffect(() => {
     const validDays = new Set(days);
@@ -145,7 +147,7 @@ function FoodLog({ token }) {
       <div className="fl-header">
         <div>
           <h2 className="fl-title">🥗 Macros</h2>
-          <p className="fl-subtitle">Daily macro summary from Food Log entries only</p>
+          <p className="fl-subtitle">Daily macro summary from all sources</p>
         </div>
         <div className="fl-header-right">
         {days.length > 0 && (
