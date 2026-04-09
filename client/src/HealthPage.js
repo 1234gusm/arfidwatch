@@ -27,7 +27,7 @@ function HealthPage({ token }) {
   const [addPickerOpen, setAddPickerOpen] = useState(false);
   const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
-  const [macroLogOpen, setMacroLogOpen] = useState(false);
+  const [macroLogOpen, setMacroLogOpen] = useState(true);
   const dragSrc = useRef(null);
   const uploadInputRef = useRef(null);
 
@@ -805,12 +805,23 @@ function HealthPage({ token }) {
   };
 
   const macroDays = (() => {
-    // Collect every date that has at least one macro value
+    // Build every date from earliest macro entry to today (same as doctor page)
     const dateSet = new Set();
     ['dietary_energy_kcal', 'protein_g', 'carbohydrates_g', 'total_fat_g'].forEach(k => {
       if (chartMaps[k]) Object.keys(chartMaps[k]).forEach(d => dateSet.add(d));
     });
-    return [...dateSet].sort().reverse().map(date => ({
+    if (dateSet.size === 0) return [];
+    const sorted = [...dateSet].sort();
+    const earliest = sorted[0];
+    const today = formatDate(new Date());
+    const allDates = [];
+    const cur = new Date(earliest + 'T00:00:00');
+    const end = new Date(today + 'T00:00:00');
+    while (cur <= end) {
+      allDates.push(formatDate(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return allDates.reverse().map(date => ({
       date,
       empty: !chartMaps['dietary_energy_kcal']?.[date] && !chartMaps['protein_g']?.[date] && !chartMaps['carbohydrates_g']?.[date] && !chartMaps['total_fat_g']?.[date],
       kcal:    chartMaps['dietary_energy_kcal']?.[date] ?? 0,
