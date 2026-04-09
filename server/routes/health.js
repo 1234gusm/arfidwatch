@@ -1421,22 +1421,11 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
 
       if (foodCol) {
         isFoodLogFile = true;
-        // MacroFactor CSV is always a complete export, so replace all food-log
-        // entries for this user to avoid stale / schema-mismatched duplicates.
-        // Preserve user-added notes before wiping so they survive re-imports.
-        const existingNotes = await db('food_log_entries')
-          .where({ user_id: req.user.id })
-          .whereNotNull('note')
-          .select('date', 'meal', 'food_name', 'note');
-        const noteMap = new Map();
-        for (const n of existingNotes) {
-          const key = `${n.date}|${(n.meal || '').trim().toLowerCase()}|${(n.food_name || '').trim().toLowerCase()}`;
-          noteMap.set(key, n.note);
-        }
-
-        await db('food_log_entries').where({ user_id: req.user.id }).delete();
-        // Also clean up the corresponding import tracking rows
-        await db('health_imports').where({ user_id: req.user.id, source: 'foodlog' }).delete();
+        // Merge strategy: only replace food-log entries for dates present in
+        // the incoming file.  Entries on dates NOT in the new file are kept so
+        // historical data is never lost.
+        // Preserve user-added notes before wiping affected dates so they
+        // survive re-imports.
 
         const foodEntries = parsedRowsForFoodLog.map(row => {
           const datePart = dateCol ? row[dateCol] : (row.Date || row.date);
@@ -1459,8 +1448,30 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
           };
         }).filter(Boolean);
 
-        // Full replace — all existing entries were already cleared above, so
-        // just insert everything from the file directly.
+        // Determine which dates the new file covers
+        const incomingDates = [...new Set(foodEntries.map(e => e.date))];
+
+        // Save notes from entries on those dates before deletion
+        const existingNotes = incomingDates.length
+          ? await db('food_log_entries')
+              .where({ user_id: req.user.id })
+              .whereIn('date', incomingDates)
+              .whereNotNull('note')
+              .select('date', 'meal', 'food_name', 'note')
+          : [];
+        const noteMap = new Map();
+        for (const n of existingNotes) {
+          const key = `${n.date}|${(n.meal || '').trim().toLowerCase()}|${(n.food_name || '').trim().toLowerCase()}`;
+          noteMap.set(key, n.note);
+        }
+
+        // Only delete entries on dates covered by the new file
+        if (incomingDates.length) {
+          await db('food_log_entries')
+            .where({ user_id: req.user.id })
+            .whereIn('date', incomingDates)
+            .delete();
+        }
         if (foodEntries.length > 0) {
           const [foodlogImportId] = await db('health_imports').insert({
             user_id: req.user.id,
@@ -1490,11 +1501,8 @@ router.post('/macro/import', authenticate, upload.single('file'), async (req, re
     const deduped = isFoodLogFile ? [] : await filterDuplicateStats(req.user.id, records);
 
     if (deduped.length > 0) {
-      // Stats always get their own dedicated 'macro' import record
-      if (sameHashImportIds.length > 0) {
-        await db('health_data').where({ user_id: req.user.id }).whereIn('import_id', sameHashImportIds).delete();
-        await db('health_imports').where({ user_id: req.user.id }).whereIn('id', sameHashImportIds).delete();
-      }
+      // Additive import — never delete existing health_data on re-upload.
+      // filterDuplicateStats already skips rows that match existing records.
       const [importId] = await db('health_imports').insert({
         user_id: req.user.id,
         filename: uploadFilename,

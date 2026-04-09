@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
 import './SharePage.css';
+import ZoomableChart from './ZoomableChart';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 import { avgOf, avgOfPeriod, latestOf, minOf, maxOf, countOf } from './utils/metricUtils';
@@ -594,7 +595,33 @@ function SharePage() {
   };
 
   // ── Vitals chart computation (must be before early returns for Rules of Hooks) ──
-  const mapsEarly = useMemo(() => buildMaps(healthInfo?.data || []), [healthInfo]);
+  const mapsEarly = useMemo(() => {
+    const m = buildMaps(healthInfo?.data || []);
+    // Merge food_log entries into macro maps so averages match HealthPage
+    const FL_MAP = { calories: 'dietary_energy_kcal', protein_g: 'protein_g', carbs_g: 'carbohydrates_g', fat_g: 'total_fat_g' };
+    const flDaily = {};
+    (healthInfo?.food_log || []).forEach(entry => {
+      const day = entry.date;
+      if (!day) return;
+      if (!flDaily[day]) flDaily[day] = {};
+      for (const [col, mapKey] of Object.entries(FL_MAP)) {
+        const v = parseFloat(entry[col]);
+        if (Number.isFinite(v) && v > 0) {
+          flDaily[day][mapKey] = (flDaily[day][mapKey] || 0) + v;
+        }
+      }
+    });
+    for (const mapKey of new Set(Object.values(FL_MAP))) {
+      if (!m[mapKey]) m[mapKey] = {};
+      for (const [day, dayData] of Object.entries(flDaily)) {
+        const flVal = dayData[mapKey];
+        if (flVal !== undefined) {
+          m[mapKey][day] = Math.max(m[mapKey][day] ?? 0, flVal);
+        }
+      }
+    }
+    return m;
+  }, [healthInfo]);
 
   const vitalsMetrics = useMemo(() => {
     const rawData = healthInfo?.data || [];
@@ -1032,6 +1059,7 @@ function SharePage() {
                     </div>
                     {!isOpen && (
                       <div className="sv-graph-mini">
+                        <ZoomableChart>
                         <ResponsiveContainer width="100%" height={60}>
                           <LineChart data={g.chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                             {g.resolvedMetrics.map((m, i) => {
@@ -1052,10 +1080,12 @@ function SharePage() {
                             })}
                           </LineChart>
                         </ResponsiveContainer>
+                        </ZoomableChart>
                       </div>
                     )}
                     {isOpen && (
                       <div className="sv-graph-body">
+                        <ZoomableChart>
                         <ResponsiveContainer width="100%" height={200}>
                           <LineChart data={g.chartData} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
@@ -1082,6 +1112,7 @@ function SharePage() {
                             })}
                           </LineChart>
                         </ResponsiveContainer>
+                        </ZoomableChart>
                       </div>
                     )}
                   </div>
@@ -1105,6 +1136,7 @@ function SharePage() {
                     </div>
                     {isCardOpen && (
                       <div className="sv-stat-chart">
+                        <ZoomableChart>
                         <ResponsiveContainer width="100%" height={180}>
                           <LineChart data={m.chart} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
@@ -1122,6 +1154,7 @@ function SharePage() {
                             )}
                           </LineChart>
                         </ResponsiveContainer>
+                        </ZoomableChart>
                       </div>
                     )}
                   </div>

@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import './HealthPage.css';
+import ZoomableChart from './ZoomableChart';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
 
@@ -1190,6 +1191,7 @@ function HealthPage({ token }) {
                 )}
                 {isExpanded && hasChartData && (
                   <div className="stat-inline-chart">
+                    <ZoomableChart>
                     <ResponsiveContainer width="100%" height={120}>
                       <LineChart data={gapFilled}>
                         <XAxis dataKey="dateLabel" hide />
@@ -1198,6 +1200,7 @@ function HealthPage({ token }) {
                         <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={false} strokeWidth={2} connectNulls={false} />
                       </LineChart>
                     </ResponsiveContainer>
+                    </ZoomableChart>
                   </div>
                 )}
               </div>
@@ -1232,6 +1235,7 @@ function HealthPage({ token }) {
                 </div>
               )}
               {rangeData.filter(p => p.value !== null).length > 1 ? (
+                <ZoomableChart>
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={rangeData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,180,255,0.15)" />
@@ -1241,6 +1245,7 @@ function HealthPage({ token }) {
                     <Line type="monotone" dataKey="value" stroke="#6ee7ff" dot={{ r: 2, fill: '#6ee7ff' }} strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
+                </ZoomableChart>
               ) : (
                 <p style={{ color: '#9ab', marginTop: 16 }}>Not enough data in selected range.</p>
               )}
