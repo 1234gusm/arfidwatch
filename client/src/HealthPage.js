@@ -871,8 +871,8 @@ function HealthPage({ token }) {
       carbs:      avg(maps['carbohydrates_g']),
       fat:        avg(maps['total_fat_g']),
       restingHR:  hrDays.length ? hrMap[hrDays[hrDays.length - 1]] : null,
-      bpSys:      avg(maps['blood_pressure_systolic_mmhg']),
-      bpDia:      avg(maps['blood_pressure_diastolic_mmhg']),
+      bpSys:      (() => { const m = maps['blood_pressure_systolic_mmhg']; if (!m) return null; const d = Object.keys(m).sort(); return d.length ? m[d[d.length - 1]] : null; })(),
+      bpDia:      (() => { const m = maps['blood_pressure_diastolic_mmhg']; if (!m) return null; const d = Object.keys(m).sort(); return d.length ? m[d[d.length - 1]] : null; })(),
       hrv:        avg(maps['heart_rate_variability_ms']),
       height:     (() => {
         const hVals = data
