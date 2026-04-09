@@ -76,6 +76,12 @@ export function buildMaps(rows) {
       }
     }
   }
+  // Types that must come exclusively from iHealth — never Apple Health fallback
+  const IH_ONLY = new Set([
+    'blood_pressure_systolic_mmhg', 'blood_pressure_diastolic_mmhg',
+    'systolic', 'systolicmmhg', 'systolic_mmhg', 'sys', 'sysmmhg',
+    'diastolic', 'diastolicmmhg', 'diastolic_mmhg', 'dia', 'diammhg',
+  ]);
   // Second pass: all rows (auto health fills gaps where iHealth is absent)
   rows.forEach(r => {
     const raw = mapCanonical(r.type);
@@ -84,6 +90,8 @@ export function buildMaps(rows) {
     if (!Number.isFinite(v)) return;
     const day = String(r.timestamp || '').slice(0, 10);
     if (!day) return;
+    // BP: only iHealth sources allowed
+    if (IH_ONLY.has(ct) && getSource(r) !== 'ihealth_csv') return;
     if (IH_PRIORITY.has(ct) && ihDays[ct] && ihDays[ct].has(day) && getSource(r) !== 'ihealth_csv') return;
     if (!maps[ct]) maps[ct] = {};
     if (maps[ct][day] === undefined) {
