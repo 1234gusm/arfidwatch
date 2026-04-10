@@ -871,8 +871,8 @@ function SharePage() {
           })()}
           {(() => {
             const rhr    = avgOfPeriod(maps['resting_heart_rate_countmin'], periodDays);
-            const bpSys  = avgOfPeriod(maps['blood_pressure_systolic_mmhg'], periodDays);
-            const bpDia  = avgOfPeriod(maps['blood_pressure_diastolic_mmhg'], periodDays);
+            const bpSys  = (() => { const m = maps['blood_pressure_systolic_mmhg']; if (!m) return null; const d = Object.keys(m).sort(); return d.length ? m[d[d.length - 1]] : null; })();
+            const bpDia  = (() => { const m = maps['blood_pressure_diastolic_mmhg']; if (!m) return null; const d = Object.keys(m).sort(); return d.length ? m[d[d.length - 1]] : null; })();
             const hrv    = avgOfPeriod(maps['heart_rate_variability_ms'], periodDays);
             if (rhr == null && bpSys == null && hrv == null) return null;
             return (
