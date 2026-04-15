@@ -121,34 +121,37 @@ async function parseWithAI(texts, imageFiles) {
 
   if (parts.length <= 1) throw new Error('No processable content found in uploaded files');
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-  const body = {
+  const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite'];
+  const payload = JSON.stringify({
     contents: [{ parts }],
-    generationConfig: {
-      maxOutputTokens: 8192,
-      temperature: 0.1,
-    },
-  };
+    generationConfig: { maxOutputTokens: 8192, temperature: 0.1 },
+  });
 
-  /* Retry with backoff for 429 rate limits (common with new API keys) */
+  /* Try each model, retry transient errors (429/503) with backoff */
   let resp;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (resp.status !== 429) break;
-    const wait = (attempt + 1) * 10000; /* 10s, 20s, 30s */
-    console.log(`Gemini 429 rate limited, retrying in ${wait / 1000}s (attempt ${attempt + 1}/3)`);
-    await new Promise(r => setTimeout(r, wait));
+  for (const model of MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    let ok = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+      if (resp.status !== 429 && resp.status !== 503) { ok = true; break; }
+      const wait = (attempt + 1) * 10000;
+      console.log(`Gemini ${resp.status} on ${model}, retrying in ${wait / 1000}s (attempt ${attempt + 1}/3)`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+    if (ok && resp.ok) { console.log(`Gemini: used model ${model}`); break; }
+    if (ok && resp.status !== 429 && resp.status !== 503) break; /* non-transient error, stop */
+    console.log(`Gemini: model ${model} unavailable, trying next...`);
   }
 
   if (!resp.ok) {
     const errBody = await resp.text();
-    if (resp.status === 429) {
-      throw new Error('AI rate limited — wait a minute and try again.');
-    }
+    if (resp.status === 429) throw new Error('AI rate limited — wait a minute and try again.');
+    if (resp.status === 503) throw new Error('AI service overloaded — try again in a minute.');
     throw new Error(`Gemini API error ${resp.status}: ${errBody.slice(0, 200)}`);
   }
 
