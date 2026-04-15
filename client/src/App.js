@@ -22,6 +22,7 @@ import VitalsPage from './VitalsPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import ResetPasswordPage from './ResetPasswordPage';
 import TasksPage from './TasksPage';
+import MedicalVisitsPage from './MedicalVisitsPage';
 import API_BASE from './apiBase';
 import { authFetch, checkSession, clearAuthToken, getAuthToken } from './auth';
 
@@ -34,6 +35,7 @@ const TAB_DEFS = [
   { id: 'medications', label: 'Medications', to: '/medications' },
   { id: 'journal', label: 'Journal', to: '/calendar' },
   { id: 'reminders', label: 'Reminders', to: '/reminders' },
+  { id: 'visits', label: 'Visits', to: '/visits' },
   { id: 'tasks', label: 'Tasks', to: '/tasks' },
   { id: 'settings', label: 'Settings', to: '/profile' },
 ];
@@ -363,6 +365,10 @@ function App() {
         <Route
           path="/reminders"
           element={token ? <RemindersPage token={token} /> : <LoginPage setToken={setToken} />}
+        />
+        <Route
+          path="/visits"
+          element={token ? <MedicalVisitsPage token={token} /> : <LoginPage setToken={setToken} />}
         />
         <Route
           path="/tasks"

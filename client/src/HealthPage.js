@@ -28,10 +28,6 @@ function HealthPage({ token }) {
   const [statOrder, setStatOrder] = useState([]);
   const [dragOver, setDragOver] = useState(null);
   const dragSrc = useRef(null);
-  const [medicalVisits, setMedicalVisits] = useState([]);
-  const [expandedVisits, setExpandedVisits] = useState(new Set());
-  const [showVisitForm, setShowVisitForm] = useState(false);
-  const [visitForm, setVisitForm] = useState({ date: '', visit_type: 'doctor', facility: '', provider: '', specialty: '', chief_complaint: '', diagnoses: '', notes: '', disposition: '', follow_up: '' });
   const uploadInputRef = useRef(null);
 
   // date range for charts (YYYY-MM-DD) — local time, NOT UTC
@@ -98,35 +94,6 @@ function HealthPage({ token }) {
         }
       }
     } catch (_) { /* best-effort */ }
-  };
-
-  const fetchMedicalVisits = async () => {
-    try {
-      const res = await authFetch(`${API_BASE}/api/medical-visits`, { credentials: 'include' });
-      const json = await res.json();
-      setMedicalVisits(json.data || []);
-    } catch (_) { /* best-effort */ }
-  };
-
-  const createVisit = async (e) => {
-    e.preventDefault();
-    if (!visitForm.date || !visitForm.visit_type) return;
-    const body = { ...visitForm, diagnoses_json: visitForm.diagnoses ? visitForm.diagnoses.split(',').map(s => s.trim()) : [] };
-    delete body.diagnoses;
-    await authFetch(`${API_BASE}/api/medical-visits`, {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    setShowVisitForm(false);
-    setVisitForm({ date: '', visit_type: 'doctor', facility: '', provider: '', specialty: '', chief_complaint: '', diagnoses: '', notes: '', disposition: '', follow_up: '' });
-    fetchMedicalVisits();
-  };
-
-  const deleteVisit = async (id) => {
-    if (!window.confirm('Delete this visit?')) return;
-    await authFetch(`${API_BASE}/api/medical-visits/${id}`, { method: 'DELETE', credentials: 'include' });
-    fetchMedicalVisits();
   };
 
   const persistDashboardPrefs = async (nextHiddenTypes, nextStatOrder) => {
@@ -838,7 +805,7 @@ function HealthPage({ token }) {
 
   // All hooks must be called at top level before any conditional returns
   useEffect(() => {
-    if (token) { fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily(); fetchMedicalVisits(); }
+    if (token) { fetchData(); fetchImports(); fetchTodayFood(); fetchFoodLogDaily(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -1262,122 +1229,6 @@ function HealthPage({ token }) {
         </div>
       )}
 
-
-      {/* ── Medical Visits ── */}
-      <section className="mv-section">
-        <div className="mv-header">
-          <h3>Medical Visits</h3>
-          <button className="mv-add-btn" onClick={() => setShowVisitForm(v => !v)}>
-            {showVisitForm ? 'Cancel' : '+ Add Visit'}
-          </button>
-        </div>
-
-        {showVisitForm && (
-          <form className="mv-form" onSubmit={createVisit}>
-            <div className="mv-form-row">
-              <label>Date<input type="date" value={visitForm.date} onChange={e => setVisitForm(f => ({...f, date: e.target.value}))} required /></label>
-              <label>Type
-                <select value={visitForm.visit_type} onChange={e => setVisitForm(f => ({...f, visit_type: e.target.value}))}>
-                  <option value="er">ER</option>
-                  <option value="doctor">Doctor</option>
-                  <option value="specialist">Specialist</option>
-                  <option value="urgent_care">Urgent Care</option>
-                  <option value="telehealth">Telehealth</option>
-                </select>
-              </label>
-            </div>
-            <div className="mv-form-row">
-              <label>Facility<input value={visitForm.facility} onChange={e => setVisitForm(f => ({...f, facility: e.target.value}))} /></label>
-              <label>Provider<input value={visitForm.provider} onChange={e => setVisitForm(f => ({...f, provider: e.target.value}))} /></label>
-            </div>
-            <div className="mv-form-row">
-              <label>Specialty<input value={visitForm.specialty} onChange={e => setVisitForm(f => ({...f, specialty: e.target.value}))} /></label>
-              <label>Chief Complaint<input value={visitForm.chief_complaint} onChange={e => setVisitForm(f => ({...f, chief_complaint: e.target.value}))} /></label>
-            </div>
-            <label>Diagnoses (comma-separated)<input value={visitForm.diagnoses} onChange={e => setVisitForm(f => ({...f, diagnoses: e.target.value}))} /></label>
-            <label>Notes<textarea rows={3} value={visitForm.notes} onChange={e => setVisitForm(f => ({...f, notes: e.target.value}))} /></label>
-            <div className="mv-form-row">
-              <label>Disposition<input value={visitForm.disposition} onChange={e => setVisitForm(f => ({...f, disposition: e.target.value}))} /></label>
-              <label>Follow-up<input value={visitForm.follow_up} onChange={e => setVisitForm(f => ({...f, follow_up: e.target.value}))} /></label>
-            </div>
-            <button type="submit" className="mv-save-btn">Save Visit</button>
-          </form>
-        )}
-
-        {medicalVisits.length === 0 && !showVisitForm && (
-          <p className="muted">No visits recorded yet.</p>
-        )}
-
-        {medicalVisits.map(v => {
-          const expanded = expandedVisits.has(v.id);
-          const typeBadge = { er: '🚨 ER', doctor: '🩺 Doctor', specialist: '🔬 Specialist', urgent_care: '⚡ Urgent Care', telehealth: '💻 Telehealth' };
-          const diagnoses = (() => { try { return JSON.parse(v.diagnoses_json); } catch { return []; } })();
-          const vitals = (() => { try { return JSON.parse(v.vitals_json); } catch { return null; } })();
-          const labs = (() => { try { return JSON.parse(v.labs_json); } catch { return null; } })();
-          const ecgs = (() => { try { return JSON.parse(v.ecgs_json); } catch { return null; } })();
-          const meds = (() => { try { return JSON.parse(v.medications_json); } catch { return null; } })();
-          return (
-            <div key={v.id} className={`mv-card mv-card--${v.visit_type}`}>
-              <div className="mv-card-header" onClick={() => setExpandedVisits(prev => { const n = new Set(prev); n.has(v.id) ? n.delete(v.id) : n.add(v.id); return n; })}>
-                <span className="mv-badge">{typeBadge[v.visit_type] || v.visit_type}</span>
-                <span className="mv-date">{v.date}</span>
-                <span className="mv-facility">{v.facility}</span>
-                {v.provider && <span className="mv-provider">{v.provider}</span>}
-                <span className="mv-expand-icon">{expanded ? '▾' : '▸'}</span>
-              </div>
-              {expanded && (
-                <div className="mv-card-body">
-                  {v.specialty && <p><strong>Specialty:</strong> {v.specialty}</p>}
-                  {v.chief_complaint && <p><strong>Chief Complaint:</strong> {v.chief_complaint}</p>}
-                  {Array.isArray(diagnoses) && diagnoses.length > 0 && (
-                    <div className="mv-diagnoses"><strong>Diagnoses:</strong> {diagnoses.join(', ')}</div>
-                  )}
-                  {vitals && (
-                    <div className="mv-vitals">
-                      <strong>Vitals:</strong>
-                      <ul>{Object.entries(vitals).map(([k,val]) => <li key={k}>{k}: {val}</li>)}</ul>
-                    </div>
-                  )}
-                  {labs && (
-                    <div className="mv-labs">
-                      <strong>Labs:</strong>
-                      {Array.isArray(labs) ? (
-                        <table className="mv-labs-table">
-                          <thead><tr><th>Test</th><th>Value</th><th>Range</th><th>Flag</th></tr></thead>
-                          <tbody>{labs.map((l,i) => (
-                            <tr key={i} className={l.flag ? 'mv-lab-flagged' : ''}>
-                              <td>{l.name}</td><td>{l.value}</td><td>{l.range || ''}</td><td>{l.flag || ''}</td>
-                            </tr>
-                          ))}</tbody>
-                        </table>
-                      ) : <pre>{JSON.stringify(labs, null, 2)}</pre>}
-                    </div>
-                  )}
-                  {ecgs && Array.isArray(ecgs) && ecgs.length > 0 && (
-                    <div className="mv-ecgs">
-                      <strong>ECGs:</strong>
-                      {ecgs.map((ecg, i) => (
-                        <div key={i} className="mv-ecg-item">
-                          <span className="mv-ecg-time">{ecg.time}</span> — {ecg.rate} BPM
-                          {ecg.interpretation && <span className="mv-ecg-interp"> — {ecg.interpretation}</span>}
-                          {ecg.critical && <span className="mv-ecg-critical"> ⚠️ CRITICAL</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {meds && Array.isArray(meds) && meds.length > 0 && (
-                    <div className="mv-meds"><strong>Medications at visit:</strong> {meds.join(', ')}</div>
-                  )}
-                  {v.notes && <div className="mv-notes"><strong>Notes:</strong><div className="mv-notes-text">{v.notes}</div></div>}
-                  {v.disposition && <p><strong>Disposition:</strong> {v.disposition}</p>}
-                  {v.follow_up && <p><strong>Follow-up:</strong> {v.follow_up}</p>}
-                  <button className="mv-delete-btn" onClick={() => deleteVisit(v.id)}>Delete Visit</button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </section>
 
       {/* Uploaded files */}
       <section className="imports-section">
