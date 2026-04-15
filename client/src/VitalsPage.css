@@ -287,3 +287,6 @@
 [data-theme="light"] .vp-stat-latest { color: var(--text-dark); }
 [data-theme="light"] .vp-stat-latest small { color: #94a3b8; }
 [data-theme="light"] .vp-stat-range { color: #94a3b8; }
+
+/* Points per day badge */
+.vp-stat-ppd { color: #818cf8; font-weight: 500; }

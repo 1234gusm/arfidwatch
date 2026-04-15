@@ -122,12 +122,17 @@ function VitalsPage({ token }) {
 
       // Auto health: daily averages
       const autoReadings = [];
+      let totalAutoPoints = 0;
       if (autoData) {
-        for (const [day, { sum, count }] of Object.entries(autoData))
-          autoReadings.push({ day, v: Math.round((sum / count) * 100) / 100 });
+        for (const [day, { sum, count }] of Object.entries(autoData)) {
+          autoReadings.push({ day, v: Math.round((sum / count) * 100) / 100, pts: count });
+          totalAutoPoints += count;
+        }
         autoReadings.sort((a, b) => a.day.localeCompare(b.day));
       }
       const ihReadings = ihData || [];
+      const autoDays = autoReadings.length;
+      const avgPointsPerDay = autoDays > 0 ? Math.round((totalAutoPoints / autoDays) * 10) / 10 : 0;
 
       const allVals = [...autoReadings.map(r => r.v), ...ihReadings.map(r => r.v)];
       if (!allVals.length) return null;
@@ -160,7 +165,7 @@ function VitalsPage({ token }) {
 
       return {
         ...m, unit, dayMap, dayMapIh, chart, avg, min, max,
-        latest, latestDay, count: allVals.length,
+        latest, latestDay, count: allVals.length, avgPointsPerDay,
         hasAuto: autoReadings.length > 0, hasIh: ihReadings.length > 0,
       };
     }).filter(Boolean);
@@ -371,6 +376,9 @@ function VitalsPage({ token }) {
                     <span className="vp-stat-latest">{m.dp === 0 ? Math.round(m.latest) : m.latest.toFixed(m.dp)} <small>{m.unit}</small></span>
                     <span className="vp-stat-range">
                       {m.dp === 0 ? Math.round(m.min) : m.min.toFixed(m.dp)}–{m.dp === 0 ? Math.round(m.max) : m.max.toFixed(m.dp)} · avg {m.dp === 0 ? Math.round(m.avg) : m.avg.toFixed(m.dp)} · {m.count}
+                      {m.hasAuto && m.avgPointsPerDay > 0 && (
+                        <span className="vp-stat-ppd"> · ⌚ {m.avgPointsPerDay} pts/day</span>
+                      )}
                     </span>
                   </div>
                   {isCardOpen && (
