@@ -42,15 +42,26 @@ const upload = multer({
 /* ── PDF text extraction ── */
 let pdfParse;
 try { pdfParse = require('pdf-parse'); } catch { pdfParse = null; }
+let mammoth;
+try { mammoth = require('mammoth'); } catch { mammoth = null; }
+
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 async function extractText(filePath, mime) {
+  // PDF
   if (mime === 'application/pdf' && pdfParse) {
     const buf = fs.readFileSync(filePath);
     const data = await pdfParse(buf);
-    return data.text || '';
+    return (data.text || '').trim();
   }
-  if (mime.startsWith('text/') || mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    return fs.readFileSync(filePath, 'utf8');
+  // DOCX — use mammoth for proper extraction
+  if ((mime === DOCX_MIME || filePath.endsWith('.docx')) && mammoth) {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return (result.value || '').trim();
+  }
+  // Plain text / CSV
+  if (mime.startsWith('text/') || mime === 'text/csv') {
+    return fs.readFileSync(filePath, 'utf8').trim();
   }
   return null; // images handled separately via vision
 }
