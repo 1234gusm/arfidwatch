@@ -121,38 +121,50 @@ async function parseWithAI(texts, imageFiles) {
 
   if (parts.length <= 1) throw new Error('No processable content found in uploaded files');
 
-  const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite'];
+  const MODELS = [
+    'gemini-2.5-pro',            /* best reasoning, paid tier */
+    'gemini-2.5-flash',          /* fast + smart */
+    'gemini-3.1-pro-preview',    /* newest pro (preview) */
+    'gemini-3-flash-preview',    /* newest flash (preview) */
+    'gemini-2.5-flash-lite',     /* cheapest fallback */
+  ];
   const payload = JSON.stringify({
     contents: [{ parts }],
-    generationConfig: { maxOutputTokens: 8192, temperature: 0.1 },
+    generationConfig: { maxOutputTokens: 16384, temperature: 0.1 },
   });
 
-  /* Try each model, retry transient errors (429/503) with backoff */
+  /* Try each model, retry transient errors (429/503), skip 404 (model not found) */
   let resp;
+  let usedModel = '';
   for (const model of MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    let ok = false;
+    let settled = false;
     for (let attempt = 0; attempt < 3; attempt++) {
       resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payload,
       });
-      if (resp.status !== 429 && resp.status !== 503) { ok = true; break; }
+      if (resp.status !== 429 && resp.status !== 503) { settled = true; break; }
       const wait = (attempt + 1) * 10000;
       console.log(`Gemini ${resp.status} on ${model}, retrying in ${wait / 1000}s (attempt ${attempt + 1}/3)`);
       await new Promise(r => setTimeout(r, wait));
     }
-    if (ok && resp.ok) { console.log(`Gemini: used model ${model}`); break; }
-    if (ok && resp.status !== 429 && resp.status !== 503) break; /* non-transient error, stop */
-    console.log(`Gemini: model ${model} unavailable, trying next...`);
+    /* Skip to next model on 404 (not found), 429 (still limited), 503 (overloaded) */
+    if (!settled || resp.status === 404 || resp.status === 429 || resp.status === 503) {
+      console.log(`Gemini: model ${model} failed (${resp?.status}), trying next...`);
+      continue;
+    }
+    if (resp.ok) { usedModel = model; console.log(`Gemini: success with ${model}`); break; }
+    /* Other error (400, 403, etc.) — stop trying */
+    break;
   }
 
-  if (!resp.ok) {
-    const errBody = await resp.text();
-    if (resp.status === 429) throw new Error('AI rate limited — wait a minute and try again.');
-    if (resp.status === 503) throw new Error('AI service overloaded — try again in a minute.');
-    throw new Error(`Gemini API error ${resp.status}: ${errBody.slice(0, 200)}`);
+  if (!resp || !resp.ok) {
+    const errBody = resp ? await resp.text() : 'No models available';
+    if (resp?.status === 429) throw new Error('AI rate limited — wait a minute and try again.');
+    if (resp?.status === 503) throw new Error('All AI models overloaded — try again in a minute.');
+    throw new Error(`Gemini API error ${resp?.status || 'N/A'}: ${errBody.slice(0, 200)}`);
   }
 
   const json = await resp.json();
