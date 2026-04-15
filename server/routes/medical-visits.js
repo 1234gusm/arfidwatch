@@ -130,14 +130,25 @@ async function parseWithAI(texts, imageFiles) {
     },
   };
 
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  /* Retry with backoff for 429 rate limits (common with new API keys) */
+  let resp;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (resp.status !== 429) break;
+    const wait = (attempt + 1) * 10000; /* 10s, 20s, 30s */
+    console.log(`Gemini 429 rate limited, retrying in ${wait / 1000}s (attempt ${attempt + 1}/3)`);
+    await new Promise(r => setTimeout(r, wait));
+  }
 
   if (!resp.ok) {
     const errBody = await resp.text();
+    if (resp.status === 429) {
+      throw new Error('AI rate limited — wait a minute and try again.');
+    }
     throw new Error(`Gemini API error ${resp.status}: ${errBody.slice(0, 200)}`);
   }
 
