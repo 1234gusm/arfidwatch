@@ -1523,3 +1523,27 @@
   .sv-cards { grid-template-columns: 1fr; }
   .sv-stat-range { display: none; }
 }
+
+/* ── Medical Visits (Share) ── */
+.sv-visits-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.sv-visit-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+.sv-visit--er { border-left: 4px solid #ef4444; }
+.sv-visit--doctor { border-left: 4px solid #3b82f6; }
+.sv-visit--specialist { border-left: 4px solid #a855f7; }
+.sv-visit--urgent_care { border-left: 4px solid #f59e0b; }
+.sv-visit--telehealth { border-left: 4px solid #14b8a6; }
+.sv-visit-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; flex-wrap: wrap; }
+.sv-visit-header:hover { background: rgba(255,255,255,0.03); }
+.sv-visit-badge { font-size: .8rem; font-weight: 600; }
+.sv-visit-date { font-size: .85rem; color: #94a3b8; }
+.sv-visit-facility { font-size: .85rem; color: #cbd5e1; }
+.sv-visit-provider { font-size: .8rem; color: #64748b; }
+.sv-visit-chevron { margin-left: auto; color: #64748b; font-size: .75rem; }
+.sv-visit-body { padding: 0 14px 14px; font-size: .85rem; line-height: 1.6; }
+.sv-visit-body p { margin: 4px 0; }
+.sv-visit-body strong { color: #94a3b8; }
+.sv-visit-labs-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: .8rem; }
+.sv-visit-labs-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; }
+.sv-visit-labs-table td { padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.sv-lab-flagged td { color: #fbbf24; font-weight: 600; }
+.sv-visit-notes-text { white-space: pre-wrap; margin-top: 4px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: .82rem; line-height: 1.5; }

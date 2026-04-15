@@ -690,3 +690,74 @@
 [data-theme="light"] .remove-all-btn:hover { background: rgba(239,68,68,0.12); }
 [data-theme="light"] .remove-all-btn--cancel { border-color: rgba(0,0,0,0.12); color: #64748b; }
 [data-theme="light"] .remove-all-btn--cancel:hover { background: rgba(0,0,0,0.04); }
+
+/* ══════════════════════════════════════════════════════
+   Medical Visits
+   ══════════════════════════════════════════════════════ */
+.mv-section { margin: 2rem 0; }
+.mv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.mv-header h3 { margin: 0; font-size: 1.25rem; }
+.mv-add-btn { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #818cf8; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: .85rem; }
+.mv-add-btn:hover { background: rgba(99,102,241,0.25); }
+
+/* Form */
+.mv-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+.mv-form label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: #94a3b8; flex: 1; margin-bottom: 8px; }
+.mv-form input, .mv-form select, .mv-form textarea { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 8px; color: inherit; font-size: .85rem; }
+.mv-form-row { display: flex; gap: 12px; }
+.mv-save-btn { background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 8px 20px; cursor: pointer; font-size: .85rem; margin-top: 4px; }
+.mv-save-btn:hover { background: #4f46e5; }
+
+/* Visit cards */
+.mv-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+.mv-card--er { border-left: 4px solid #ef4444; }
+.mv-card--doctor { border-left: 4px solid #3b82f6; }
+.mv-card--specialist { border-left: 4px solid #a855f7; }
+.mv-card--urgent_care { border-left: 4px solid #f59e0b; }
+.mv-card--telehealth { border-left: 4px solid #14b8a6; }
+
+.mv-card-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; flex-wrap: wrap; }
+.mv-card-header:hover { background: rgba(255,255,255,0.03); }
+.mv-badge { font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.mv-date { font-size: .85rem; color: #94a3b8; }
+.mv-facility { font-size: .85rem; color: #cbd5e1; }
+.mv-provider { font-size: .8rem; color: #64748b; }
+.mv-expand-icon { margin-left: auto; color: #64748b; font-size: .75rem; }
+
+.mv-card-body { padding: 0 14px 14px; font-size: .85rem; line-height: 1.6; }
+.mv-card-body p { margin: 4px 0; }
+.mv-card-body strong { color: #94a3b8; }
+
+/* Labs table */
+.mv-labs-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: .8rem; }
+.mv-labs-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-weight: 500; }
+.mv-labs-table td { padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.mv-lab-flagged td { color: #fbbf24; font-weight: 600; }
+
+/* ECGs */
+.mv-ecg-item { padding: 3px 0; }
+.mv-ecg-time { color: #94a3b8; }
+.mv-ecg-interp { color: #cbd5e1; }
+.mv-ecg-critical { color: #ef4444; font-weight: 700; }
+
+/* Notes */
+.mv-notes-text { white-space: pre-wrap; margin-top: 4px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: .82rem; line-height: 1.5; }
+
+/* Meds */
+.mv-meds { margin: 6px 0; }
+
+.mv-delete-btn { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: .78rem; margin-top: 8px; }
+.mv-delete-btn:hover { background: rgba(239,68,68,0.25); }
+
+/* Light theme overrides */
+[data-theme="light"] .mv-form { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .mv-form input, [data-theme="light"] .mv-form select, [data-theme="light"] .mv-form textarea { background: #fff; border-color: rgba(0,0,0,0.12); }
+[data-theme="light"] .mv-card { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .mv-card-header:hover { background: rgba(0,0,0,0.02); }
+[data-theme="light"] .mv-badge { color: #1e293b; }
+[data-theme="light"] .mv-date { color: #64748b; }
+[data-theme="light"] .mv-facility { color: #334155; }
+[data-theme="light"] .mv-notes-text { background: rgba(0,0,0,0.02); }
+[data-theme="light"] .mv-labs-table th { border-bottom-color: rgba(0,0,0,0.1); }
+[data-theme="light"] .mv-labs-table td { border-bottom-color: rgba(0,0,0,0.04); }
+[data-theme="light"] .mv-lab-flagged td { color: #d97706; }

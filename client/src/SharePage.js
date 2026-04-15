@@ -421,6 +421,8 @@ function SharePage() {
   const [sleepOpenCards, setSleepOpenCards] = useState(new Set());
   const [vitalsExpanded, setVitalsExpanded] = useState({});
   const [vitalsCardOpen, setVitalsCardOpen] = useState(null);
+  const [medicalVisits, setMedicalVisits] = useState([]);
+  const [expandedShareVisits, setExpandedShareVisits] = useState(new Set());
 
   const toggleSleepCard = useCallback((date) => {
     setSleepOpenCards(prev => {
@@ -467,6 +469,14 @@ function SharePage() {
     return true;
   };
 
+  const fetchMedicalVisits = async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/medical-visits/shared/${shareToken}`);
+      const d = await r.json();
+      setMedicalVisits(d.data || []);
+    } catch (_) { /* best-effort */ }
+  };
+
   const doUnlock = async (code, autoUnlock = false) => {
     setUnlocking(true); setErrMsg('');
     try {
@@ -484,7 +494,7 @@ function SharePage() {
       }
       setShareJwt(d.token);
       const ok = await fetchData(d.token, 'week');
-      if (ok) setPhase('data');
+      if (ok) { setPhase('data'); fetchMedicalVisits(); }
     } catch {
       setErrMsg('Error loading data.');
     } finally {
@@ -915,6 +925,12 @@ function SharePage() {
             className={`share-tab${activeTab === 'overview' ? ' share-tab--active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >Extra Stats</button>
+          {medicalVisits.length > 0 && (
+            <button
+              className={`share-tab${activeTab === 'visits' ? ' share-tab--active' : ''}`}
+              onClick={() => setActiveTab('visits')}
+            >Visits ({medicalVisits.length})</button>
+          )}
         </div>
         </div>
         </div>
@@ -1052,6 +1068,77 @@ function SharePage() {
         {activeTab === 'overview' && <>
         {SECTIONS.filter(s => s.id !== 'sleep').map(s => renderMetricSection(s))}
         </>}
+
+        {activeTab === 'visits' && (() => {
+          const typeBadge = { er: '🚨 ER', doctor: '🩺 Doctor', specialist: '🔬 Specialist', urgent_care: '⚡ Urgent Care', telehealth: '💻 Telehealth' };
+          return (
+            <div className="sv-visits-list">
+              {medicalVisits.map(v => {
+                const expanded = expandedShareVisits.has(v.id);
+                const diagnoses = (() => { try { return JSON.parse(v.diagnoses_json); } catch { return []; } })();
+                const vitals = (() => { try { return JSON.parse(v.vitals_json); } catch { return null; } })();
+                const labs = (() => { try { return JSON.parse(v.labs_json); } catch { return null; } })();
+                const ecgs = (() => { try { return JSON.parse(v.ecgs_json); } catch { return null; } })();
+                const meds = (() => { try { return JSON.parse(v.medications_json); } catch { return null; } })();
+                return (
+                  <div key={v.id} className={`sv-visit-card sv-visit--${v.visit_type}`}>
+                    <div className="sv-visit-header" onClick={() => setExpandedShareVisits(prev => { const n = new Set(prev); n.has(v.id) ? n.delete(v.id) : n.add(v.id); return n; })}>
+                      <span className="sv-visit-badge">{typeBadge[v.visit_type] || v.visit_type}</span>
+                      <span className="sv-visit-date">{v.date}</span>
+                      <span className="sv-visit-facility">{v.facility}</span>
+                      {v.provider && <span className="sv-visit-provider">{v.provider}</span>}
+                      <span className="sv-visit-chevron">{expanded ? '▾' : '▸'}</span>
+                    </div>
+                    {expanded && (
+                      <div className="sv-visit-body">
+                        {v.specialty && <p><strong>Specialty:</strong> {v.specialty}</p>}
+                        {v.chief_complaint && <p><strong>Chief Complaint:</strong> {v.chief_complaint}</p>}
+                        {Array.isArray(diagnoses) && diagnoses.length > 0 && (
+                          <div><strong>Diagnoses:</strong> {diagnoses.join(', ')}</div>
+                        )}
+                        {vitals && (
+                          <div><strong>Vitals:</strong>
+                            <ul>{Object.entries(vitals).map(([k,val]) => <li key={k}>{k}: {val}</li>)}</ul>
+                          </div>
+                        )}
+                        {labs && Array.isArray(labs) && (
+                          <div className="sv-visit-labs">
+                            <strong>Labs:</strong>
+                            <table className="sv-visit-labs-table">
+                              <thead><tr><th>Test</th><th>Value</th><th>Range</th><th>Flag</th></tr></thead>
+                              <tbody>{labs.map((l,i) => (
+                                <tr key={i} className={l.flag ? 'sv-lab-flagged' : ''}>
+                                  <td>{l.name}</td><td>{l.value}</td><td>{l.range || ''}</td><td>{l.flag || ''}</td>
+                                </tr>
+                              ))}</tbody>
+                            </table>
+                          </div>
+                        )}
+                        {ecgs && Array.isArray(ecgs) && ecgs.length > 0 && (
+                          <div><strong>ECGs:</strong>
+                            {ecgs.map((ecg, i) => (
+                              <div key={i}>
+                                {ecg.time} — {ecg.rate} BPM
+                                {ecg.interpretation && <span> — {ecg.interpretation}</span>}
+                                {ecg.critical && <span style={{color:'#ef4444',fontWeight:700}}> ⚠️ CRITICAL</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {meds && Array.isArray(meds) && meds.length > 0 && (
+                          <div><strong>Medications at visit:</strong> {meds.join(', ')}</div>
+                        )}
+                        {v.notes && <div><strong>Notes:</strong><div className="sv-visit-notes-text">{v.notes}</div></div>}
+                        {v.disposition && <p><strong>Disposition:</strong> {v.disposition}</p>}
+                        {v.follow_up && <p><strong>Follow-up:</strong> {v.follow_up}</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {activeTab === 'log' && (() => {
           // Build a unified day-keyed map — always include every day in the period

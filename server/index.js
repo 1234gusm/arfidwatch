@@ -15,6 +15,7 @@ const foodLogRoutes = require('./routes/foodlog');
 const medicationsRoutes = require('./routes/medications');
 const pushRoutes = require('./routes/push');
 const tasksRoutes = require('./routes/tasks');
+const medicalVisitsRoutes = require('./routes/medical-visits');
 const { startAutoHealthPull } = require('./utils/autoHealthPull');
 const { initVapid } = require('./utils/vapid');
 const { startPushScheduler } = require('./utils/pushScheduler');
@@ -93,6 +94,7 @@ app.use('/api/food-log', foodLogRoutes);
 app.use('/api/medications', medicationsRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/medical-visits', medicalVisitsRoutes);
 
 // Diagnostic endpoint (no auth needed)
 app.get('/api/diag', async (_req, res) => {

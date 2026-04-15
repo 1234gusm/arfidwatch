@@ -330,6 +330,31 @@ async function setup() {
     if (!exists) return db.schema.table('user_profiles', t => t.string('theme').nullable().defaultTo('dark'));
   });
 
+  // Medical Visits (ER, doctor, specialist, etc.)
+  await db.schema.hasTable('medical_visits').then(exists => {
+    if (!exists) {
+      return db.schema.createTable('medical_visits', table => {
+        table.increments('id').primary();
+        table.integer('user_id').references('id').inTable('users').notNullable();
+        table.string('date').notNullable();            // YYYY-MM-DD
+        table.string('visit_type').notNullable();      // er, doctor, specialist, urgent_care, telehealth
+        table.string('facility').nullable();
+        table.string('provider').nullable();
+        table.string('specialty').nullable();           // Cardiology, PCP, Psychiatry, etc.
+        table.text('chief_complaint').nullable();
+        table.text('diagnoses_json').nullable();        // JSON array of strings
+        table.text('vitals_json').nullable();           // JSON {bp, hr, resp, spo2, temp}
+        table.text('labs_json').nullable();             // JSON array of lab panels
+        table.text('ecgs_json').nullable();             // JSON array of ECG results
+        table.text('notes').nullable();                 // Provider notes / clinical course
+        table.string('disposition').nullable();         // Discharge, Admit, Follow-up, etc.
+        table.text('follow_up').nullable();
+        table.text('medications_json').nullable();      // JSON array of med changes
+        table.datetime('created_at').notNullable();
+      });
+    }
+  });
+
   } catch (e) {
     console.error('[DB] Migration/setup error (server stays up):', e.message);
   }
