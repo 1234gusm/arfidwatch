@@ -1,71 +1,192 @@
 /* ══════════════════════════════════════════════════════
-   Medical Visits Page
+   Medical Visits Page — Enhanced
    ══════════════════════════════════════════════════════ */
-.mv-page { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
-.mv-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.mv-page-header h2 { margin: 0; font-size: 1.4rem; }
-.mv-add-btn { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #818cf8; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: .85rem; }
-.mv-add-btn:hover { background: rgba(99,102,241,0.25); }
 
-/* Form */
-.mv-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+/* ── Layout ── */
+.mv-page { max-width: 920px; margin: 0 auto; padding: 20px 16px; }
+.mv-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; flex-wrap: wrap; gap: 8px; }
+.mv-page-header h2 { margin: 0; font-size: 1.4rem; }
+.mv-header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Buttons */
+.mv-add-btn { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #818cf8; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: .85rem; transition: background .15s; }
+.mv-add-btn:hover { background: rgba(99,102,241,0.25); }
+.mv-expand-all-btn { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.2); color: #94a3b8; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: .78rem; }
+.mv-expand-all-btn:hover { background: rgba(148,163,184,0.2); }
+
+/* ── Stats bar ── */
+.mv-stats-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: .75rem; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+.mv-stat-total { font-size: .9rem; font-weight: 600; color: #e2e8f0; }
+.mv-stat-chip { font-size: .78rem; padding: 2px 8px; border-radius: 12px; border: 1px solid; background: rgba(255,255,255,0.04); }
+
+/* ── Filters ── */
+.mv-filters { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 8px; }
+.mv-type-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.mv-type-chip { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 20px; padding: 4px 12px; cursor: pointer; font-size: .78rem; transition: all .15s; }
+.mv-type-chip:hover { background: rgba(255,255,255,0.1); }
+.mv-type-chip--active { background: rgba(99,102,241,0.2); border-color: #6366f1; color: #a5b4fc; }
+.mv-search-sort { display: flex; gap: 8px; }
+.mv-search { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; color: inherit; font-size: .85rem; }
+.mv-search::placeholder { color: #64748b; }
+.mv-sort-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .78rem; white-space: nowrap; }
+.mv-sort-btn:hover { background: rgba(255,255,255,0.1); }
+
+/* ── Form ── */
+.mv-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 1.25rem; margin-bottom: 1.25rem; }
+.mv-form-title { font-size: 1rem; font-weight: 600; margin-bottom: .75rem; }
+.mv-fieldset { border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: .75rem; margin-bottom: .75rem; }
+.mv-fieldset legend { font-size: .82rem; font-weight: 600; color: #94a3b8; padding: 0 6px; }
 .mv-form label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: #94a3b8; flex: 1; margin-bottom: 8px; }
 .mv-form input, .mv-form select, .mv-form textarea { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 8px; color: inherit; font-size: .85rem; }
+.mv-form input:focus, .mv-form select:focus, .mv-form textarea:focus { border-color: rgba(99,102,241,0.5); outline: none; }
 .mv-form-row { display: flex; gap: 12px; }
-.mv-save-btn { background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 8px 20px; cursor: pointer; font-size: .85rem; margin-top: 4px; }
-.mv-save-btn:hover { background: #4f46e5; }
+@media (max-width: 600px) { .mv-form-row { flex-direction: column; } }
 
-/* Visit cards */
-.mv-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+/* Vitals grid in form */
+.mv-vitals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+
+/* Lab row in form */
+.mv-lab-row, .mv-ecg-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.mv-lab-row input, .mv-ecg-row input { flex: 1; min-width: 80px; }
+.mv-lab-val { max-width: 80px; }
+.mv-lab-flag-sel { max-width: 100px; }
+.mv-ecg-time-in { max-width: 90px; }
+.mv-ecg-rate-in { max-width: 80px; }
+.mv-ecg-crit-label { flex-direction: row !important; gap: 4px !important; align-items: center; font-size: .78rem; white-space: nowrap; }
+.mv-ecg-crit-label input[type="checkbox"] { width: auto; }
+.mv-remove-row { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.25); color: #f87171; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: .8rem; flex-shrink: 0; }
+.mv-add-row-btn { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); color: #818cf8; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: .78rem; margin-top: 4px; }
+.mv-add-row-btn:hover { background: rgba(99,102,241,0.2); }
+
+/* Form actions */
+.mv-form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+.mv-cancel-btn { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.2); color: #94a3b8; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: .85rem; }
+.mv-save-btn { background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 8px 20px; cursor: pointer; font-size: .85rem; }
+.mv-save-btn:hover { background: #4f46e5; }
+.mv-save-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Loading & Empty ── */
+.mv-loading { text-align: center; color: #64748b; padding: 2rem; font-size: .9rem; }
+.mv-empty { text-align: center; padding: 3rem 1rem; }
+.mv-empty-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+.mv-empty p { color: #64748b; margin-bottom: 1rem; }
+
+/* ── Visit cards ── */
+.mv-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 10px; overflow: hidden; transition: box-shadow .15s; }
+.mv-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.15); }
 .mv-card--er { border-left: 4px solid #ef4444; }
 .mv-card--doctor { border-left: 4px solid #3b82f6; }
 .mv-card--specialist { border-left: 4px solid #a855f7; }
 .mv-card--urgent_care { border-left: 4px solid #f59e0b; }
 .mv-card--telehealth { border-left: 4px solid #14b8a6; }
 
-.mv-card-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer; flex-wrap: wrap; }
+.mv-card-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; flex-wrap: wrap; }
 .mv-card-header:hover { background: rgba(255,255,255,0.03); }
-.mv-badge { font-size: .8rem; font-weight: 600; white-space: nowrap; }
-.mv-date { font-size: .85rem; color: #94a3b8; }
-.mv-facility { font-size: .85rem; color: #cbd5e1; }
-.mv-provider { font-size: .8rem; color: #64748b; }
-.mv-expand-icon { margin-left: auto; color: #64748b; font-size: .75rem; }
+.mv-badge { font-size: .82rem; font-weight: 600; white-space: nowrap; }
+.mv-date { font-size: .82rem; color: #94a3b8; }
+.mv-facility { font-size: .82rem; color: #cbd5e1; font-weight: 500; }
+.mv-provider { font-size: .78rem; color: #64748b; }
+.mv-complaint-preview { font-size: .75rem; color: #475569; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+.mv-expand-icon { margin-left: auto; color: #64748b; font-size: .75rem; flex-shrink: 0; }
 
+/* ── Card body ── */
 .mv-card-body { padding: 0 14px 14px; font-size: .85rem; line-height: 1.6; }
-.mv-card-body p { margin: 4px 0; }
-.mv-card-body strong { color: #94a3b8; }
+.mv-card-body strong { color: #94a3b8; font-size: .82rem; display: block; margin-bottom: 4px; }
+
+.mv-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+
+/* Detail tags */
+.mv-detail-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.mv-detail-tag { font-size: .8rem; padding: 3px 10px; border-radius: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+
+/* Diagnoses chips */
+.mv-diagnoses { margin-top: 8px; }
+.mv-dx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.mv-dx-chip { font-size: .78rem; padding: 3px 10px; border-radius: 14px; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25); color: #c084fc; }
+
+/* Vitals display grid */
+.mv-vitals-display { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin-top: 4px; }
+.mv-vital-tile { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 6px 10px; text-align: center; }
+.mv-vital-label { display: block; font-size: .7rem; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+.mv-vital-value { display: block; font-size: .88rem; font-weight: 600; color: #e2e8f0; margin-top: 2px; }
 
 /* Labs table */
-.mv-labs-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: .8rem; }
-.mv-labs-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-weight: 500; }
+.mv-lab-section-label { font-size: .78rem; font-weight: 600; color: #94a3b8; margin-top: 8px; margin-bottom: 2px; }
+.mv-lab-flagged-label { color: #fbbf24; }
+.mv-labs-table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-size: .8rem; }
+.mv-labs-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-weight: 500; font-size: .75rem; }
 .mv-labs-table td { padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .mv-lab-flagged td { color: #fbbf24; font-weight: 600; }
+.mv-labs-normal { opacity: .8; }
+.mv-flag-badge { font-size: .7rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+.mv-flag--low { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.mv-flag--high { background: rgba(239,68,68,0.15); color: #f87171; }
+.mv-flag--critical { background: rgba(239,68,68,0.25); color: #ef4444; }
+.mv-flag-count { color: #fbbf24; font-weight: 500; }
 
 /* ECGs */
-.mv-ecg-item { padding: 3px 0; }
-.mv-ecg-time { color: #94a3b8; }
-.mv-ecg-interp { color: #cbd5e1; }
-.mv-ecg-critical { color: #ef4444; font-weight: 700; }
+.mv-ecg-item { display: flex; align-items: center; gap: 10px; padding: 5px 0; flex-wrap: wrap; }
+.mv-ecg-item--critical { background: rgba(239,68,68,0.06); border-radius: 6px; padding: 5px 8px; margin: 2px 0; }
+.mv-ecg-time { color: #94a3b8; font-size: .82rem; min-width: 60px; }
+.mv-ecg-rate { font-weight: 600; font-size: .88rem; }
+.mv-ecg-interp { color: #cbd5e1; font-size: .82rem; }
+.mv-ecg-critical { color: #ef4444; font-weight: 700; font-size: .82rem; }
+
+/* Medications chips */
+.mv-med-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.mv-med-chip { font-size: .78rem; padding: 3px 10px; border-radius: 14px; background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.2); color: #67e8f9; }
 
 /* Notes */
-.mv-notes-text { white-space: pre-wrap; margin-top: 4px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: .82rem; line-height: 1.5; }
+.mv-notes-text { white-space: pre-wrap; margin-top: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: .82rem; line-height: 1.55; border: 1px solid rgba(255,255,255,0.05); }
 
-/* Meds */
-.mv-meds { margin: 6px 0; }
+/* Outcome */
+.mv-outcome { display: flex; flex-wrap: wrap; gap: 12px; }
+.mv-outcome-item { flex: 1; min-width: 200px; }
+.mv-outcome-item strong { display: inline; margin-right: 4px; }
 
-.mv-delete-btn { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: .78rem; margin-top: 8px; }
+/* Card actions */
+.mv-card-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+.mv-edit-btn { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25); color: #818cf8; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: .78rem; }
+.mv-edit-btn:hover { background: rgba(99,102,241,0.25); }
+.mv-delete-btn { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: .78rem; }
 .mv-delete-btn:hover { background: rgba(239,68,68,0.25); }
 
-/* Light theme overrides */
+/* ══════════════════════════════════════════════════════
+   Light theme overrides
+   ══════════════════════════════════════════════════════ */
 [data-theme="light"] .mv-page-header h2 { color: var(--text-dark); }
+[data-theme="light"] .mv-stats-bar { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .mv-stat-total { color: #1e293b; }
+[data-theme="light"] .mv-stat-chip { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .mv-type-chip { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: #475569; }
+[data-theme="light"] .mv-type-chip--active { background: rgba(99,102,241,0.1); color: #4f46e5; }
+[data-theme="light"] .mv-search { background: #fff; border-color: rgba(0,0,0,0.12); }
+[data-theme="light"] .mv-sort-btn { background: #fff; border-color: rgba(0,0,0,0.12); color: #475569; }
 [data-theme="light"] .mv-form { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .mv-fieldset { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .mv-fieldset legend { color: #475569; }
 [data-theme="light"] .mv-form input, [data-theme="light"] .mv-form select, [data-theme="light"] .mv-form textarea { background: #fff; border-color: rgba(0,0,0,0.12); }
 [data-theme="light"] .mv-card { border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .mv-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
 [data-theme="light"] .mv-card-header:hover { background: rgba(0,0,0,0.02); }
 [data-theme="light"] .mv-badge { color: #1e293b; }
 [data-theme="light"] .mv-date { color: #64748b; }
 [data-theme="light"] .mv-facility { color: #334155; }
-[data-theme="light"] .mv-notes-text { background: rgba(0,0,0,0.02); }
+[data-theme="light"] .mv-complaint-preview { color: #64748b; }
+[data-theme="light"] .mv-card-body strong { color: #475569; }
+[data-theme="light"] .mv-detail-tag { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.08); }
+[data-theme="light"] .mv-dx-chip { background: rgba(168,85,247,0.08); color: #7c3aed; }
+[data-theme="light"] .mv-vital-tile { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .mv-vital-label { color: #64748b; }
+[data-theme="light"] .mv-vital-value { color: #1e293b; }
+[data-theme="light"] .mv-notes-text { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.05); }
 [data-theme="light"] .mv-labs-table th { border-bottom-color: rgba(0,0,0,0.1); }
 [data-theme="light"] .mv-labs-table td { border-bottom-color: rgba(0,0,0,0.04); }
 [data-theme="light"] .mv-lab-flagged td { color: #d97706; }
+[data-theme="light"] .mv-flag--low { background: rgba(217,119,6,0.1); color: #d97706; }
+[data-theme="light"] .mv-flag--high { background: rgba(239,68,68,0.1); color: #dc2626; }
+[data-theme="light"] .mv-flag-count { color: #d97706; }
+[data-theme="light"] .mv-ecg-item--critical { background: rgba(239,68,68,0.04); }
+[data-theme="light"] .mv-med-chip { background: rgba(20,184,166,0.08); color: #0d9488; border-color: rgba(20,184,166,0.2); }
+[data-theme="light"] .mv-section { border-top-color: rgba(0,0,0,0.06); }
+[data-theme="light"] .mv-card-actions { border-top-color: rgba(0,0,0,0.06); }
