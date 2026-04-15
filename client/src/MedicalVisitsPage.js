@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import './MedicalVisitsPage.css';
 import API_BASE from './apiBase';
 import { authFetch } from './auth';
@@ -44,6 +44,18 @@ function MedicalVisitsPage({ token }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...BLANK_FORM });
   const [saving, setSaving] = useState(false);
+
+  /* Upload staging */
+  const [showUpload, setShowUpload] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const [parsedVisits, setParsedVisits] = useState([]);
+  const [selectedParsed, setSelectedParsed] = useState(new Set());
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+  const dropRef = useRef(null);
 
   /* Filters */
   const [typeFilter, setTypeFilter] = useState('all');
@@ -192,6 +204,127 @@ function MedicalVisitsPage({ token }) {
     else setExpandedVisits(new Set(filtered.map(v => v.id)));
   };
 
+  /* ── Upload staging helpers ── */
+  const ACCEPTED_EXTENSIONS = ['.pdf', '.txt', '.csv', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.docx'];
+  const isAcceptedFile = (file) => {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    return ACCEPTED_EXTENSIONS.includes(ext);
+  };
+
+  const addFiles = (fileList) => {
+    const newFiles = Array.from(fileList).filter(isAcceptedFile);
+    if (newFiles.length === 0) return;
+    setStagedFiles(prev => {
+      const existing = new Set(prev.map(f => f.name + f.size));
+      const deduped = newFiles.filter(f => !existing.has(f.name + f.size));
+      return [...prev, ...deduped];
+    });
+    setUploadError('');
+    setParsedVisits([]);
+    setSelectedParsed(new Set());
+  };
+
+  const removeStaged = (idx) => {
+    setStagedFiles(prev => prev.filter((_, i) => i !== idx));
+    setParsedVisits([]);
+  };
+
+  const clearUpload = () => {
+    setStagedFiles([]);
+    setParsedVisits([]);
+    setSelectedParsed(new Set());
+    setUploadError('');
+    setUploadProgress('');
+    setShowUpload(false);
+  };
+
+  /* Drag and drop */
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add('mv-drop-active'); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.remove('mv-drop-active'); };
+  const handleDrop = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    e.currentTarget.classList.remove('mv-drop-active');
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+  };
+
+  /* Process staged files with AI */
+  const processFiles = async () => {
+    if (stagedFiles.length === 0) return;
+    setUploading(true);
+    setUploadError('');
+    setUploadProgress('Uploading files…');
+    setParsedVisits([]);
+
+    const formData = new FormData();
+    for (const file of stagedFiles) formData.append('files', file);
+
+    try {
+      setUploadProgress('Sending to AI for analysis…');
+      const res = await authFetch(`${API_BASE}/api/medical-visits/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Upload failed');
+
+      if (json.visits && json.visits.length > 0) {
+        setParsedVisits(json.visits);
+        setSelectedParsed(new Set(json.visits.map((_, i) => i)));
+        setUploadProgress(`AI found ${json.visits.length} visit${json.visits.length !== 1 ? 's' : ''} in ${json.fileCount} file${json.fileCount !== 1 ? 's' : ''}`);
+      } else {
+        setUploadProgress('');
+        setUploadError(json.message || 'No visits found in uploaded files.');
+      }
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed');
+      setUploadProgress('');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* Toggle a parsed visit selection */
+  const toggleParsedSelect = (idx) => setSelectedParsed(prev => {
+    const n = new Set(prev); n.has(idx) ? n.delete(idx) : n.add(idx); return n;
+  });
+
+  /* Import selected parsed visits */
+  const importParsedVisits = async () => {
+    const toImport = parsedVisits.filter((_, i) => selectedParsed.has(i));
+    if (toImport.length === 0) return;
+    setImporting(true);
+    let imported = 0;
+    for (const v of toImport) {
+      try {
+        await authFetch(`${API_BASE}/api/medical-visits`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: v.date === 'unknown' ? new Date().toISOString().slice(0, 10) : v.date,
+            visit_type: v.visit_type,
+            facility: v.facility,
+            provider: v.provider,
+            specialty: v.specialty,
+            chief_complaint: v.chief_complaint,
+            diagnoses_json: v.diagnoses || [],
+            vitals_json: v.vitals,
+            labs_json: v.labs,
+            ecgs_json: v.ecgs,
+            medications_json: v.medications,
+            notes: v.notes,
+            disposition: v.disposition,
+            follow_up: v.follow_up,
+          }),
+        });
+        imported++;
+      } catch (_) {}
+    }
+    setImporting(false);
+    clearUpload();
+    fetchVisits();
+  };
+
   if (!token) return <div style={{ padding: '20px', textAlign: 'center' }}>Please log in</div>;
 
   return (
@@ -205,7 +338,10 @@ function MedicalVisitsPage({ token }) {
               {allExpanded ? '⊟ Collapse All' : '⊞ Expand All'}
             </button>
           )}
-          <button className="mv-add-btn" onClick={showForm ? cancelForm : openNewForm}>
+          <button className="mv-upload-btn" onClick={() => { setShowUpload(v => !v); if (showForm) cancelForm(); }}>
+            {showUpload ? '✕ Close Upload' : '📄 Upload Docs'}
+          </button>
+          <button className="mv-add-btn" onClick={() => { if (showForm) cancelForm(); else { openNewForm(); setShowUpload(false); } }}>
             {showForm ? '✕ Cancel' : '+ Add Visit'}
           </button>
         </div>
@@ -220,6 +356,138 @@ function MedicalVisitsPage({ token }) {
               {t.emoji} {stats.byType[t.id]}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* ── Upload staging area ── */}
+      {showUpload && (
+        <div className="mv-upload-panel">
+          <div className="mv-upload-title">📄 Upload Doctor Visit Documents</div>
+          <p className="mv-upload-desc">
+            Upload PDFs, images, or text files from MyChart, discharge summaries, lab results, etc. AI will parse them into structured visits.
+          </p>
+
+          {/* Drop zone */}
+          <div
+            ref={dropRef}
+            className="mv-drop-zone"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.txt,.csv,.png,.jpg,.jpeg,.webp,.gif,.docx"
+              style={{ display: 'none' }}
+              onChange={e => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ''; }}
+            />
+            <div className="mv-drop-icon">📁</div>
+            <div className="mv-drop-text">
+              Drag & drop files here, or <span className="mv-drop-browse">browse</span>
+            </div>
+            <div className="mv-drop-hint">PDF, TXT, CSV, PNG, JPG, DOCX — up to 10 files, 20MB each</div>
+          </div>
+
+          {/* Staged files list */}
+          {stagedFiles.length > 0 && (
+            <div className="mv-staged-files">
+              <div className="mv-staged-header">
+                <span>{stagedFiles.length} file{stagedFiles.length !== 1 ? 's' : ''} staged</span>
+                <button className="mv-staged-clear" onClick={() => { setStagedFiles([]); setParsedVisits([]); setSelectedParsed(new Set()); }}>
+                  Clear all
+                </button>
+              </div>
+              {stagedFiles.map((f, i) => (
+                <div key={i} className="mv-staged-file">
+                  <span className="mv-staged-file-icon">
+                    {f.type?.startsWith('image/') ? '🖼️' : f.name.endsWith('.pdf') ? '📕' : '📄'}
+                  </span>
+                  <span className="mv-staged-file-name">{f.name}</span>
+                  <span className="mv-staged-file-size">{(f.size / 1024).toFixed(0)} KB</span>
+                  <button className="mv-staged-file-remove" onClick={() => removeStaged(i)}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Process button */}
+          {stagedFiles.length > 0 && parsedVisits.length === 0 && (
+            <button className="mv-process-btn" onClick={processFiles} disabled={uploading}>
+              {uploading ? (
+                <><span className="mv-spinner" /> {uploadProgress || 'Processing…'}</>
+              ) : (
+                `🤖 Analyze ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''} with AI`
+              )}
+            </button>
+          )}
+
+          {/* Error */}
+          {uploadError && <div className="mv-upload-error">❌ {uploadError}</div>}
+
+          {/* Progress */}
+          {uploadProgress && parsedVisits.length > 0 && (
+            <div className="mv-upload-success">✅ {uploadProgress}</div>
+          )}
+
+          {/* Parsed visit preview cards */}
+          {parsedVisits.length > 0 && (
+            <div className="mv-parsed-results">
+              <div className="mv-parsed-header">
+                <span>Review parsed visits — uncheck any you don't want to import</span>
+                <div className="mv-parsed-actions">
+                  <button className="mv-parsed-select-all" onClick={() => {
+                    if (selectedParsed.size === parsedVisits.length) setSelectedParsed(new Set());
+                    else setSelectedParsed(new Set(parsedVisits.map((_, i) => i)));
+                  }}>
+                    {selectedParsed.size === parsedVisits.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+              </div>
+
+              {parsedVisits.map((pv, idx) => {
+                const selected = selectedParsed.has(idx);
+                const tInfo = typeMap[pv.visit_type] || { emoji: '📋', label: pv.visit_type, color: '#94a3b8' };
+                return (
+                  <div key={idx} className={`mv-parsed-card ${selected ? 'mv-parsed-card--selected' : ''}`}
+                    onClick={() => toggleParsedSelect(idx)}>
+                    <div className="mv-parsed-check">
+                      <input type="checkbox" checked={selected} onChange={() => toggleParsedSelect(idx)} />
+                    </div>
+                    <div className="mv-parsed-body">
+                      <div className="mv-parsed-top">
+                        <span className="mv-badge" style={{ color: tInfo.color }}>{tInfo.emoji} {tInfo.label}</span>
+                        <span className="mv-date">{pv.date === 'unknown' ? '⚠️ Unknown date' : fmtDate(pv.date)}</span>
+                        {pv.facility && <span className="mv-facility">{pv.facility}</span>}
+                      </div>
+                      {pv.provider && <div className="mv-parsed-detail">👩‍⚕️ {pv.provider}{pv.specialty ? ` (${pv.specialty})` : ''}</div>}
+                      {pv.chief_complaint && <div className="mv-parsed-detail">💬 {pv.chief_complaint}</div>}
+                      {pv.diagnoses?.length > 0 && (
+                        <div className="mv-parsed-detail">🏷️ {pv.diagnoses.join(', ')}</div>
+                      )}
+                      <div className="mv-parsed-meta">
+                        {pv.vitals && <span className="mv-parsed-meta-tag">Vitals</span>}
+                        {pv.labs?.length > 0 && <span className="mv-parsed-meta-tag">{pv.labs.length} labs</span>}
+                        {pv.ecgs?.length > 0 && <span className="mv-parsed-meta-tag">{pv.ecgs.length} ECGs</span>}
+                        {pv.medications?.length > 0 && <span className="mv-parsed-meta-tag">{pv.medications.length} meds</span>}
+                        {pv.notes && <span className="mv-parsed-meta-tag">Notes</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="mv-parsed-import-bar">
+                <button className="mv-import-btn" onClick={importParsedVisits} disabled={importing || selectedParsed.size === 0}>
+                  {importing ? <><span className="mv-spinner" /> Importing…</> :
+                    `Import ${selectedParsed.size} visit${selectedParsed.size !== 1 ? 's' : ''}`}
+                </button>
+                <button className="mv-cancel-btn" onClick={clearUpload}>Cancel</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

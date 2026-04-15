@@ -1,8 +1,130 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const Anthropic = require('@anthropic-ai/sdk').default;
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
+
+/* ── Multer setup — store in server/uploads, limit 20MB per file, max 10 files ── */
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+  },
+});
+
+const ALLOWED_TYPES = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+const ALLOWED_EXTS = new Set(['.pdf', '.txt', '.csv', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.docx']);
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024, files: 10 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_TYPES.has(file.mimetype) || ALLOWED_EXTS.has(ext)) return cb(null, true);
+    cb(new Error(`File type not allowed: ${file.mimetype} / ${ext}`));
+  },
+});
+
+/* ── PDF text extraction ── */
+let pdfParse;
+try { pdfParse = require('pdf-parse'); } catch { pdfParse = null; }
+
+async function extractText(filePath, mime) {
+  if (mime === 'application/pdf' && pdfParse) {
+    const buf = fs.readFileSync(filePath);
+    const data = await pdfParse(buf);
+    return data.text || '';
+  }
+  if (mime.startsWith('text/') || mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return fs.readFileSync(filePath, 'utf8');
+  }
+  return null; // images handled separately via vision
+}
+
+/* ── Claude AI visit parser ── */
+const SYSTEM_PROMPT = `You are a medical document parser. Given text or images from doctor visit records (MyChart PDFs, discharge summaries, lab results, clinical notes, etc.), extract ALL medical visits found and return a JSON array.
+
+Each visit object must have this exact shape:
+{
+  "date": "YYYY-MM-DD",
+  "visit_type": "er" | "doctor" | "specialist" | "urgent_care" | "telehealth",
+  "facility": "string or null",
+  "provider": "string or null",
+  "specialty": "string or null",
+  "chief_complaint": "string or null",
+  "diagnoses": ["array of diagnosis strings"],
+  "vitals": {"BP": "...", "HR": "...", "Resp": "...", "SpO2": "...", "Temp": "...", "Weight": "..."} or null,
+  "labs": [{"name": "...", "value": "...", "range": "...", "flag": "LOW"|"HIGH"|"CRITICAL"|""}] or null,
+  "ecgs": [{"time": "...", "rate": number, "interpretation": "...", "critical": boolean}] or null,
+  "medications": ["med strings"] or null,
+  "notes": "clinical narrative string or null",
+  "disposition": "string or null",
+  "follow_up": "string or null"
+}
+
+Rules:
+- If a document contains multiple visits, return each as a separate object.
+- If it's just lab results without a clear visit, still create a visit entry with the date and labs.
+- Use the most specific visit_type you can determine from context.
+- For labs, always include name, value, reference range, and flag (LOW/HIGH/CRITICAL or empty string for normal).
+- For vitals, only include those actually mentioned.
+- Keep notes concise but include key clinical details.
+- If you can't determine a date, use "unknown" and the user will fix it.
+- Return ONLY the JSON array, no markdown fencing, no explanation.`;
+
+async function parseWithClaude(texts, imageFiles) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+  const client = new Anthropic({ apiKey });
+
+  const content = [];
+
+  // Add text content
+  for (const { filename, text } of texts) {
+    content.push({ type: 'text', text: `--- Document: ${filename} ---\n${text}` });
+  }
+
+  // Add images via vision
+  for (const img of imageFiles) {
+    const buf = fs.readFileSync(img.path);
+    const base64 = buf.toString('base64');
+    const mediaType = img.mimetype.startsWith('image/') ? img.mimetype : 'image/png';
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: mediaType, data: base64 },
+    });
+    content.push({ type: 'text', text: `(Image: ${img.originalname})` });
+  }
+
+  if (content.length === 0) throw new Error('No processable content found in uploaded files');
+
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 8192,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content }],
+  });
+
+  const raw = msg.content?.[0]?.text || '[]';
+  // Strip markdown fencing if present
+  const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  return JSON.parse(cleaned);
+}
 
 // GET /api/medical-visits — list all visits for user
 router.get('/', authenticate, async (req, res) => {
@@ -98,6 +220,84 @@ router.get('/shared/:shareToken', async (req, res) => {
   } catch (err) {
     console.error('medical-visits shared GET error:', err);
     res.status(500).json({ error: 'server error' });
+  }
+});
+
+// POST /api/medical-visits/upload — upload files, AI parse into visits
+router.post('/upload', authenticate, upload.array('files', 10), async (req, res) => {
+  const uploadedPaths = [];
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    // Track files for cleanup
+    for (const f of req.files) uploadedPaths.push(f.path);
+
+    // Separate text-extractable files from images
+    const texts = [];
+    const images = [];
+    for (const file of req.files) {
+      const mime = file.mimetype || '';
+      if (mime.startsWith('image/')) {
+        images.push(file);
+      } else {
+        const text = await extractText(file.path, mime);
+        if (text && text.trim().length > 0) {
+          texts.push({ filename: file.originalname, text: text.slice(0, 50000) }); // limit per doc
+        } else {
+          // If text extraction fails, try as image (e.g. scanned PDFs)
+          images.push(file);
+        }
+      }
+    }
+
+    if (texts.length === 0 && images.length === 0) {
+      return res.status(400).json({ error: 'Could not extract any content from uploaded files' });
+    }
+
+    const visits = await parseWithClaude(texts, images);
+
+    if (!Array.isArray(visits) || visits.length === 0) {
+      return res.json({ visits: [], message: 'AI could not identify any visits in the uploaded documents.' });
+    }
+
+    // Normalize and sanitize each parsed visit
+    const sanitized = visits.map(v => ({
+      date: String(v.date || 'unknown'),
+      visit_type: ['er', 'doctor', 'specialist', 'urgent_care', 'telehealth'].includes(v.visit_type) ? v.visit_type : 'doctor',
+      facility: v.facility || null,
+      provider: v.provider || null,
+      specialty: v.specialty || null,
+      chief_complaint: v.chief_complaint || null,
+      diagnoses: Array.isArray(v.diagnoses) ? v.diagnoses : [],
+      vitals: v.vitals && typeof v.vitals === 'object' ? v.vitals : null,
+      labs: Array.isArray(v.labs) ? v.labs.map(l => ({
+        name: String(l.name || ''),
+        value: String(l.value ?? ''),
+        range: String(l.range || ''),
+        flag: ['LOW', 'HIGH', 'CRITICAL'].includes(String(l.flag || '').toUpperCase()) ? String(l.flag).toUpperCase() : '',
+      })) : null,
+      ecgs: Array.isArray(v.ecgs) ? v.ecgs : null,
+      medications: Array.isArray(v.medications) ? v.medications : null,
+      notes: v.notes || null,
+      disposition: v.disposition || null,
+      follow_up: v.follow_up || null,
+    }));
+
+    res.json({ visits: sanitized, fileCount: req.files.length });
+  } catch (err) {
+    console.error('medical-visits upload/parse error:', err);
+    const msg = err.message || 'server error';
+    if (msg.includes('ANTHROPIC_API_KEY')) {
+      return res.status(500).json({ error: 'AI service not configured. Set ANTHROPIC_API_KEY on the server.' });
+    }
+    res.status(500).json({ error: `AI parsing failed: ${msg}` });
+  } finally {
+    // Clean up uploaded files
+    for (const p of uploadedPaths) {
+      try { fs.unlinkSync(p); } catch (_) {}
+    }
   }
 });
 
