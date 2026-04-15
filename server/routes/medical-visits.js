@@ -2,7 +2,6 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const Anthropic = require('@anthropic-ai/sdk').default;
 const db = require('../db');
 const { authenticate } = require('../middleware/auth');
 
@@ -66,7 +65,7 @@ async function extractText(filePath, mime) {
   return null; // images handled separately via vision
 }
 
-/* ── Claude AI visit parser ── */
+/* ── Gemini AI visit parser (free tier) ── */
 const SYSTEM_PROMPT = `You are a medical document parser. Given text or images from doctor visit records (MyChart PDFs, discharge summaries, lab results, clinical notes, etc.), extract ALL medical visits found and return a JSON array.
 
 Each visit object must have this exact shape:
@@ -97,41 +96,53 @@ Rules:
 - If you can't determine a date, use "unknown" and the user will fix it.
 - Return ONLY the JSON array, no markdown fencing, no explanation.`;
 
-async function parseWithClaude(texts, imageFiles) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+async function parseWithAI(texts, imageFiles) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
-  const client = new Anthropic({ apiKey });
+  const parts = [];
 
-  const content = [];
+  // System instruction as first text part
+  parts.push({ text: SYSTEM_PROMPT });
 
   // Add text content
   for (const { filename, text } of texts) {
-    content.push({ type: 'text', text: `--- Document: ${filename} ---\n${text}` });
+    parts.push({ text: `--- Document: ${filename} ---\n${text}` });
   }
 
-  // Add images via vision
+  // Add images via inline_data
   for (const img of imageFiles) {
     const buf = fs.readFileSync(img.path);
     const base64 = buf.toString('base64');
-    const mediaType = img.mimetype.startsWith('image/') ? img.mimetype : 'image/png';
-    content.push({
-      type: 'image',
-      source: { type: 'base64', media_type: mediaType, data: base64 },
-    });
-    content.push({ type: 'text', text: `(Image: ${img.originalname})` });
+    const mimeType = img.mimetype.startsWith('image/') ? img.mimetype : 'image/png';
+    parts.push({ inline_data: { mime_type: mimeType, data: base64 } });
+    parts.push({ text: `(Image: ${img.originalname})` });
   }
 
-  if (content.length === 0) throw new Error('No processable content found in uploaded files');
+  if (parts.length <= 1) throw new Error('No processable content found in uploaded files');
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 8192,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content }],
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
+      maxOutputTokens: 8192,
+      temperature: 0.1,
+    },
+  };
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
 
-  const raw = msg.content?.[0]?.text || '[]';
+  if (!resp.ok) {
+    const errBody = await resp.text();
+    throw new Error(`Gemini API error ${resp.status}: ${errBody.slice(0, 200)}`);
+  }
+
+  const json = await resp.json();
+  const raw = json.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
   // Strip markdown fencing if present
   const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
   return JSON.parse(cleaned);
@@ -267,7 +278,7 @@ router.post('/upload', authenticate, upload.array('files', 10), async (req, res)
       return res.status(400).json({ error: 'Could not extract any content from uploaded files' });
     }
 
-    const visits = await parseWithClaude(texts, images);
+    const visits = await parseWithAI(texts, images);
 
     if (!Array.isArray(visits) || visits.length === 0) {
       return res.json({ visits: [], message: 'AI could not identify any visits in the uploaded documents.' });
@@ -300,8 +311,8 @@ router.post('/upload', authenticate, upload.array('files', 10), async (req, res)
   } catch (err) {
     console.error('medical-visits upload/parse error:', err);
     const msg = err.message || 'server error';
-    if (msg.includes('ANTHROPIC_API_KEY')) {
-      return res.status(500).json({ error: 'AI service not configured. Set ANTHROPIC_API_KEY on the server.' });
+    if (msg.includes('GEMINI_API_KEY')) {
+      return res.status(500).json({ error: 'AI service not configured. Set GEMINI_API_KEY on the server.' });
     }
     res.status(500).json({ error: `AI parsing failed: ${msg}` });
   } finally {
