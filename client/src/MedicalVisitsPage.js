@@ -252,19 +252,40 @@ function MedicalVisitsPage({ token }) {
     if (stagedFiles.length === 0) return;
     setUploading(true);
     setUploadError('');
-    setUploadProgress('Uploading files…');
+    setUploadProgress('Waking up server…');
     setParsedVisits([]);
+
+    /* Wake the Render free-tier server (cold starts take ~30s) */
+    try {
+      const wake = await fetch(`${API_BASE}/api/diag`, { credentials: 'include' });
+      if (!wake.ok) throw new Error('Server unreachable');
+    } catch (e) {
+      /* retry once after 5s */
+      setUploadProgress('Server waking up, please wait…');
+      await new Promise(r => setTimeout(r, 5000));
+      try {
+        await fetch(`${API_BASE}/api/diag`, { credentials: 'include' });
+      } catch (_) {
+        setUploadError('Server is unreachable. Try again in 30 seconds.');
+        setUploading(false);
+        return;
+      }
+    }
 
     const formData = new FormData();
     for (const file of stagedFiles) formData.append('files', file);
 
     try {
-      setUploadProgress('Sending to AI for analysis…');
+      setUploadProgress('Uploading files & analyzing with AI… (this may take 30–60s)');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000); /* 2 min timeout */
       const res = await authFetch(`${API_BASE}/api/medical-visits/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Upload failed');
 
@@ -277,7 +298,13 @@ function MedicalVisitsPage({ token }) {
         setUploadError(json.message || 'No visits found in uploaded files.');
       }
     } catch (err) {
-      setUploadError(err.message || 'Upload failed');
+      if (err.name === 'AbortError') {
+        setUploadError('Request timed out. The server may be overloaded — try again.');
+      } else if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
+        setUploadError('Network error — server may still be starting. Wait 30s and try again.');
+      } else {
+        setUploadError(err.message || 'Upload failed');
+      }
       setUploadProgress('');
     } finally {
       setUploading(false);
